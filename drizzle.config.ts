@@ -9,9 +9,21 @@
  *
  * Requires the env var DATABASE_URL_DIRECT (see `.env.example`). It is never
  * committed.
+ *
+ * `drizzle-kit` does not load `.env` by itself, so we load it here (Node 20.12+).
+ * This is what makes `npm run db:migrate` work from a local `.env` with no extra
+ * setup. The app runtime uses `DATABASE_URL` (see `src/infra/persistence/client.ts`).
  */
 
+import { existsSync } from "node:fs";
+
 import { defineConfig } from "drizzle-kit";
+
+// Load local secrets without ever printing them. Missing file is fine (CI can
+// supply real environment variables instead).
+if (existsSync(".env")) {
+  process.loadEnvFile(".env");
+}
 
 export default defineConfig({
   schema: "./src/infra/persistence/schema.ts",
