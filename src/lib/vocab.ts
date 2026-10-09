@@ -44,6 +44,34 @@ export function checkText(decision: AuthorizationDecision, reasonCode: ReasonCod
   }
 }
 
+/** Short noun phrase for a reason code — for dense registers (the Record). */
+export function reasonPhrase(reasonCode: ReasonCode): string {
+  switch (reasonCode) {
+    case "APPROVAL_REQUIRED":
+      return "new payee";
+    case "PER_PURCHASE_LIMIT_EXCEEDED":
+      return "above the line";
+    case "MONTHLY_CAP_EXCEEDED":
+      return "monthly cap";
+    case "CATEGORY_NOT_PERMITTED":
+      return "category not permitted";
+    case "CURRENCY_MISMATCH":
+      return "currency mismatch";
+    case "INVALID_AMOUNT":
+      return "invalid amount";
+    case "INVALID_REQUEST":
+      return "invalid request";
+    case "INVALID_RULES":
+      return "rules unreadable";
+    case "INVALID_STATE":
+      return "state unreadable";
+    case "WITHIN_LIMITS":
+      return "within limits";
+    default:
+      return "denied";
+  }
+}
+
 /** Fallback when a record has no recorded evaluation yet. */
 export function checkTextForStatus(status: RequestStatus): string {
   switch (status) {

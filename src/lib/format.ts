@@ -50,3 +50,21 @@ export function fmtWhen(iso: string): string {
 export function displayId(id: string): string {
   return id.startsWith("#") ? id : `#${id}`;
 }
+
+/** Dense id → short register form, e.g. "#517e0b6b". */
+export function shortId(id: string): string {
+  const bare = id.startsWith("#") ? id.slice(1) : id;
+  return `#${bare.slice(0, 8)}`;
+}
+
+/** Provider reference → short form, e.g. "0YK41054…". */
+export function shortRef(ref: string): string {
+  return ref.length > 10 ? `${ref.slice(0, 8)}…` : ref;
+}
+
+/** Fingerprint → short form, e.g. "9c2d…e481". */
+export function shortFingerprint(fingerprint: string): string {
+  return fingerprint.length > 12
+    ? `${fingerprint.slice(0, 4)}…${fingerprint.slice(-4)}`
+    : fingerprint;
+}

@@ -566,3 +566,32 @@ were used).
     `6D377252179999139`) is also in the ledger. Suite **161 passing**; typecheck
     clean. Supabase Auth (`SUPABASE_URL` + anon key) is the only thing still
     blocking the sign-in slice.
+- **Update (slices 4–5 — the Record and the Statute, live).** The two remaining
+  placeholder screens now render from the store, ported from their approved
+  comps:
+  - **Record** (`/record`) — the audit register. One row per request, newest
+    first, with a decision trail rebuilt from that record's own evaluations
+    (proposal verdict → what the owner did → where it landed), the current
+    standing chip, the amount, and proof (capture ref when a `CAPTURE_VERIFIED`
+    event exists, plus the short fingerprint). A live integrity strip states the
+    hard cap, that counting is from verified captures only, that the engine takes
+    no approvals from the model, and that rows are written once. Totals foot the
+    register (requests · outstanding; captured · reserved · cap · headroom).
+  - **Statute** (`/statute`) — the rule set. Eight clauses with the **live**
+    values (rule version, currency, the permitted-category list, the cap, the
+    per-purchase line, whether the new-payee rule is on), the fixed decision
+    order, and "strictest wins: DENY > ASK > ALLOW". When no rule set is
+    configured it renders the fail-closed notice instead of inventing rules.
+  - Added a single bulk ledger read (`PurchaseService.allEvents()`,
+    `SpendingStore.list()`) so the register reads all events in one query rather
+    than per row. Shared display helpers `shortId` / `shortRef` /
+    `shortFingerprint` (`lib/format.ts`) and `reasonPhrase` (`lib/vocab.ts`); the
+    request-detail page now uses the shared `shortRef`.
+  - **Observed live:** `/record` rendered **7 requests** with real capture refs
+    (`0YK41054…`, `6D377252…`) and the correct posture (`captured 42.00 ·
+    reserved 124.00 · cap 100.00 · headroom 0.00`); `/statute` rendered rule set
+    `owner-1` (USD · auto-allow 50.00 · cap 100.00 · 8 categories · new payee →
+    ask). Suite **162 passing**; typecheck clean.
+  - Note: the dev server was cycling `500`s from the **known Supabase session-pool
+    ceiling** (`EMAXCONNSESSION`, pool_size 15) accumulated by a long-lived HMR
+    process — not a page defect; a fresh server cleared it.

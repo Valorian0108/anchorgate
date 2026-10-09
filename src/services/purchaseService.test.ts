@@ -303,3 +303,28 @@ describe("PurchaseService payment", () => {
     await expect(harness.service.pay("does-not-exist")).rejects.toThrow(/does-not-exist/);
   });
 });
+
+describe("PurchaseService ledger reads", () => {
+  it("returns every event oldest-first, and one request's events alone", async () => {
+    const harness = makeHarness({ outcomes: [captured(500)] });
+    await seed(harness, { amountMinor: 500 }); // ALLOW -> AUTHORIZED, no approval needed
+    await harness.service.pay("req-1");
+
+    const all = await harness.service.allEvents();
+    expect(all.length).toBeGreaterThan(0);
+    expect(
+      all.some((e) => e.kind === "CAPTURE_VERIFIED" && e.requestId === "req-1"),
+    ).toBe(true);
+
+    // Oldest first: the ISO timestamps are non-decreasing.
+    const times = all.map((e) => e.occurredAt);
+    expect(times).toEqual([...times].sort());
+
+    const forRequest = await harness.service.eventsByRequest("req-1");
+    expect(forRequest.length).toBeGreaterThan(0);
+    expect(forRequest.every((e) => e.requestId === "req-1")).toBe(true);
+
+    // A request that was never filed has no events.
+    expect(await harness.service.eventsByRequest("nope")).toHaveLength(0);
+  });
+});

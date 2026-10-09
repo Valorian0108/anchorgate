@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { approveAndPayRequest, declineRequest, payRequest, reconcileRequest } from "./actions";
-import { displayId, fmtClock, money } from "@/lib/format";
+import { displayId, fmtClock, money, shortRef } from "@/lib/format";
 import { getService } from "@/lib/service";
 import { chipFor, isReserved, latestEvaluation, reasonSlug } from "@/lib/vocab";
 import type { ReasonCode } from "@/core/authorization";
@@ -252,7 +252,7 @@ export default async function RequestDetailPage({
               <div className="frow">
                 <span className="k">capture ref</span>
                 <span className="v num">
-                  <span className="fp">{truncateRef(captureRefEvent.providerRef ?? captureRefEvent.id)}</span>{" "}
+                  <span className="fp">{shortRef(captureRefEvent.providerRef ?? captureRefEvent.id)}</span>{" "}
                   <span className="fp">(PayPal{captureEvent ? "" : " · pending"} · full in the Record)</span>
                 </span>
               </div>
@@ -369,7 +369,7 @@ export default async function RequestDetailPage({
               <div className="what">Capturing — settling with the provider.</div>
               <div className="rows">
                 <div className="pl num"><span>initiated</span><b>{pendingEvent ? fmtClock(pendingEvent.occurredAt) : "—"}</b></div>
-                <div className="pl num"><span>capture ref</span><b className="hl">{pendingEvent?.providerRef ? truncateRef(pendingEvent.providerRef) : "—"}</b></div>
+                <div className="pl num"><span>capture ref</span><b className="hl">{pendingEvent?.providerRef ? shortRef(pendingEvent.providerRef) : "—"}</b></div>
                 <div className="pl num"><span>counted</span><b>nothing yet — not until it settles</b></div>
               </div>
               <form action={reconcileRequest}>
@@ -473,7 +473,7 @@ export default async function RequestDetailPage({
             <div className="sv cap">
               counted exactly once
               <time>
-                {fmtClock(captureEvent.occurredAt)} · <span className="ref">ref {truncateRef(captureEvent.providerRef ?? captureEvent.id)}</span>
+                {fmtClock(captureEvent.occurredAt)} · <span className="ref">ref {shortRef(captureEvent.providerRef ?? captureEvent.id)}</span>
               </time>
             </div>
           </div>
@@ -535,8 +535,4 @@ function stateWordLine(status: RequestStatus): string {
     case "REJECTED": return "rejected";
     case "DENIED": return "closed";
   }
-}
-
-function truncateRef(ref: string): string {
-  return ref.length > 10 ? `${ref.slice(0, 8)}…` : ref;
 }

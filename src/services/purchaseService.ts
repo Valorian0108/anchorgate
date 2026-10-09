@@ -167,6 +167,11 @@ export class PurchaseService {
     return this.deps.spending.listByRequest(requestId);
   }
 
+  /** Every ledger event, oldest first — read once by the audit register. */
+  async allEvents(): Promise<SpendingEvent[]> {
+    return this.deps.spending.list();
+  }
+
   /**
    * Execute an approved/authorized request through the payment gateway.
    *
