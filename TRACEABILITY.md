@@ -68,7 +68,7 @@ the application's `DATABASE_URL` and confirms the migrated schema.
 | D3 | Capture verification & status persistence (§11.3) | `core/execution/execute.ts` (receipt amount/currency verified; capture recorded via ledger) + `infra/paypal/gateway.ts` extracts the provider receipt | `execute.test.ts`, `gateway.test.ts` | Done (live card capture verified & counted once) |
 | D4 | Failure/timeout handling without duplicate payment (§10, §11.3) | `core/execution/execute.ts` (FAILED/PENDING record nothing; idempotent by provider capture id) + `gateway.ts` (idempotent `paypalRequestId`; duplicate capture recovered; provider errors fail safe) | `execute.test.ts`, `gateway.test.ts` | Partial (duplicate capture handled live; explicit retry/timeout policy still to be exercised against the live provider) |
 | D5 | Secrets server-side; never in browser/logs/commits (§6.2, §15) | `infra/paypal/config.ts` refuses non-Sandbox; env read by app layer only; vault token stored server-side; `.gitignore` | `gateway.test.ts`, `vault.test.ts`; live run printed no secrets | Done |
-| D6 | Integration path chosen (Orders API vs MCP vs Agent Toolkit) (§6.4) | Chosen: **Agent Toolkit (TypeScript) + Vercel AI SDK** (`OPEN-DECISIONS.md`); execution via the underlying server SDK | — | Done (decision; agent wiring pending) |
+| D6 | Integration path chosen (Orders API vs MCP vs Agent Toolkit) (§6.4) | Chosen: **Vercel AI SDK + an OpenAI-compatible provider** (`OPEN-DECISIONS.md`); PayPal execution stays in the underlying server SDK, behind the authorizer | `agent.test.ts` (agent has no payment tool) | Done (agent wired; execution via server SDK) |
 | D7 | Allow the agent to pay without a human present (§7, §8) | `infra/paypal/vault.ts` (setup token → approval URL → payment token; card enrollment server-side) | `vault.test.ts`; live run via `scripts/sandbox-verify.ts` | Done (live vault enrollment + authorizer-gated capture) |
 | D8 | Vaulted payment method stored durably, server-side only (§2.8, §9) | `core/payments/*`, `infra/persistence/paymentMethodStore.ts` (`DrizzlePaymentMethodStore`), `saved_payment_methods` table (UNIQUE provider token, `source_type`) | `persistence.test.ts` | Done |
 | D9 | A pending (unsettled) capture is never counted, and can be reconciled (§4.10, §5.3) | `core/execution/execute.ts` (`PENDING` outcome, `PENDING_SETTLEMENT` status, `CAPTURE_PENDING` event, `reconcilePendingPurchase`); `spending/types.ts` + `validation.ts`; `infra/paypal/gateway.ts` (`checkCapture`) | `execute.test.ts`, `gateway.test.ts`, `spending` validation | Done (unit); live wallet path observed `PENDING_REVIEW` |
@@ -119,9 +119,15 @@ credentials), so it is not part of `npm test`.
 
 | # | Requirement (source) | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- |
-| E1 | Agent proposes structured purchases; never authorizes (§7) | Not implemented | — | Pending |
-| E2 | Agent cannot bypass authorization or call the provider directly (§7) | Architectural intent only | — | Pending |
-| E3 | AI model/provider/framework chosen (§7, §14) | Not chosen | — | Pending (open decision) |
+| E1 | Agent proposes structured purchases; never authorizes (§7) | `src/agent/*` — `ProposalService` files the request, `propose_purchase` tool, `agent.ts` instructions | `agent.test.ts` | Done |
+| E2 | Agent cannot bypass authorization or call the provider directly (§7) | `src/agent/tools.ts` exposes **exactly one** tool (`propose_purchase`) and no payment tool; the tool calls the deterministic engine and returns its verdict unchanged | `agent.test.ts` (tool-set assertion; decision + persistence) | Done |
+| E3 | AI model/provider/framework chosen (§7, §14) | Framework: **Vercel AI SDK** + `@ai-sdk/openai-compatible`; provider: **Experiential Labs** (OpenAI-compatible gateway). Model id is `AGENT_MODEL` (owner sets it locally) | `agent.test.ts` (config) | Done (framework/provider decided; live model call needs the owner's key) |
+
+**How the AI is used, precisely:** the model only turns a natural-language
+request into a structured `propose_purchase` call. It never sees a payment tool,
+never decides, and never executes. The engine returns `ALLOW` / `ASK` / `DENY`,
+and the model can only report that verdict. A live model call is a manual,
+credential-gated step (`npm run agent`), so it is not part of `npm test`.
 
 ## UI
 
@@ -137,12 +143,13 @@ credentials), so it is not part of `npm test`.
 
 - Location: `src/**/*.test.ts`
 - Runner: Vitest (`npm test`)
-- Current: **132 tests passing** — 23 authorization, 19 lifecycle, 19 spending,
+- Current: **150 tests passing** — 23 authorization, 19 lifecycle, 19 spending,
   14 execution (including pending-capture handling and reconciliation),
   15 persistence (against a real in-process PostgreSQL engine, including a
   close-and-reopen durability test and the card payment-source round-trip),
   11 PayPal money conversion, 19 PayPal gateway (fake port, including card
   bodies, `PENDING`, and `checkCapture`), 6 PayPal vault enrollment (fake port),
-  6 PayPal error description.
+  6 PayPal error description, 18 AI agent (single-tool guarantee, deterministic
+  decisions, fail-safe config).
 
 Update this file whenever a requirement's status changes.

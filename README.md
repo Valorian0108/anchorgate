@@ -14,22 +14,29 @@ allowed.
 
 ## Status
 
-Early development. The **authorization core** (deterministic decision engine),
-the **purchase lifecycle** (approval handling and revalidation), **spending
-accounting** (counts only verified captures, exactly once), **durable
-storage** (PostgreSQL, including the persisted spending rules), the
-**authorization-gated payment execution**, and the **PayPal Sandbox adapter**
-(orders create + capture against a vaulted payment method) are implemented and
-tested. The PayPal path is **live-verified against Sandbox**
-(`npm run sandbox:verify`): a card vault was `ALLOW`ed, captured, and counted
-exactly once. The AI agent and the UI are not built yet. The UI has not been
-designed or approved.
+Early development but functionally complete through the core flow. The
+**authorization core** (deterministic decision engine), the **purchase
+lifecycle** (approval handling and revalidation), **spending accounting**
+(counts only verified captures, exactly once), **durable storage** (PostgreSQL,
+including the persisted spending rules), the **authorization-gated payment
+execution**, and the **PayPal Sandbox adapter** (orders create + capture against
+a vaulted payment method) are implemented and tested. The PayPal path is
+**live-verified against Sandbox** (`npm run sandbox:verify`): a card vault was
+`ALLOW`ed, captured, and counted exactly once.
+
+The **AI agent** (Phase 5) is implemented: it can only *propose* purchases,
+through a single tool named `propose_purchase`, and every proposal is decided by
+the existing deterministic engine. The agent has **no payment tool**. The **UI**
+has not been designed or approved, and is intentionally not built yet.
 
 ## Tech stack
 
 - **Next.js + TypeScript** (full-stack, single repo)
 - **PostgreSQL** (Supabase) with **Drizzle ORM** for durable storage
 - **PayPal Server SDK** (`@paypal/paypal-server-sdk`), Sandbox only
+- **Vercel AI SDK** (`ai`) with an **OpenAI-compatible** provider
+  (`@ai-sdk/openai-compatible`) — the agent talks to Experiential Labs'
+  OpenAI-compatible gateway (or any compatible endpoint)
 - **Vitest** for tests; **PGlite** (in-process PostgreSQL) for persistence tests
 
 ## Getting started
@@ -105,6 +112,37 @@ one-shot check; the app stores vault tokens durably in PostgreSQL.
   has actually settled. (Reconciliation re-reads the capture and counts it once it
   settles.)
 
+### AI agent setup (only needed to run the agent)
+
+The agent **proposes** purchases; the deterministic engine decides. It talks to
+an **OpenAI-compatible** chat endpoint (the default is Experiential Labs, an
+OpenAI-compatible gateway/router). Set these in your local `.env`:
+
+- `AGENT_API_KEY` — your key. **Never paste it into chat, code, screenshots, or
+  commits.**
+- `AGENT_MODEL` — the model id/alias to use. List choices with
+  `npm run agent:models` (it calls the provider with your local key and prints
+  the ids), or copy one from the provider's Models page.
+- `AGENT_BASE_URL` — optional; defaults to
+  `https://api.experientiallabs.ai/v1`.
+- `AGENT_ID` — optional label recorded on each proposed purchase.
+
+Then run a proposal:
+
+```bash
+npm run agent -- "buy a 49 dollar software license from Acme"
+# or interactively:
+npm run agent
+```
+
+The agent interprets the request, calls `propose_purchase`, and prints the
+engine's `ALLOW` / `ASK` / `DENY` decision. **It never pays**: payment happens
+through the authorization-gated execution layer, never the model. If
+`DATABASE_URL` is set, proposals (and their decisions) are stored in your durable
+database; otherwise an in-memory store is used. If no spending rules exist yet, a
+clearly-labelled demo rule set (`demo-1`, a hard $200/month cap) is saved so the
+demo runs.
+
 ## Project layout
 
 ```
@@ -151,10 +189,19 @@ src/
                        # card/wallet source, PENDING + checkCapture)
       vault.ts         # vault enrollment (PayPal wallet + server-side card)
       money.ts         # minor units <-> PayPal decimal strings
+  agent/               # the AI agent (proposal only)
+    config.ts          # env config; reports missing var NAMES, never values
+    model.ts           # OpenAI-compatible model construction
+    proposal.ts        # deterministic bridge into the authorization engine
+    tools.ts           # the ONLY tool: propose_purchase (no payment tool)
+    agent.ts           # instructions + generateText composition
+    agent.test.ts
   app/                 # Next.js shell (placeholder only)
 scripts/
   sandbox-verify.ts    # one-command live PayPal Sandbox verification (real payments)
   db-check.ts          # connect to the durable DB and confirm the schema
+  agent-cli.ts         # npm run agent: propose a purchase via the AI agent
+  agent-models.ts      # npm run agent:models: list models from the endpoint
 ```
 
 ## Authorization decisions

@@ -114,14 +114,15 @@ automated + end-to-end tests have been run and reported.
 | --- | --- |
 | Authorization engine | ✅ Implemented & tested |
 | Purchase lifecycle (approval) | ✅ Implemented & tested |
-| Spending accounting (verified captures only) | ✅ Logic implemented & tested; not yet wired into the engine |
+| Spending accounting (verified captures only) | ✅ Logic implemented & tested; the agent's proposal path feeds verified captures into the engine as `spentThisMonthMinor` |
 | Durable storage | ✅ Implemented & tested (PostgreSQL / Supabase, Drizzle); live-verified against a Supabase project (`db:migrate` + `db:check`) |
 | Payment execution (authorizer-gated) | ✅ Implemented & tested with a fake gateway; live flow verified end-to-end |
 | PayPal integration | ✅ Live Sandbox **PASS** (card vault: `ALLOW` → `CAPTURED` → counted once; capture `4GR46789K0392653X`). Wallet vaults are correctly reported as `PENDING` (provider holds for review) and not counted |
 | Pending capture handling & reconciliation | ✅ Implemented & tested; wallet path observed `PENDING_REVIEW` live |
 | Sandbox verification runner | ✅ Added (`scripts/sandbox-verify.ts`); default card path live-PASS; `--wallet` path reports pending |
 | Saved payment method (vault) storage | ✅ Durable (PostgreSQL), token server-side only; `source_type` (paypal/card) |
-| AI agent | ⛔ Not built |
+| AI agent | ✅ Implemented & tested — proposal-only; exactly one tool (`propose_purchase`), no payment tool; deterministic engine decides |
+| AI framework / provider | ✅ Vercel AI SDK + `@ai-sdk/openai-compatible`; Experiential Labs (OpenAI-compatible gateway); model id set locally via `AGENT_MODEL` |
 | UI | ⛔ Not built (design not approved) |
-| Automated tests | ✅ 132 passing, including real-Postgres persistence |
+| Automated tests | ✅ 150 passing, including real-Postgres persistence and the agent's structural safety tests |
 | Typecheck | ✅ Clean |

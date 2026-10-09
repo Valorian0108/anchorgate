@@ -72,6 +72,26 @@ project aims to follow [Semantic Versioning](https://semver.org/).
   the durable database is reachable and migrated: prints the tables and their row
   counts, and exits non-zero if a required table is missing. Never prints the
   connection string or any credential.
+- **AI agent (Phase 5).** A proposal-only agent built on the **Vercel AI SDK**
+  with an **OpenAI-compatible** provider (`@ai-sdk/openai-compatible`), targeting
+  Experiential Labs' OpenAI-compatible gateway (any compatible endpoint works via
+  `AGENT_BASE_URL`). It exposes **exactly one tool, `propose_purchase`** — there
+  is no payment, capture, refund, or approval tool. The tool calls the existing
+  deterministic engine and returns its `ALLOW` / `ASK` / `DENY` verdict
+  unchanged; the agent is instructed that it cannot approve or pay and that the
+  decision is final. Proposals are recorded durably (a purchase record plus an
+  informational `PROPOSED` ledger event), and the active rules are described to
+  the model so it can make plausible suggestions. Configuration reads
+  `AGENT_API_KEY` / `AGENT_MODEL` / `AGENT_BASE_URL` from the local environment
+  and reports missing variable **names** only — never values.
+- **Agent CLI** (`scripts/agent-cli.ts`, `npm run agent`) and **model lister**
+  (`scripts/agent-models.ts`, `npm run agent:models`). The CLI turns a natural-
+  language request into a proposal and prints the engine's decision; it uses the
+  durable database when `DATABASE_URL` is set and an in-memory store otherwise.
+  The model lister calls the configured endpoint with your local key and prints
+  the available model ids, so no key ever needs to be pasted anywhere.
+- **In-memory rules store** (`InMemorySpendingRulesStore`), matching the existing
+  in-memory purchase and spending stores, for tests and local runs.
 - Project scaffold: Next.js + TypeScript, Vitest test runner.
 - Engineering standards (`ENGINEERING.md`), requirements traceability
   (`TRACEABILITY.md`), decision register (`OPEN-DECISIONS.md`).
@@ -107,3 +127,6 @@ project aims to follow [Semantic Versioning](https://semver.org/).
   intended to stay server-side.
 - Authorization is enforced server-side by design; the core is isolated from
   the AI, UI, network, and storage.
+- The agent's tool set is constructed in one place and asserted (in tests) to
+  contain only `propose_purchase`; no payment tool is ever handed to the model,
+  and credentials are never passed to it or printed.

@@ -221,11 +221,18 @@ at useful decision points rather than all at once.
 ### Architecture and operations
 
 - ~~Repository stack~~ ✅ resolved: Next.js + TypeScript (full-stack, single repo).
-- ~~PayPal integration path~~ ✅ resolved: **Agent Toolkit (TypeScript) + Vercel
-  AI SDK**. Agent Ready/ACP evaluated and rejected as merchant-side, Braintree-
-  based, and gated (see the ACP finding).
-- AI model/provider: agent **framework** is resolved (Vercel AI SDK); the specific
-  **model/provider** (e.g. OpenAI, Anthropic) is still open.
+- ~~PayPal integration path~~ ✅ resolved: **Vercel AI SDK + an OpenAI-compatible
+  provider** for the agent. Agent Ready/ACP evaluated and rejected as merchant-
+  side, Braintree-based, and gated (see the ACP finding). Note (deviation, below):
+  the agent is given **no PayPal tools at all** — its only tool is
+  `propose_purchase`. PayPal execution stays in the server SDK, behind the
+  authorizer.
+- ~~AI model/provider~~ ✅ resolved: the owner's key is from **Experiential Labs**
+  (`https://platform.experientiallabs.ai`), an OpenAI-compatible **gateway/router**
+  (`https://api.experientiallabs.ai/v1`), so the AI SDK's OpenAI-compatible
+  provider (`@ai-sdk/openai-compatible`) is used. The specific **model id** is
+  chosen locally via `AGENT_MODEL` (list with `npm run agent:models`), so no model
+  name is hard-coded.
 - ~~Payment pre-authorization model~~ ✅ resolved: **vault a payment method once**
   (owner decision), then server-initiated create + capture within enforced
   limits. Implemented in `infra/paypal/vault.ts`; token stored server-side only.
@@ -270,7 +277,18 @@ were used).
 
 ## Deviations from the approved plan
 
-_None recorded yet._
+- **Deviation (Phase 5): the agent does not receive the PayPal Agent Toolkit.**
+  The approved integration path named the PayPal Agent Toolkit + Vercel AI SDK,
+  with the hard rule that the agent must never be given `pay_order`. Building
+  Phase 5, we took the stricter reading: the agent is given **no PayPal tools at
+  all** — its only tool is `propose_purchase`, which calls the local
+  deterministic engine. Handing the model PayPal "create order" or even read
+  tools adds attack surface (and a way to smuggle payment intent) with no benefit
+  for the MVP, whose agent only turns a request into a structured proposal.
+  PayPal execution remains in the server SDK, behind the authorizer, exactly as
+  decided. The framework half of the decision (Vercel AI SDK) is unchanged. The
+  Agent Toolkit can be revisited if the agent later needs read-only merchant/
+  product context; it must never include `pay_order`.
 
 ------------------------------------------------------------------------
 
@@ -401,3 +419,20 @@ _None recorded yet._
   applied all migrations, and a new **`npm run db:check`** (`scripts/db-check.ts`)
   reported all 5 tables present and reachable. Also recorded the common footgun of
   leaving the literal `[YOUR-PASSWORD]` brackets around the password in `.env`.
+- **Update (AI agent, Phase 5).** Owner confirmed the key is from **Experiential
+  Labs** and gave the base URL `https://api.experientiallabs.ai/v1`. Verified from
+  the provider's public repo that it is an OpenAI-compatible **gateway/router**,
+  so the agent uses the **Vercel AI SDK** with
+  `@ai-sdk/openai-compatible`. Built a **proposal-only** agent: `src/agent/`
+  (env config, model, deterministic `ProposalService`, the single
+  `propose_purchase` tool, and the `generateText` composition), plus
+  `npm run agent` (CLI) and `npm run agent:models` (lists model ids using the
+  local key, so no key is pasted anywhere). Safety: the model gets exactly one
+  tool and no payment tool; the tool returns the engine's verdict unchanged;
+  config errors name missing variables but never values. Proposals persist to the
+  durable database when `DATABASE_URL` is set (in-memory otherwise) and emit an
+  informational `PROPOSED` ledger event. Recorded the **deviation**: the agent
+  does not receive the PayPal Agent Toolkit (see Deviations). Model id is set
+  locally via `AGENT_MODEL`. Added 18 tests (single-tool guarantee, deterministic
+  decisions, fail-safe config). Suite now **150 passing**; typecheck clean. A
+  **live model call is the next step** and needs the owner's key in `.env`.

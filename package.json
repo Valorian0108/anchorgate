@@ -12,17 +12,22 @@
     "typecheck": "tsc --noEmit",
     "sandbox:verify": "tsx scripts/sandbox-verify.ts",
     "sandbox:verify:wallet": "tsx scripts/sandbox-verify.ts --wallet",
+    "agent": "tsx scripts/agent-cli.ts",
+    "agent:models": "tsx scripts/agent-models.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:check": "tsx scripts/db-check.ts"
   },
   "dependencies": {
+    "@ai-sdk/openai-compatible": "^3.0.67",
     "@paypal/paypal-server-sdk": "^2.5.0",
+    "ai": "^7.0.136",
     "drizzle-orm": "^0.45.4",
     "next": "^16.4.0",
     "postgres": "^3.4.9",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",

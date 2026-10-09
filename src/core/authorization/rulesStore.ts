@@ -17,3 +17,26 @@ export interface SpendingRulesStore {
   /** Persist the given rules as the active set, replacing any previous set. */
   save(rules: SpendingRules): Promise<void>;
 }
+
+/**
+ * A simple in-memory rules store for tests and local development.
+ *
+ * NOT durable: rules are lost on restart. Like the other in-memory stores, it
+ * exists to exercise the domain logic and prove the interface; the running
+ * application persists rules durably (see `infra/persistence/ruleStore.ts`).
+ */
+export class InMemorySpendingRulesStore implements SpendingRulesStore {
+  private rules: SpendingRules | null;
+
+  constructor(initial: SpendingRules | null = null) {
+    this.rules = initial;
+  }
+
+  async getActive(): Promise<SpendingRules | null> {
+    return this.rules;
+  }
+
+  async save(rules: SpendingRules): Promise<void> {
+    this.rules = rules;
+  }
+}
