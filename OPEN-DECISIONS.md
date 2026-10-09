@@ -436,3 +436,23 @@ were used).
   locally via `AGENT_MODEL`. Added 18 tests (single-tool guarantee, deterministic
   decisions, fail-safe config). Suite now **150 passing**; typecheck clean. A
   **live model call is the next step** and needs the owner's key in `.env`.
+- **Update (AI agent live-verified; model chosen; budget).** Owner asked to stay
+  on budget models. Set **`AGENT_MODEL=deepseek-v4-flash`** and ran the agent
+  against the durable database: `"buy a 49 dollar software license from Acme"`
+  -> the model called `propose_purchase` and the engine returned **ASK**
+  (`APPROVAL_REQUIRED`; `PENDING_APPROVAL`); `"buy a 5000 dollar software
+  license from Beta Corp"` -> engine **DENY** (`MONTHLY_CAP_EXCEEDED`;
+  `DENIED`). `npm run db:check` then showed the writes persisted:
+  `purchase_requests` 2, `evaluations` 2, `spending_events` 2,
+  `spending_rules` 1. The first live run seeded the clearly-labelled `demo-1`
+  rule set (hard $200/month cap; categories `software`, `office_supplies`,
+  `books`, `hardware`; new payees require approval) because the database had no
+  active rules.
+  **Model compatibility check (observed, budget class):** tool calling worked
+  for `deepseek-v4-flash`, `deepseek-v4.1-flash`, `glm-5.3-flash`, `gpt-5-nano`,
+  `gpt-5-mini`, `gpt-4.1-mini`, `gemini-2.5-flash`, `gemini-3.5-flash-lite`,
+  `qwen3.6-flash`, `minimax-m2.5`, `seed-1.6-flash`, and `claude-haiku-4.5`.
+  Two failures were **account/profile**, not capability: `glm-5.2-fast` requires
+  the workspace's own provider key (BYOK not connected), and `gpt-oss-20b`'s
+  gateway profile does not enable the `tools` capability. **Owner action
+  (optional):** the `demo-1` rules can be replaced with real limits at any time.

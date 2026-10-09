@@ -122,7 +122,9 @@ OpenAI-compatible gateway/router). Set these in your local `.env`:
   commits.**
 - `AGENT_MODEL` — the model id/alias to use. List choices with
   `npm run agent:models` (it calls the provider with your local key and prints
-  the ids), or copy one from the provider's Models page.
+  the ids), or copy one from the provider's Models page. A verified budget
+  default is `deepseek-v4-flash`; the model **must support tool calling**
+  (`propose_purchase`), so embeddings/image/search models will not work.
 - `AGENT_BASE_URL` — optional; defaults to
   `https://api.experientiallabs.ai/v1`.
 - `AGENT_ID` — optional label recorded on each proposed purchase.

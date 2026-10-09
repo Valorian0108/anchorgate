@@ -121,13 +121,27 @@ credentials), so it is not part of `npm test`.
 | --- | --- | --- | --- | --- |
 | E1 | Agent proposes structured purchases; never authorizes (§7) | `src/agent/*` — `ProposalService` files the request, `propose_purchase` tool, `agent.ts` instructions | `agent.test.ts` | Done |
 | E2 | Agent cannot bypass authorization or call the provider directly (§7) | `src/agent/tools.ts` exposes **exactly one** tool (`propose_purchase`) and no payment tool; the tool calls the deterministic engine and returns its verdict unchanged | `agent.test.ts` (tool-set assertion; decision + persistence) | Done |
-| E3 | AI model/provider/framework chosen (§7, §14) | Framework: **Vercel AI SDK** + `@ai-sdk/openai-compatible`; provider: **Experiential Labs** (OpenAI-compatible gateway). Model id is `AGENT_MODEL` (owner sets it locally) | `agent.test.ts` (config) | Done (framework/provider decided; live model call needs the owner's key) |
+| E3 | AI model/provider/framework chosen (§7, §14) | Framework: **Vercel AI SDK** + `@ai-sdk/openai-compatible`; provider: **Experiential Labs** (OpenAI-compatible gateway). Model: **`deepseek-v4-flash`** via `AGENT_MODEL` | `agent.test.ts` (config) | Done (live model call verified) |
 
 **How the AI is used, precisely:** the model only turns a natural-language
 request into a structured `propose_purchase` call. It never sees a payment tool,
 never decides, and never executes. The engine returns `ALLOW` / `ASK` / `DENY`,
 and the model can only report that verdict. A live model call is a manual,
 credential-gated step (`npm run agent`), so it is not part of `npm test`.
+
+**Live AI-agent verification (observed).** With `AGENT_MODEL=deepseek-v4-flash`
+and the durable database connected, the agent turned natural-language requests
+into `propose_purchase` calls and the deterministic engine returned:
+
+- `"buy a 49 dollar software license from Acme"` -> **ASK**
+  (`APPROVAL_REQUIRED`, new payee), status `PENDING_APPROVAL`.
+- `"buy a 5000 dollar software license from Beta Corp"` -> **DENY**
+  (`MONTHLY_CAP_EXCEEDED`), status `DENIED` — the model could not override it.
+
+A following `npm run db:check` showed the writes landed durably:
+`purchase_requests` 2, `evaluations` 2, `spending_events` 2, `spending_rules` 1.
+Twelve budget-class models were additionally checked for tool-calling
+compatibility (see `OPEN-DECISIONS.md`).
 
 ## UI
 
