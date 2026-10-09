@@ -34,6 +34,18 @@ project aims to follow [Semantic Versioning](https://semver.org/).
   provider capture id). Blocked, failed, and mismatched payments are never
   counted. A new `EXECUTED` request status records captured payments. Demonstrated
   with a fake gateway; the live PayPal adapter is next.
+- **PayPal adapter (Phase 4).** A server-only, Sandbox-only integration using the
+  official `@paypal/paypal-server-sdk`:
+  - `PayPalPaymentGateway` implements the core `PaymentGateway` port and is
+    called only after the authorizer permits; it charges the user's vaulted
+    payment method, captures, and returns the provider receipt for verification.
+  - Vault enrollment (setup token -> approval URL -> payment token) so the agent
+    can pay without a human present, plus a durable **saved payment method**
+    store (PostgreSQL; provider token stored server-side only).
+  - Fail-safe money conversion between integer minor units and PayPal decimal
+    strings, including zero- and three-decimal currencies.
+  - Configuration refuses `production`, so a stray environment variable cannot
+    move real money.
 - Project scaffold: Next.js + TypeScript, Vitest test runner.
 - Engineering standards (`ENGINEERING.md`), requirements traceability
   (`TRACEABILITY.md`), decision register (`OPEN-DECISIONS.md`).

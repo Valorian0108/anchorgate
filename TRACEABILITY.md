@@ -55,12 +55,14 @@ test suite is run with `npm test`.
 
 | # | Requirement (source) | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- |
-| D1 | Sandbox OAuth + Orders API flow (§3.1, §3.2) | Manually proven (pre-existing); adapter pending | — | Partial (not app-integrated) |
+| D1 | Sandbox OAuth + Orders API flow (§3.1, §3.2) | `infra/paypal/config.ts` (SDK client), `infra/paypal/gateway.ts` (create + capture), `infra/paypal/ports.ts` | `gateway.test.ts` (fake port) | Partial (adapter implemented; real Sandbox run pending) |
 | D2 | No payment execution for denied requests (§11.3) | `core/execution/execute.ts` (re-check gate before any provider call; agent never gets `pay_order`) | `execute.test.ts` | Done (execution core; live adapter pending) |
-| D3 | Capture verification & status persistence (§11.3) | `core/execution/execute.ts` (receipt amount/currency verified; capture recorded via ledger) | `execute.test.ts` | Done (execution core; live adapter pending) |
-| D4 | Failure/timeout handling without duplicate payment (§10, §11.3) | `core/execution/execute.ts` (FAILED records nothing; capture idempotent by provider capture id) | `execute.test.ts`, `spending/ledger.test.ts` | Partial (retry/timeout semantics against live provider pending) |
-| D5 | Secrets server-side; never in browser/logs/commits (§6.2, §15) | Policy (`ENGINEERING.md`, `.gitignore`) | — | Partial |
-| D6 | Integration path chosen (Orders API vs MCP vs Agent Toolkit) (§6.4) | Chosen: **Agent Toolkit (TypeScript) + Vercel AI SDK** (`OPEN-DECISIONS.md`) | — | Done (decision; adapter pending) |
+| D3 | Capture verification & status persistence (§11.3) | `core/execution/execute.ts` (receipt amount/currency verified; capture recorded via ledger) + `infra/paypal/gateway.ts` extracts the provider receipt | `execute.test.ts`, `gateway.test.ts` | Done (execution core; live adapter pending) |
+| D4 | Failure/timeout handling without duplicate payment (§10, §11.3) | `core/execution/execute.ts` (FAILED records nothing; idempotent by provider capture id) + `gateway.ts` (idempotent `paypalRequestId`; provider errors fail safe) | `execute.test.ts`, `gateway.test.ts` | Partial (retry/timeout semantics against live provider pending) |
+| D5 | Secrets server-side; never in browser/logs/commits (§6.2, §15) | `infra/paypal/config.ts` refuses non-Sandbox; env read by app layer only; vault token stored server-side; `.gitignore` | `gateway.test.ts`, `vault.test.ts` | Partial (live check pending) |
+| D6 | Integration path chosen (Orders API vs MCP vs Agent Toolkit) (§6.4) | Chosen: **Agent Toolkit (TypeScript) + Vercel AI SDK** (`OPEN-DECISIONS.md`); execution via the underlying server SDK | — | Done (decision; agent wiring pending) |
+| D7 | Allow the agent to pay without a human present (§7, §8) | `infra/paypal/vault.ts` (setup token → approval URL → payment token) | `vault.test.ts` | Partial (implemented & unit-tested; real Sandbox run pending) |
+| D8 | Vaulted payment method stored durably, server-side only (§2.8, §9) | `core/payments/*`, `infra/persistence/paymentMethodStore.ts` (`DrizzlePaymentMethodStore`), `saved_payment_methods` table (UNIQUE provider token) | `persistence.test.ts` | Done |
 
 ## AI agent
 
@@ -84,8 +86,9 @@ test suite is run with `npm test`.
 
 - Location: `src/**/*.test.ts`
 - Runner: Vitest (`npm test`)
-- Current: **79 tests passing** — 23 authorization, 19 lifecycle, 19 spending,
-  8 execution, 10 persistence (against a real in-process PostgreSQL engine,
-  including a close-and-reopen durability test).
+- Current: **109 tests passing** — 23 authorization, 19 lifecycle, 19 spending,
+  8 execution, 14 persistence (against a real in-process PostgreSQL engine,
+  including a close-and-reopen durability test), 11 PayPal money conversion,
+  9 PayPal gateway (fake port), 6 PayPal vault enrollment (fake port).
 
 Update this file whenever a requirement's status changes.

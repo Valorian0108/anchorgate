@@ -106,3 +106,27 @@ export const spendingRules = pgTable("spending_rules", {
   requireApprovalForNewPayee: boolean("require_approval_for_new_payee").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull(),
 });
+
+/**
+ * The user's saved ("vaulted") payment methods.
+ *
+ * `provider_token_id` is the provider's vault/payment-token handle. It is a
+ * sensitive secret: it is stored server-side only and must never be sent to the
+ * browser or written to logs. It is UNIQUE so a repeated enrollment cannot
+ * create duplicate rows.
+ */
+export const savedPaymentMethods = pgTable(
+  "saved_payment_methods",
+  {
+    id: text("id").primaryKey(),
+    ownerId: text("owner_id").notNull(),
+    provider: text("provider").notNull(),
+    providerTokenId: text("provider_token_id").notNull().unique(),
+    providerCustomerId: text("provider_customer_id"),
+    payerEmail: text("payer_email"),
+    status: text("status").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true, mode: "date" }),
+  },
+  (table) => [index("saved_payment_methods_owner_idx").on(table.ownerId)],
+);

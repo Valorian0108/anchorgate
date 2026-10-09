@@ -16,15 +16,19 @@ allowed.
 
 Early development. The **authorization core** (deterministic decision engine),
 the **purchase lifecycle** (approval handling and revalidation), **spending
-accounting** (counts only verified captures, exactly once), and **durable
-storage** (PostgreSQL, including the persisted spending rules) are implemented
-and tested. PayPal execution, the AI agent, and the UI are not built yet. The UI
-has not been designed or approved.
+accounting** (counts only verified captures, exactly once), **durable
+storage** (PostgreSQL, including the persisted spending rules), and the
+**authorization-gated payment execution** plus the **PayPal Sandbox adapter**
+(orders create + capture against a vaulted payment method) are implemented and
+tested. The PayPal adapter is unit-tested with fakes; a real Sandbox run is still
+pending. The AI agent and the UI are not built yet. The UI has not been designed
+or approved.
 
 ## Tech stack
 
 - **Next.js + TypeScript** (full-stack, single repo)
 - **PostgreSQL** (Supabase) with **Drizzle ORM** for durable storage
+- **PayPal Server SDK** (`@paypal/paypal-server-sdk`), Sandbox only
 - **Vitest** for tests; **PGlite** (in-process PostgreSQL) for persistence tests
 
 ## Getting started
@@ -49,6 +53,15 @@ database. To point the app at your Supabase database:
 2. Apply the committed migrations: `npm run db:migrate`
    (regenerate them after schema changes with `npm run db:generate`).
 
+### PayPal Sandbox setup (only needed to run real payments)
+
+PayPal is **Sandbox-only**. The code refuses any non-Sandbox environment.
+Create a Sandbox app in the PayPal Developer Dashboard (Apps & Credentials →
+Sandbox), then set `PAYPAL_ENV=sandbox`, `PAYPAL_CLIENT_ID`, and
+`PAYPAL_CLIENT_SECRET` in your local `.env`. To let the agent pay without a human
+present, the user also completes a one-time **vault enrollment** (saving a
+payment method); without it, payments fail safe.
+
 ## Project layout
 
 ```
@@ -71,14 +84,28 @@ src/
       ledger.ts        # totals from verified captures; idempotent writer
       store.ts         # storage interface + in-memory implementation
       ledger.test.ts
+    execution/         # authorizer-gated payment execution
+      types.ts         # PaymentGateway port + payment vocabulary
+      execute.ts       # re-check -> pay -> verify -> record (exactly once)
+      execute.test.ts
+    payments/          # saved (vaulted) payment methods
+      types.ts         # SavedPaymentMethod vocabulary
+      store.ts         # storage interface + in-memory implementation
   infra/
     persistence/       # durable storage (Drizzle ORM + PostgreSQL/Supabase)
-      schema.ts        # purchases, evaluations, spending events
+      schema.ts        # purchases, evaluations, spending events, rules, payment methods
       client.ts        # pooled Postgres client factory
       purchaseStore.ts # PurchaseStore backed by PostgreSQL
       spendingStore.ts # SpendingStore backed by PostgreSQL
       ruleStore.ts      # SpendingRulesStore backed by PostgreSQL
+      paymentMethodStore.ts # vault tokens backed by PostgreSQL
       persistence.test.ts
+    paypal/            # PayPal Sandbox adapter (server-only)
+      config.ts        # SDK client + env config (refuses production)
+      ports.ts         # narrow SDK ports (orders, vault)
+      gateway.ts       # PaymentGateway implementation (create + capture)
+      vault.ts         # one-time vault enrollment
+      money.ts         # minor units <-> PayPal decimal strings
   app/                 # Next.js shell (placeholder only)
 ```
 

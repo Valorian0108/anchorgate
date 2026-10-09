@@ -14,11 +14,16 @@ import type {
   PurchaseRecord,
   RequestStatus,
 } from "../../core/purchases";
+import type {
+  SavedPaymentMethod,
+  SavedPaymentMethodStatus,
+} from "../../core/payments";
 import type { SpendingEvent, SpendingEventKind } from "../../core/spending";
 import { SPENDING_EVENT_KINDS } from "../../core/spending";
 import type {
   evaluations,
   purchaseRequests,
+  savedPaymentMethods,
   spendingEvents,
   spendingRules,
 } from "./schema";
@@ -27,6 +32,7 @@ type PurchaseRow = typeof purchaseRequests.$inferSelect;
 type EvaluationRow = typeof evaluations.$inferSelect;
 type SpendingRow = typeof spendingEvents.$inferSelect;
 type RulesRow = typeof spendingRules.$inferSelect;
+type PaymentMethodRow = typeof savedPaymentMethods.$inferSelect;
 
 /** The fixed primary key of the single global rules row (MVP). */
 export const ACTIVE_RULES_ID = "active";
@@ -199,4 +205,39 @@ export function toSpendingRules(row: RulesRow): SpendingRules {
     throw new Error(`Stored spending rules are invalid: ${parsed.reason}`);
   }
   return parsed.value;
+}
+
+const PAYMENT_METHOD_STATUSES: readonly SavedPaymentMethodStatus[] = [
+  "ACTIVE",
+  "REVOKED",
+];
+
+export function toSavedPaymentMethodRow(
+  method: SavedPaymentMethod,
+): typeof savedPaymentMethods.$inferInsert {
+  return {
+    id: method.id,
+    ownerId: method.ownerId,
+    provider: method.provider,
+    providerTokenId: method.providerTokenId,
+    providerCustomerId: method.providerCustomerId ?? null,
+    payerEmail: method.payerEmail ?? null,
+    status: method.status,
+    createdAt: new Date(method.createdAt),
+    revokedAt: method.revokedAt ? new Date(method.revokedAt) : null,
+  };
+}
+
+export function toSavedPaymentMethod(row: PaymentMethodRow): SavedPaymentMethod {
+  return {
+    id: row.id,
+    ownerId: row.ownerId,
+    provider: row.provider,
+    providerTokenId: row.providerTokenId,
+    ...(row.providerCustomerId ? { providerCustomerId: row.providerCustomerId } : {}),
+    ...(row.payerEmail ? { payerEmail: row.payerEmail } : {}),
+    status: assertOneOf(row.status, PAYMENT_METHOD_STATUSES, "payment method status"),
+    createdAt: row.createdAt.toISOString(),
+    ...(row.revokedAt ? { revokedAt: row.revokedAt.toISOString() } : {}),
+  };
 }

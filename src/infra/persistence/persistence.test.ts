@@ -19,10 +19,12 @@ import { migrate } from "drizzle-orm/pglite/migrator";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { SpendingRules, SpendingState } from "../../core/authorization";
+import type { SavedPaymentMethod } from "../../core/payments";
 import { approvePurchase, proposePurchase } from "../../core/purchases";
 import type { PurchaseRequest } from "../../core/authorization";
 import { captureEventId, SpendingLedger } from "../../core/spending";
 import type { AppDatabase } from "./client";
+import { DrizzlePaymentMethodStore } from "./paymentMethodStore";
 import { DrizzlePurchaseStore } from "./purchaseStore";
 import { DrizzleSpendingRulesStore } from "./ruleStore";
 import { DrizzleSpendingStore } from "./spendingStore";
@@ -168,6 +170,61 @@ describe("DrizzleSpendingRulesStore", () => {
     const loaded = await store.getActive();
     expect(loaded?.ruleVersion).toBe("v2");
     expect(loaded?.monthlyCapMinor).toBe(9000);
+  });
+});
+
+// --- saved payment methods (vault tokens) -----------------------------------
+
+function paymentMethod(
+  overrides: Partial<SavedPaymentMethod> = {},
+): SavedPaymentMethod {
+  return {
+    id: "pm-1",
+    ownerId: "default",
+    provider: "paypal",
+    providerTokenId: "VAULT-1",
+    payerEmail: "buyer@example.com",
+    status: "ACTIVE",
+    createdAt: "2026-10-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+describe("DrizzlePaymentMethodStore", () => {
+  it("stores an active vaulted method and reads it back", async () => {
+    const store = new DrizzlePaymentMethodStore(db);
+    await store.save(paymentMethod());
+    const active = await store.getActive("default");
+    expect(active?.providerTokenId).toBe("VAULT-1");
+    expect(active?.payerEmail).toBe("buyer@example.com");
+  });
+
+  it("keeps a single row per provider token across repeated saves", async () => {
+    const store = new DrizzlePaymentMethodStore(db);
+    // A retry of enrollment uses a fresh id but the same provider token.
+    await store.save(paymentMethod({ id: "pm-2", providerTokenId: "VAULT-2" }));
+    await store.save(
+      paymentMethod({ id: "pm-9", providerTokenId: "VAULT-2", payerEmail: "new@example.com" }),
+    );
+    const all = await store.list("default");
+    expect(all.filter((m) => m.providerTokenId === "VAULT-2")).toHaveLength(1);
+  });
+
+  it("revokes a method so it is no longer active", async () => {
+    const store = new DrizzlePaymentMethodStore(db);
+    const saved = paymentMethod({ id: "pm-3", providerTokenId: "VAULT-3" });
+    await store.save(saved);
+    expect(await store.revoke("pm-3", "2026-10-05T00:00:00.000Z")).toBe(true);
+    expect((await store.getById("pm-3"))?.status).toBe("REVOKED");
+    const active = await store.list("default");
+    expect(active.find((m) => m.id === "pm-3")?.revokedAt).toBe(
+      "2026-10-05T00:00:00.000Z",
+    );
+  });
+
+  it("returns null for an unknown id", async () => {
+    const store = new DrizzlePaymentMethodStore(db);
+    expect(await store.getById("nope")).toBeNull();
   });
 });
 

@@ -88,6 +88,12 @@ A proposal, a recommendation, or generated code is **not** a decision.
     move.
   - We will **not** claim to implement ACP/UCP or PayPal's gated agentic commerce
     services (see the ACP finding above).
+- **Payment pre-authorization: vault once (approved).** The user saves a payment
+  method once (PayPal Payment Method Tokens v3 setup-token flow). The server then
+  creates + captures within the limits **we** enforce, so the `ALLOW` path can pay
+  without a human present. PayPal supplies the payment rails; our deterministic
+  layer supplies the mandate/cap. The vault token is stored server-side only
+  (`saved_payment_methods`, UNIQUE per token) and never reaches the browser.
 
 ------------------------------------------------------------------------
 
@@ -164,13 +170,9 @@ at useful decision points rather than all at once.
   based, and gated (see the ACP finding).
 - AI model/provider: agent **framework** is resolved (Vercel AI SDK); the specific
   **model/provider** (e.g. OpenAI, Anthropic) is still open.
-- **Payment pre-authorization model (open):** to let the agent pay *without a
-  human present* (the `ALLOW` path), the user must **vault a payment method once**
-  (PayPal `store_in_vault` / Payment Method Tokens v3), after which the server can
-  create + capture within our enforced limits. Alternative: require the buyer to
-  approve every order in PayPal (simpler, but the agent is never truly
-  autonomous). Awaiting owner choice; it needs a one-time sandbox enrollment step
-  and may touch the Phase 6 UI gate.
+- ~~Payment pre-authorization model~~ ✅ resolved: **vault a payment method once**
+  (owner decision), then server-initiated create + capture within enforced
+  limits. Implemented in `infra/paypal/vault.ts`; token stored server-side only.
 - ~~Database/persistence technology~~ ✅ resolved: PostgreSQL via Supabase, with
   Drizzle ORM (see Decisions).
 - User authentication and identity model.
@@ -285,3 +287,11 @@ _None recorded yet._
   `pay_order`; payment is server-side and authorizer-gated. Also verified the
   real-world payment model: server-initiated payment requires a **vaulted payment
   method** (or per-order buyer approval), now logged as an open decision.
+- **Update:** Phase 4 PayPal adapter implemented. Owner chose **vault a payment
+  method once**. Added: the authorizer-gated execution core (Phase 4, fakes);
+  `@paypal/paypal-server-sdk` adapter (`infra/paypal/`: SDK ports, Sandbox-only
+  config that refuses production, create+capture gateway against the vault,
+  setup-token vault enrollment, fail-safe money conversion); and a durable
+  `saved_payment_methods` store (PostgreSQL, UNIQUE provider token). Suite now
+  109 passing; typecheck clean. The adapter is unit-tested with fakes; a **real
+  Sandbox run is still pending** and is the next Phase 4 step.
