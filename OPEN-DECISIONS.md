@@ -42,6 +42,12 @@ A proposal, a recommendation, or generated code is **not** a decision.
   Authors") until the project name and owner details are finalized.
 - **Local git repository initialized.** A repo now exists locally with an initial
   commit. No public remote/host has been chosen yet.
+- **Engineering standard adopted.** The project is run as a production
+  engagement: claims are backed by evidence, decisions are recorded, and
+  requirements are traceable to code and tests. Governance artifacts:
+  `ENGINEERING.md` (how we work), `TRACEABILITY.md` (requirements → code →
+  tests), and `CHANGELOG.md`. The GitHub remote is intentionally left as-is
+  for now.
 - **Approval lifecycle (partly decided).**
   - A pending (`ASK`) request is **immutable**: any material change creates a
     new request that must be approved again.
@@ -176,3 +182,8 @@ _None recorded yet._
   with an in-memory implementation. Tests: 42 passing (23 engine + 19
   lifecycle); typecheck clean. Durable storage, spending accounting, PayPal
   execution, the AI agent, and the UI remain unbuilt.
+- **Update:** Adopted a production-grade engineering standard. Added
+  `ENGINEERING.md` (standards, phase gates, security checklist),
+  `TRACEABILITY.md` (requirements mapped to code and tests), and `CHANGELOG.md`.
+  Recorded that AG Grid and other sponsor tooling are **not** implemented and
+  belong to Phase 6 (UI), which is gated on a design discussion.
