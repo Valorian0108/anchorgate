@@ -116,8 +116,9 @@ automated + end-to-end tests have been run and reported.
 | Purchase lifecycle (approval) | ✅ Implemented & tested |
 | Spending accounting (verified captures only) | ✅ Logic implemented & tested; not yet wired into the engine |
 | Durable storage | ✅ Implemented & tested (PostgreSQL / Supabase, Drizzle) |
-| PayPal integration | ⛔ Not built |
+| Payment execution (authorizer-gated) | ✅ Core implemented & tested with a fake gateway; live PayPal adapter next |
+| PayPal integration | 🟡 In progress — path chosen (Agent Toolkit + Vercel AI SDK); gateway port ready; sandbox adapter not yet built |
 | AI agent | ⛔ Not built |
 | UI | ⛔ Not built (design not approved) |
-| Automated tests | ✅ 71 passing, including real-Postgres persistence |
+| Automated tests | ✅ 79 passing, including real-Postgres persistence |
 | Typecheck | ✅ Clean |

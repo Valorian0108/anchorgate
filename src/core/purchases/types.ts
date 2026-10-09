@@ -22,13 +22,16 @@ import type { DecisionResult, PurchaseRequest } from "../authorization";
  * - `PENDING_APPROVAL`  engine asked for human approval; awaiting a decision.
  * - `APPROVED`          a human approved it; may proceed to execution.
  * - `REJECTED`          a human rejected it. Final.
+ * - `EXECUTED`          payment was captured and verified with the provider.
+ *                       Final.
  */
 export type RequestStatus =
   | "DENIED"
   | "AUTHORIZED"
   | "PENDING_APPROVAL"
   | "APPROVED"
-  | "REJECTED";
+  | "REJECTED"
+  | "EXECUTED";
 
 /** When and by whom a request was approved. */
 export interface ApprovalRecord {

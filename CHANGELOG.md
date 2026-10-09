@@ -27,6 +27,13 @@ project aims to follow [Semantic Versioning](https://semver.org/).
   Persistence is tested against a real in-process PostgreSQL engine, including a
   close-and-reopen durability test. Also includes the **active spending-rules
   store** (single global rule set), closing the Phase 3 "persistent rules" item.
+- **Purchase execution (Phase 4, core).** The only path from an authorized
+  request to a real payment: re-run the deterministic authorization gate, submit
+  through a provider `PaymentGateway` port, verify the provider's receipt against
+  the authorized amount/currency, and record a verified capture (idempotent by
+  provider capture id). Blocked, failed, and mismatched payments are never
+  counted. A new `EXECUTED` request status records captured payments. Demonstrated
+  with a fake gateway; the live PayPal adapter is next.
 - Project scaffold: Next.js + TypeScript, Vitest test runner.
 - Engineering standards (`ENGINEERING.md`), requirements traceability
   (`TRACEABILITY.md`), decision register (`OPEN-DECISIONS.md`).

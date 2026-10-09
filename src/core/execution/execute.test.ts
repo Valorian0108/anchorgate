@@ -1,0 +1,258 @@
+/**
+ * Execution tests (Phase 4).
+ *
+ * These prove the security-critical behavior of the execution boundary:
+ *   - payment happens only after the final authorization gate,
+ *   - the amount can never change between authorization and payment,
+ *   - a blocked / failed / mismatched payment is never counted,
+ *   - a verified capture is counted exactly once.
+ *
+ * They use a fake `PaymentGateway`; the real PayPal adapter is tested separately
+ * and only runs against a configured sandbox.
+ */
+
+import { describe, expect, it } from "vitest";
+
+import type {
+  PurchaseRequest,
+  SpendingRules,
+  SpendingState,
+} from "../authorization";
+import {
+  approvePurchase,
+  proposePurchase,
+} from "../purchases";
+import { InMemorySpendingStore, SpendingLedger } from "../spending";
+import { executeAuthorizedPurchase } from "./execute";
+import type {
+  PaymentGateway,
+  PaymentInstruction,
+  PaymentOutcome,
+} from "./types";
+
+const RULES: SpendingRules = {
+  ruleVersion: "v1",
+  currency: "USD",
+  perPurchaseAutoLimitMinor: 1000,
+  monthlyCapMinor: 5000,
+  permittedCategories: ["office", "books"],
+  requireApprovalForNewPayee: false,
+};
+
+const EMPTY_STATE: SpendingState = { spentThisMonthMinor: 0, knownPayees: [] };
+const NOW = new Date("2026-10-09T12:00:00.000Z");
+
+function request(overrides: Partial<PurchaseRequest> = {}): PurchaseRequest {
+  return {
+    id: "req-1",
+    agentId: "agent-1",
+    payee: "Acme Supplies",
+    purpose: "Office supplies",
+    category: "office",
+    amountMinor: 500,
+    currency: "USD",
+    ...overrides,
+  };
+}
+
+/** A gateway that replays a fixed list of outcomes and records its calls. */
+class FakeGateway implements PaymentGateway {
+  readonly calls: PaymentInstruction[] = [];
+  constructor(private readonly outcomes: PaymentOutcome[]) {}
+  async pay(instruction: PaymentInstruction): Promise<PaymentOutcome> {
+    this.calls.push(instruction);
+    const index = Math.min(this.calls.length - 1, this.outcomes.length - 1);
+    return this.outcomes[index]!;
+  }
+}
+
+function captured(
+  overrides: Partial<Extract<PaymentOutcome, { status: "CAPTURED" }>> = {},
+): PaymentOutcome {
+  return {
+    status: "CAPTURED",
+    providerCaptureId: "CAP-1",
+    amountMinor: 500,
+    currency: "USD",
+    capturedAt: "2026-10-09T12:00:05.000Z",
+    ...overrides,
+  };
+}
+
+function freshLedger(): SpendingLedger {
+  return new SpendingLedger(new InMemorySpendingStore());
+}
+
+describe("executeAuthorizedPurchase", () => {
+  it("pays an AUTHORIZED request, verifies the capture, and counts it once", async () => {
+    const record = proposePurchase(request(), RULES, EMPTY_STATE, NOW).record!;
+    const gateway = new FakeGateway([captured()]);
+    const ledger = freshLedger();
+
+    const outcome = await executeAuthorizedPurchase({
+      record,
+      rules: RULES,
+      state: EMPTY_STATE,
+      now: NOW,
+      gateway,
+      ledger,
+    });
+
+    expect(outcome.status).toBe("CAPTURED");
+    expect(outcome.record.status).toBe("EXECUTED");
+    expect(gateway.calls).toHaveLength(1);
+    expect(gateway.calls[0]?.amountMinor).toBe(500);
+    expect(gateway.calls[0]?.payee).toBe("Acme Supplies");
+    expect(await ledger.capturedMinor()).toBe(500);
+  });
+
+  it("sends the exact authorized amount, so it cannot change before payment", async () => {
+    const record = proposePurchase(
+      request({ amountMinor: 900 }),
+      RULES,
+      EMPTY_STATE,
+      NOW,
+    ).record!;
+    const gateway = new FakeGateway([captured({ amountMinor: 900 })]);
+    await executeAuthorizedPurchase({
+      record,
+      rules: RULES,
+      state: EMPTY_STATE,
+      now: NOW,
+      gateway,
+      ledger: freshLedger(),
+    });
+    expect(gateway.calls[0]).toMatchObject({ amountMinor: 900, currency: "USD" });
+  });
+
+  it("executes an APPROVED request", async () => {
+    const pending = proposePurchase(
+      request({ amountMinor: 1500 }),
+      RULES,
+      EMPTY_STATE,
+      NOW,
+    ).record!;
+    const approved = approvePurchase(pending, "owner@example.com", RULES, EMPTY_STATE, NOW)
+      .record;
+    const gateway = new FakeGateway([captured({ amountMinor: 1500 })]);
+    const ledger = freshLedger();
+
+    const outcome = await executeAuthorizedPurchase({
+      record: approved,
+      rules: RULES,
+      state: EMPTY_STATE,
+      now: NOW,
+      gateway,
+      ledger,
+    });
+
+    expect(outcome.status).toBe("CAPTURED");
+    expect(outcome.record.status).toBe("EXECUTED");
+    expect(await ledger.capturedMinor()).toBe(1500);
+  });
+
+  it("blocks at the gate when the monthly cap would be exceeded, without paying", async () => {
+    const record = proposePurchase(request({ amountMinor: 500 }), RULES, EMPTY_STATE, NOW)
+      .record!;
+    const gateway = new FakeGateway([captured()]);
+    const ledger = freshLedger();
+
+    // By execution time, 4800 of the 5000 cap is already spent.
+    const state: SpendingState = { spentThisMonthMinor: 4800, knownPayees: [] };
+    const outcome = await executeAuthorizedPurchase({
+      record,
+      rules: RULES,
+      state,
+      now: NOW,
+      gateway,
+      ledger,
+    });
+
+    expect(outcome.status).toBe("BLOCKED");
+    expect(outcome.record.status).toBe("DENIED");
+    expect(gateway.calls).toHaveLength(0);
+    expect(await ledger.capturedMinor()).toBe(0);
+  });
+
+  it("downgrades to pending when rules tighten before execution, without paying", async () => {
+    const record = proposePurchase(request({ amountMinor: 500 }), RULES, EMPTY_STATE, NOW)
+      .record!;
+    const tightened: SpendingRules = { ...RULES, perPurchaseAutoLimitMinor: 100 };
+    const gateway = new FakeGateway([captured()]);
+
+    const outcome = await executeAuthorizedPurchase({
+      record,
+      rules: tightened,
+      state: EMPTY_STATE,
+      now: NOW,
+      gateway,
+      ledger: freshLedger(),
+    });
+
+    expect(outcome.status).toBe("BLOCKED");
+    expect(outcome.record.status).toBe("PENDING_APPROVAL");
+    expect(gateway.calls).toHaveLength(0);
+  });
+
+  it("counts nothing when the provider fails", async () => {
+    const record = proposePurchase(request(), RULES, EMPTY_STATE, NOW).record!;
+    const gateway = new FakeGateway([{ status: "FAILED", reason: "declined" }]);
+    const ledger = freshLedger();
+
+    const outcome = await executeAuthorizedPurchase({
+      record,
+      rules: RULES,
+      state: EMPTY_STATE,
+      now: NOW,
+      gateway,
+      ledger,
+    });
+
+    expect(outcome.status).toBe("FAILED");
+    expect(outcome.record.status).toBe("AUTHORIZED");
+    expect(await ledger.capturedMinor()).toBe(0);
+    expect((await ledger.events()).some((e) => e.kind === "CAPTURE_FAILED")).toBe(true);
+  });
+
+  it("never counts a capture whose amount does not match the authorization", async () => {
+    const record = proposePurchase(request({ amountMinor: 500 }), RULES, EMPTY_STATE, NOW)
+      .record!;
+    const gateway = new FakeGateway([captured({ amountMinor: 999 })]);
+    const ledger = freshLedger();
+
+    const outcome = await executeAuthorizedPurchase({
+      record,
+      rules: RULES,
+      state: EMPTY_STATE,
+      now: NOW,
+      gateway,
+      ledger,
+    });
+
+    expect(outcome.status).toBe("MISMATCH");
+    expect(outcome.record.status).toBe("AUTHORIZED");
+    expect(await ledger.capturedMinor()).toBe(0);
+  });
+
+  it("does not execute a request that is not ready", async () => {
+    const record = proposePurchase(
+      request({ amountMinor: 1500 }),
+      RULES,
+      EMPTY_STATE,
+      NOW,
+    ).record!; // PENDING_APPROVAL
+    const gateway = new FakeGateway([captured()]);
+
+    const outcome = await executeAuthorizedPurchase({
+      record,
+      rules: RULES,
+      state: EMPTY_STATE,
+      now: NOW,
+      gateway,
+      ledger: freshLedger(),
+    });
+
+    expect(outcome.status).toBe("BLOCKED");
+    expect(gateway.calls).toHaveLength(0);
+  });
+});

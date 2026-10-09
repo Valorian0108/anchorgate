@@ -37,6 +37,7 @@ const REQUEST_STATUSES: readonly RequestStatus[] = [
   "PENDING_APPROVAL",
   "APPROVED",
   "REJECTED",
+  "EXECUTED",
 ];
 
 const EVALUATION_CONTEXTS: readonly EvaluationContext[] = [

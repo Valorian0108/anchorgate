@@ -33,8 +33,8 @@ test suite is run with `npm test`.
 | B3 | Material changes invalidate approval (§5.3, §11.1) | `fingerprint.ts` | `lifecycle.test.ts` | Done |
 | B4 | Approval cannot override the monthly cap (§5.3, §11.1) | `lifecycle.ts` (`approvePurchase`) | `lifecycle.test.ts` | Done |
 | B5 | Recheck hard constraints immediately before execution (§5.3, §11.1) | `lifecycle.ts` (`revalidateBeforeExecution`) | `lifecycle.test.ts` | Done |
-| B6 | `DENY` makes payment execution unreachable (§5.3) | `lifecycle.ts`, status gating | `lifecycle.test.ts` | Partial (enforced at domain level; payment layer pending) |
-| B7 | Human decision recorded separately from payment outcome (§5.3, §9) | `purchases/types.ts` (`approval`/`rejection`) | `lifecycle.test.ts` | Partial (payment side pending) |
+| B6 | `DENY` makes payment execution unreachable (§5.3) | `lifecycle.ts` + `execution/execute.ts` (blocks any non-ready record) | `lifecycle.test.ts`, `execute.test.ts` | Done (execution core) |
+| B7 | Human decision recorded separately from payment outcome (§5.3, §9) | `purchases/types.ts` (`approval`/`rejection`) + `execution/execute.ts` (SUBMITTED / CAPTURE_VERIFIED / CAPTURE_FAILED events) | `lifecycle.test.ts`, `execute.test.ts` | Done (execution core) |
 | B8 | Approval expiry | Not implemented (decided: no expiry for MVP) | — | N/A (by decision) |
 
 ## Durable state & accounting
@@ -42,7 +42,7 @@ test suite is run with `npm test`.
 | # | Requirement (source) | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- |
 | C1 | Durable spending records; no in-memory-only counter (§2.8, §5.4) | `src/infra/persistence/*` (Drizzle + PostgreSQL/Supabase) | `persistence.test.ts` | Done |
-| C2 | Track spending against the monthly cap (§2.8) | `spending/ledger.ts` (`capturedMinor`) + engine reads `spentThisMonthMinor` | `spending/ledger.test.ts`, `engine.test.ts` | Partial (engine wiring pending) |
+| C2 | Track spending against the monthly cap (§2.8) | `spending/ledger.ts` (`capturedMinor`) + engine reads `spentThisMonthMinor` | `spending/ledger.test.ts`, `engine.test.ts` | Partial (live read/write wiring into the running app pending) |
 | C3 | Count spending only after a verified capture (§4.10, §5.3) | `spending/ledger.ts` | `spending/ledger.test.ts` | Done |
 | C4 | Duplicate requests/retries/captures don't double-count (§5.3, §11.2) | `spending/ledger.ts` + DB primary key (`persistence/schema.ts`) | `spending/ledger.test.ts`, `persistence.test.ts` | Done |
 | C5 | Concurrency cannot overspend the cap (§5.3, §11.2) | `spending/ledger.ts` (`RESERVED`/`RELEASED` totals) | `spending/ledger.test.ts` | Partial (mechanism present; enforcement deferred to Phase 4 by decision) |
@@ -55,12 +55,12 @@ test suite is run with `npm test`.
 
 | # | Requirement (source) | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- |
-| D1 | Sandbox OAuth + Orders API flow (§3.1, §3.2) | Manually proven (pre-existing) | — | Partial (not app-integrated) |
-| D2 | No payment execution for denied requests (§11.3) | Not implemented | — | Pending |
-| D3 | Capture verification & status persistence (§11.3) | Not implemented | — | Pending |
-| D4 | Failure/timeout handling without duplicate payment (§10, §11.3) | Not implemented | — | Pending |
+| D1 | Sandbox OAuth + Orders API flow (§3.1, §3.2) | Manually proven (pre-existing); adapter pending | — | Partial (not app-integrated) |
+| D2 | No payment execution for denied requests (§11.3) | `core/execution/execute.ts` (re-check gate before any provider call; agent never gets `pay_order`) | `execute.test.ts` | Done (execution core; live adapter pending) |
+| D3 | Capture verification & status persistence (§11.3) | `core/execution/execute.ts` (receipt amount/currency verified; capture recorded via ledger) | `execute.test.ts` | Done (execution core; live adapter pending) |
+| D4 | Failure/timeout handling without duplicate payment (§10, §11.3) | `core/execution/execute.ts` (FAILED records nothing; capture idempotent by provider capture id) | `execute.test.ts`, `spending/ledger.test.ts` | Partial (retry/timeout semantics against live provider pending) |
 | D5 | Secrets server-side; never in browser/logs/commits (§6.2, §15) | Policy (`ENGINEERING.md`, `.gitignore`) | — | Partial |
-| D6 | Integration path chosen (Orders API vs MCP vs Agent Toolkit) (§6.4) | Not chosen | — | Pending (open decision) |
+| D6 | Integration path chosen (Orders API vs MCP vs Agent Toolkit) (§6.4) | Chosen: **Agent Toolkit (TypeScript) + Vercel AI SDK** (`OPEN-DECISIONS.md`) | — | Done (decision; adapter pending) |
 
 ## AI agent
 
@@ -84,8 +84,8 @@ test suite is run with `npm test`.
 
 - Location: `src/**/*.test.ts`
 - Runner: Vitest (`npm test`)
-- Current: **71 tests passing** — 23 authorization, 19 lifecycle, 19 spending,
-  10 persistence (against a real in-process PostgreSQL engine, including a
-  close-and-reopen durability test).
+- Current: **79 tests passing** — 23 authorization, 19 lifecycle, 19 spending,
+  8 execution, 10 persistence (against a real in-process PostgreSQL engine,
+  including a close-and-reopen durability test).
 
 Update this file whenever a requirement's status changes.
