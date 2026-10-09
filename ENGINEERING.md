@@ -122,5 +122,5 @@ automated + end-to-end tests have been run and reported.
 | Saved payment method (vault) storage | ✅ Durable (PostgreSQL), token server-side only |
 | AI agent | ⛔ Not built |
 | UI | ⛔ Not built (design not approved) |
-| Automated tests | ✅ 115 passing, including real-Postgres persistence |
+| Automated tests | ✅ 118 passing, including real-Postgres persistence |
 | Typecheck | ✅ Clean |

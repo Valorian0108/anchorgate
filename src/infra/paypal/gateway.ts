@@ -8,7 +8,9 @@
  * Flow (merchant-initiated, using a vaulted payment source):
  *   1. Load the owner's active saved payment method (vault id).
  *   2. Create a PayPal order for the exact authorized amount, charging the vault.
- *   3. Capture it.
+ *   3. Obtain the capture. Vaulted merchant-initiated orders can be captured by
+ *      PayPal during creation, so the adapter reads that capture, or captures
+ *      explicitly and recovers from a rejected duplicate by re-reading the order.
  *   4. Return the provider's receipt; the caller verifies it before counting.
  *
  * The vault id is a secret handle: it is never logged or returned to the caller.
@@ -19,6 +21,7 @@ import {
   type OrderRequest,
   CaptureStatus,
   CheckoutPaymentIntent,
+  OrderStatus,
   PaymentInitiator,
   StoredPaymentSourceUsageType,
 } from "@paypal/paypal-server-sdk";
@@ -139,13 +142,22 @@ export class PayPalPaymentGateway implements PaymentGateway {
       return { status: "FAILED", reason: describeProviderError(error) };
     }
 
-    // Some flows auto-complete on create; if so, use that capture.
-    let direct = readCompletedCapture(order);
     if (!order.id) {
       return { status: "FAILED", reason: "PayPal did not return an order id." };
     }
+
+    // Vaulted, merchant-initiated orders can be captured by PayPal during
+    // creation. If the create response already carries the capture, use it.
+    let direct = readCompletedCapture(order);
+
+    // If PayPal auto-completed the order but omitted the capture from the create
+    // response, fetch the full order so we can read it (never re-capture).
+    if (!direct && order.status === OrderStatus.Completed) {
+      direct = await this.fetchCaptureOrNull(order.id);
+    }
+
     if (!direct) {
-      let captured: Order;
+      let captured: Order | null = null;
       try {
         captured = await this.orders.captureOrder({
           id: order.id,
@@ -153,9 +165,18 @@ export class PayPalPaymentGateway implements PaymentGateway {
           prefer: "return=representation",
         });
       } catch (error) {
-        return { status: "FAILED", reason: describeProviderError(error) };
+        // PayPal rejects a second capture with 422 "Order already captured".
+        // Confirm against the provider and adopt the existing capture instead of
+        // reporting a false failure.
+        const confirmed = await this.fetchCaptureOrNull(order.id);
+        if (!confirmed) {
+          return { status: "FAILED", reason: describeProviderError(error) };
+        }
+        direct = confirmed;
       }
-      direct = readCompletedCapture(captured);
+      if (!direct && captured) {
+        direct = readCompletedCapture(captured);
+      }
     }
 
     if (!direct) {
@@ -180,5 +201,19 @@ export class PayPalPaymentGateway implements PaymentGateway {
       currency: direct.currency,
       capturedAt: direct.capturedAt,
     };
+  }
+
+  /**
+   * Read an order from the provider and return its completed capture, if any.
+   * Used to recover when PayPal captures during creation, or to confirm state
+   * after a capture error. Never throws: a read failure yields `null`.
+   */
+  private async fetchCaptureOrNull(orderId: string): Promise<CaptureFacts | null> {
+    try {
+      const order = await this.orders.getOrder({ id: orderId });
+      return readCompletedCapture(order);
+    } catch {
+      return null;
+    }
   }
 }

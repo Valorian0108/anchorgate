@@ -78,9 +78,11 @@ function orderWithCapture(overrides: {
 class FakeOrdersPort implements PayPalOrdersPort {
   readonly createCalls: { body: OrderRequest; paypalRequestId: string }[] = [];
   readonly captureCalls: { id: string; paypalRequestId: string }[] = [];
+  readonly getCalls: { id: string }[] = [];
   constructor(
     private readonly createResult: Order | Error,
     private readonly captureResult: Order | Error,
+    private readonly getResult: Order | Error = new Error("getOrder not expected"),
   ) {}
   async createOrder(input: {
     body: OrderRequest;
@@ -99,6 +101,11 @@ class FakeOrdersPort implements PayPalOrdersPort {
     this.captureCalls.push({ id: input.id, paypalRequestId: input.paypalRequestId });
     if (this.captureResult instanceof Error) throw this.captureResult;
     return this.captureResult;
+  }
+  async getOrder(input: { id: string }): Promise<Order> {
+    this.getCalls.push({ id: input.id });
+    if (this.getResult instanceof Error) throw this.getResult;
+    return this.getResult;
   }
 }
 
@@ -170,6 +177,64 @@ describe("PayPalPaymentGateway", () => {
     const outcome = await gateway.pay(INSTRUCTION);
     expect(outcome.status).toBe("CAPTURED");
     expect(orders.captureCalls).toHaveLength(0);
+  });
+
+  it("reads the capture from the order when creation auto-completes without one", async () => {
+    // Vaulted merchant-initiated orders can capture during creation, and the
+    // create response may omit the capture. Read it instead of re-capturing.
+    const orders = new FakeOrdersPort(
+      { id: "ORDER-1", status: OrderStatus.Completed },
+      new Error("should not capture"),
+      orderWithCapture(),
+    );
+    const gateway = new PayPalPaymentGateway({
+      orders,
+      paymentMethods: await storeWithVault(),
+    });
+    const outcome = await gateway.pay(INSTRUCTION);
+    expect(outcome).toMatchObject({ status: "CAPTURED", providerCaptureId: "CAP-1" });
+    expect(orders.captureCalls).toHaveLength(0);
+    expect(orders.getCalls).toEqual([{ id: "ORDER-1" }]);
+  });
+
+  it("adopts the existing capture when a duplicate capture is rejected", async () => {
+    // Mirrors the real Sandbox failure: capture returns 422 "Order already
+    // captured". The provider is the source of truth, so recover, don't fail.
+    const alreadyCaptured = Object.assign(new Error(""), {
+      statusCode: 422,
+      result: {
+        name: "UNPROCESSABLE_ENTITY",
+        message:
+          "Order already captured.If 'intent=CAPTURE' only one capture per order is allowed.",
+      },
+    });
+    const orders = new FakeOrdersPort(
+      { id: "ORDER-1", status: OrderStatus.Created },
+      alreadyCaptured,
+      orderWithCapture(),
+    );
+    const gateway = new PayPalPaymentGateway({
+      orders,
+      paymentMethods: await storeWithVault(),
+    });
+    const outcome = await gateway.pay(INSTRUCTION);
+    expect(outcome).toMatchObject({ status: "CAPTURED", providerCaptureId: "CAP-1" });
+    expect(orders.captureCalls).toHaveLength(1);
+    expect(orders.getCalls).toEqual([{ id: "ORDER-1" }]);
+  });
+
+  it("fails when the capture is rejected and the provider confirms no capture", async () => {
+    const orders = new FakeOrdersPort(
+      { id: "ORDER-1", status: OrderStatus.Created },
+      new Error("declined"),
+      { id: "ORDER-1", status: OrderStatus.Created },
+    );
+    const gateway = new PayPalPaymentGateway({
+      orders,
+      paymentMethods: await storeWithVault(),
+    });
+    const outcome = await gateway.pay(INSTRUCTION);
+    expect(outcome).toMatchObject({ status: "FAILED" });
   });
 
   it("fails safe when no payment method is enrolled", async () => {

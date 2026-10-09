@@ -80,6 +80,12 @@ export class SdkOrdersPort implements PayPalOrdersPort {
     const response = await this.orders.captureOrder(input);
     return response.result;
   }
+  async getOrder(input: {
+    id: string;
+  }): Promise<import("@paypal/paypal-server-sdk").Order> {
+    const response = await this.orders.getOrder(input);
+    return response.result;
+  }
 }
 
 /** Wrap an SDK client in the narrow vault port. */

@@ -27,6 +27,8 @@ export interface PayPalOrdersPort {
     paypalRequestId: string;
     prefer?: string;
   }): Promise<Order>;
+  /** Read an order (used to confirm capture state; never mutates). */
+  getOrder(input: { id: string }): Promise<Order>;
 }
 
 export interface PayPalVaultPort {

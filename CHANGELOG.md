@@ -64,6 +64,13 @@ project aims to follow [Semantic Versioning](https://semver.org/).
   `describePayPalError` (`infra/paypal/errors.ts`) surfaces the HTTP status, error
   code, message, and PayPal `debug_id` (never credentials or request data), and
   is used by both the gateway and the verification runner.
+- **Duplicate capture on vaulted payments.** Vaulted merchant-initiated orders can
+  be captured by PayPal during order creation, so the follow-up capture was
+  rejected with HTTP 422 "Order already captured." The gateway now reads the
+  capture from the create response, fetches the order with `getOrder` when
+  creation reports `COMPLETED` without a capture, and recovers from a rejected
+  duplicate capture by re-reading the order — counting spending only from the
+  provider's verified capture.
 
 ### Security
 

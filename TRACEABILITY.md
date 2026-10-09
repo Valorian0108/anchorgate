@@ -75,8 +75,20 @@ credentials), so it is not part of `npm test`.
   Developer Dashboard → the app → **Sandbox App Settings → App Feature Options**
   → check **Accept payments** → **Advanced options** → enable **Vault**. Vaulting
   is supported in a listed set of countries (US, Canada, much of Europe,
-  Australia, parts of Asia). Re-run pending. Provider errors now surface the
-  status code and structured reason (`infra/paypal/errors.ts`).
+  Australia, parts of Asia). Provider errors now surface the status code and
+  structured reason (`infra/paypal/errors.ts`).
+- **Observed (second live attempt):** vault enrollment succeeded and the
+  authorization engine returned **ALLOW** (`WITHIN_LIMITS`). Execution then
+  reached PayPal but capture returned HTTP 422 `UNPROCESSABLE_ENTITY` — "Order
+  already captured. If `intent=CAPTURE` only one capture per order is allowed."
+  Cause: for a **vaulted, merchant-initiated** payment, PayPal captures during
+  order **creation**, so our follow-up capture is a duplicate. Fix: the gateway
+  now reads the capture from the create response, fetches the order
+  (`getOrder`) when creation reports `COMPLETED` without a capture, and — if a
+  capture call is still rejected — re-reads the order and adopts the existing
+  capture instead of reporting a false failure. PayPal is treated as the source
+  of truth, so spending is counted from the provider's verified capture. Re-run
+  pending.
 
 ## AI agent
 
@@ -100,10 +112,10 @@ credentials), so it is not part of `npm test`.
 
 - Location: `src/**/*.test.ts`
 - Runner: Vitest (`npm test`)
-- Current: **115 tests passing** — 23 authorization, 19 lifecycle, 19 spending,
+- Current: **118 tests passing** — 23 authorization, 19 lifecycle, 19 spending,
   8 execution, 14 persistence (against a real in-process PostgreSQL engine,
   including a close-and-reopen durability test), 11 PayPal money conversion,
-  9 PayPal gateway (fake port), 6 PayPal vault enrollment (fake port),
+  12 PayPal gateway (fake port), 6 PayPal vault enrollment (fake port),
   6 PayPal error description.
 
 Update this file whenever a requirement's status changes.

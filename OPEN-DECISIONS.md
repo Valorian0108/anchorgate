@@ -34,6 +34,16 @@ A proposal, a recommendation, or generated code is **not** a decision.
   parts of Asia — so the earlier "US-only" note was too narrow. Also found that
   the SDK throws errors with an **empty `message`** and the real reason in
   `statusCode`/`result`; error reporting was fixed (`infra/paypal/errors.ts`).
+- **Vaulted merchant-initiated orders capture on creation (observed).** For a
+  payment made with a **vault** and `stored_credential.paymentInitiator =
+  MERCHANT` / `usage = SUBSEQUENT`, PayPal performs the capture during **order
+  creation**. A subsequent `capture` call is rejected with HTTP 422 "Order
+  already captured." The adapter was corrected to treat PayPal as the source of
+  truth: read a capture from create, `getOrder` when create reports `COMPLETED`
+  without one, and — if a capture call is still rejected — re-read the order and
+  adopt the existing capture. This preserves the "count once, from a verified
+  capture" invariant and makes the payment path idempotent with respect to
+  duplicate capture.
 
 ------------------------------------------------------------------------
 
@@ -327,5 +337,13 @@ _None recorded yet._
   detect a misnamed env file (`.env.txt`); (2) provider errors now surface the
   HTTP status and structured reason via `describePayPalError`
   (`infra/paypal/errors.ts`), since the SDK throws empty-message errors. Added 6
-  tests for the describer. Suite now **115 passing**; typecheck clean. Re-run
-  pending after enabling Vault.
+  tests for the describer.
+- **Update (second live run + fix).** After enabling Vault, the run succeeded
+  through vault enrollment and authorization (**ALLOW / WITHIN_LIMITS**), then
+  failed at capture with HTTP 422 "Order already captured." Root cause: for a
+  **vaulted, merchant-initiated** payment, PayPal captures during order
+  **creation**, so our explicit capture is a duplicate. The gateway now treats the
+  provider as the source of truth: it reads a capture returned by create, calls
+  `getOrder` when creation reports `COMPLETED` without one, and recovers from a
+  rejected duplicate capture by re-reading the order. Added 3 gateway tests
+  (12 total). Suite now **118 passing**; typecheck clean. Re-run pending.
