@@ -16,6 +16,15 @@ A proposal, a recommendation, or generated code is **not** a decision.
   the architecture document and should be treated as a **placeholder working
   label only**. Do not bake it into code, folder names, repositories, branding,
   or user-facing text. The real name remains undecided.
+- **"Agent Ready" / Agentic Commerce Protocol (ACP) is the wrong fit (finding).**
+  The owner initially selected ACP for Phase 4, but a review of PayPal's actual
+  docs (2026) shows Agent Ready is a **merchant-side** offering: a *store* accepts
+  payments from AI assistants (ChatGPT, Gemini) through **Braintree**, with
+  **gated onboarding** (a form plus review by PayPal's AI team). Our product is
+  **payer-side** — a person authorizes *their* agent to spend *their* money. ACP
+  would require reframing the product as a merchant store and would likely not be
+  available before the deadline. Decision reversed; see Decisions. We must **not
+  claim** to implement ACP/AP2 without evidence.
 
 ------------------------------------------------------------------------
 
@@ -69,6 +78,16 @@ A proposal, a recommendation, or generated code is **not** a decision.
 - **A single global spending-rule set (approved, MVP).** Rules are stored as one
   active set rather than per-user. The schema can grow a tenant id when the
   identity/auth decision is made.
+- **PayPal integration path: Agent Toolkit + Vercel AI SDK (approved).**
+  - We use **`@paypal/agent-toolkit` (TypeScript, `ai-sdk` entry)** for PayPal
+    API access and **Vercel's AI SDK** for the agent, matching our Next.js stack.
+  - **Security boundary:** the agent may be given order-*creating* and read-only
+    tools, but it must **never** be given `pay_order` (capture). Payment is
+    performed **server-side, only after** the deterministic authorizer permits
+    it. PayPal's toolkit supplies the tools; our layer decides whether money may
+    move.
+  - We will **not** claim to implement ACP/UCP or PayPal's gated agentic commerce
+    services (see the ACP finding above).
 
 ------------------------------------------------------------------------
 
@@ -140,8 +159,18 @@ at useful decision points rather than all at once.
 ### Architecture and operations
 
 - ~~Repository stack~~ ✅ resolved: Next.js + TypeScript (full-stack, single repo).
-- PayPal integration path: direct Orders API vs Agent Toolkit vs MCP vs other.
-- AI model/provider and agent framework.
+- ~~PayPal integration path~~ ✅ resolved: **Agent Toolkit (TypeScript) + Vercel
+  AI SDK**. Agent Ready/ACP evaluated and rejected as merchant-side, Braintree-
+  based, and gated (see the ACP finding).
+- AI model/provider: agent **framework** is resolved (Vercel AI SDK); the specific
+  **model/provider** (e.g. OpenAI, Anthropic) is still open.
+- **Payment pre-authorization model (open):** to let the agent pay *without a
+  human present* (the `ALLOW` path), the user must **vault a payment method once**
+  (PayPal `store_in_vault` / Payment Method Tokens v3), after which the server can
+  create + capture within our enforced limits. Alternative: require the buyer to
+  approve every order in PayPal (simpler, but the agent is never truly
+  autonomous). Awaiting owner choice; it needs a one-time sandbox enrollment step
+  and may touch the Phase 6 UI gate.
 - ~~Database/persistence technology~~ ✅ resolved: PostgreSQL via Supabase, with
   Drizzle ORM (see Decisions).
 - User authentication and identity model.
@@ -248,3 +277,11 @@ _None recorded yet._
   not implemented. It is now **Done**: the owner chose a **single global rule set**
   (documented as an MVP assumption; the schema can grow a tenant id later). Rules
   are stored in PostgreSQL and re-validated on read. Suite now 71 passing.
+- **Correction & decision:** Reviewed PayPal's actual 2026 documentation. Found
+  that **Agent Ready / ACP** is a merchant-side, Braintree-based, gated offering
+  that does not fit our payer-side product (logged as a finding). Owner reversed
+  the Phase 4 choice; approved **PayPal Agent Toolkit (TypeScript) + Vercel AI
+  SDK**. Recorded the hard security boundary: the agent never receives
+  `pay_order`; payment is server-side and authorizer-gated. Also verified the
+  real-world payment model: server-initiated payment requires a **vaulted payment
+  method** (or per-order buyer approval), now logged as an open decision.
