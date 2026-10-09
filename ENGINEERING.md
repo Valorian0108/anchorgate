@@ -114,10 +114,10 @@ automated + end-to-end tests have been run and reported.
 | --- | --- |
 | Authorization engine | ✅ Implemented & tested |
 | Purchase lifecycle (approval) | ✅ Implemented & tested |
-| Spending accounting (verified captures only) | 🟡 Logic implemented & tested; not yet durable/wired |
-| Durable storage | ⛔ Not built (in-memory only) |
+| Spending accounting (verified captures only) | ✅ Logic implemented & tested; not yet wired into the engine |
+| Durable storage | ✅ Implemented & tested (PostgreSQL / Supabase, Drizzle) |
 | PayPal integration | ⛔ Not built |
 | AI agent | ⛔ Not built |
 | UI | ⛔ Not built (design not approved) |
-| Automated tests | ✅ 61 passing |
+| Automated tests | ✅ 68 passing, including real-Postgres persistence |
 | Typecheck | ✅ Clean |

@@ -63,6 +63,9 @@ A proposal, a recommendation, or generated code is **not** a decision.
   - **Reservations are recorded but not enforced yet.** Budget-reservation
     enforcement (expiry, release, conversion) is deferred to Phase 4, to be
     decided before concurrent payment execution is enabled.
+- **Durable storage: PostgreSQL via Supabase (approved).** The owner has a
+  Supabase account, and Supabase is managed PostgreSQL. Durable implementations
+  of the purchase and spending stores target it through Drizzle ORM.
 
 ------------------------------------------------------------------------
 
@@ -87,6 +90,16 @@ A proposal, a recommendation, or generated code is **not** a decision.
 - **The monthly period is caller-supplied.** Spending totals are computed for an
   explicit `[start, end)` window; the ledger does not assume a timezone or a
   reset rule, leaving that (open) decision to configuration.
+- **Drizzle ORM as the Postgres access layer.** Lightweight, TypeScript-native,
+  with migration tooling. Domain code is unchanged: it still uses the
+  `PurchaseStore` / `SpendingStore` interfaces.
+- **Persistence tests use PGlite.** A real in-process PostgreSQL engine runs the
+  same migrations, so the suite needs no external database while still exercising
+  real PostgreSQL behavior, including a close-and-reopen restart test.
+- **Accepted, documented dev-only advisory.** `npm audit` reports 4 moderate
+  advisories from `drizzle-kit`'s transitive dev tooling (an old `esbuild`). They
+  affect only migration generation, not the runtime; the offered fix is a
+  breaking downgrade of Drizzle Kit, so it is accepted and recorded.
 
 ------------------------------------------------------------------------
 
@@ -126,7 +139,8 @@ at useful decision points rather than all at once.
 - ~~Repository stack~~ ✅ resolved: Next.js + TypeScript (full-stack, single repo).
 - PayPal integration path: direct Orders API vs Agent Toolkit vs MCP vs other.
 - AI model/provider and agent framework.
-- Database/persistence technology.
+- ~~Database/persistence technology~~ ✅ resolved: PostgreSQL via Supabase, with
+  Drizzle ORM (see Decisions).
 - User authentication and identity model.
 - Deployment target, logging/monitoring, and data retention.
 
@@ -219,3 +233,10 @@ _None recorded yet._
   are out of scope for the MVP; the budget period is the UTC calendar month;
   reservation enforcement is deferred to Phase 4. Implemented `utcMonthPeriod`
   with tests (suite now 61 passing). Open decisions updated to show resolutions.
+- **Update:** Durable storage implemented (Phase 3). Chose **PostgreSQL via
+  Supabase** with **Drizzle ORM** (documented). Added the database schema, SQL
+  migrations (`drizzle/`), durable purchase/spending stores, and an `.env.example`
+  with placeholders. Persistence is tested against **PGlite** (a real in-process
+  PostgreSQL engine), including a close-and-reopen restart test. Suite now 68
+  passing; typecheck clean. Recorded an accepted dev-only advisory in
+  `drizzle-kit`. Secrets remain server-side and are never requested in chat.

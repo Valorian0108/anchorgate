@@ -21,6 +21,11 @@ project aims to follow [Semantic Versioning](https://semver.org/).
   from persisted events.
 - **Budget period (`utcMonthPeriod`).** The monthly window is the UTC calendar
   month, per the owner's decision.
+- **Durable storage (Phase 3).** A PostgreSQL schema (Drizzle ORM) with SQL
+  migrations and durable implementations of the purchase and spending stores,
+  targeting Supabase. Database-level primary keys enforce capture idempotency.
+  Persistence is tested against a real in-process PostgreSQL engine, including a
+  close-and-reopen durability test.
 - Project scaffold: Next.js + TypeScript, Vitest test runner.
 - Engineering standards (`ENGINEERING.md`), requirements traceability
   (`TRACEABILITY.md`), decision register (`OPEN-DECISIONS.md`).
