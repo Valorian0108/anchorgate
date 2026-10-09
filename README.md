@@ -14,9 +14,10 @@ allowed.
 
 ## Status
 
-Early development. The **authorization core** (deterministic decision engine and
-its tests) is implemented. Database, PayPal execution, the AI agent, and the UI
-are not built yet. The UI has not been designed or approved.
+Early development. The **authorization core** (deterministic decision engine) and
+the **purchase lifecycle** (approval handling and revalidation) are implemented
+and tested. Database, spending accounting, PayPal execution, the AI agent, and
+the UI are not built yet. The UI has not been designed or approved.
 
 ## Tech stack
 
@@ -43,6 +44,12 @@ src/
       validation.ts    # runtime parsing of untrusted input
       engine.ts        # evaluatePurchase(...) — the security boundary
       engine.test.ts   # tests mapped to the acceptance criteria
+    purchases/         # purchase lifecycle and approval handling
+      types.ts         # record, status, evaluation, approval vocabulary
+      fingerprint.ts   # binds approvals to a request's material details
+      lifecycle.ts     # propose / approve / reject / revalidate
+      store.ts         # storage interface + in-memory implementation
+      lifecycle.test.ts
   app/                 # Next.js shell (placeholder only)
 ```
 

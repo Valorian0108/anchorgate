@@ -42,12 +42,30 @@ A proposal, a recommendation, or generated code is **not** a decision.
   Authors") until the project name and owner details are finalized.
 - **Local git repository initialized.** A repo now exists locally with an initial
   commit. No public remote/host has been chosen yet.
+- **Approval lifecycle (partly decided).**
+  - A pending (`ASK`) request is **immutable**: any material change creates a
+    new request that must be approved again.
+  - Pending approvals **do not expire** for the MVP (revisit later).
+  - At approval/execution time, the request is **re-checked against the current
+    rules and budget**; if a hard constraint (e.g. the monthly cap) is no longer
+    satisfied, it cannot be approved or executed.
 
 ------------------------------------------------------------------------
 
 ## Assumptions (made to keep moving; safe to correct)
 
-_None recorded yet._
+- **Money is integer minor units; no currency exchange.** Amounts are integers
+  in the currency's minor units (e.g. cents). A request whose currency differs
+  from the configured rules fails safe (`DENY`). Documented in the engine.
+- **Authorization runs server-side.** Because of that, request fingerprints use
+  a cryptographic hash (`node:crypto` SHA-256). The core is otherwise pure.
+- **A materially changed request is a new request.** The fingerprint binds
+  approvals to the amount, currency, payee, purpose, and category. Callers must
+  assign a fresh request `id` when a material detail changes; the old approval
+  no longer applies.
+- **Rules tightening in flight.** If an `AUTHORIZED` request is later found to
+  require approval under tightened rules, it is downgraded to
+  `PENDING_APPROVAL` rather than executed. (Reversible; flagged for review.)
 
 ------------------------------------------------------------------------
 
@@ -152,3 +170,9 @@ _None recorded yet._
 - **Update:** Repo groundwork done. Added an MIT `LICENSE`, a `.gitattributes`
   for consistent line endings, and initialized a local git repository with an
   initial commit. License choice recorded under Decisions.
+- **Update:** Phase 3 (approval lifecycle) implemented. Added request
+  fingerprints, the propose/approve/reject lifecycle with re-check against
+  current rules, pre-execution revalidation, and a pluggable storage interface
+  with an in-memory implementation. Tests: 42 passing (23 engine + 19
+  lifecycle); typecheck clean. Durable storage, spending accounting, PayPal
+  execution, the AI agent, and the UI remain unbuilt.
