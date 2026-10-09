@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "sandbox:verify": "tsx scripts/sandbox-verify.ts",
     "sandbox:verify:wallet": "tsx scripts/sandbox-verify.ts --wallet",
+    "vault:card": "tsx scripts/vault-card.ts",
     "agent": "tsx scripts/agent-cli.ts",
     "agent:models": "tsx scripts/agent-models.ts",
     "purchase": "tsx scripts/purchase.ts",

@@ -1,0 +1,217 @@
+<!doctype html>
+<!--
+  AnchorGate — Control room, COMP v2 (throwaway). NOT the app. Awaiting owner approval.
+  Applies all 8 external-review points: plain language (no rule ids in copy),
+  one hierarchy, one status system (decision status vs action), one visual system,
+  explicit consequences, precise money semantics, deliberate info placement.
+  Direction: Ramp spine · BILL approval cards · our signature. Accent: indigo.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AnchorGate — Control room (comp v2)</title>
+<style>
+  :root{
+    --ink:#14161A; --ink-soft:#5B6470; --ink-faint:#8A909B;
+    --paper:#fff; --surface:#F6F7F9; --line:#E6E8EC;
+    --indigo:#4138D6; --indigo-deep:#241C8A; --indigo-tint:#EEEDFB;
+    --allow:#0E7C66; --allow-tint:#E8F5F1;
+    --ask:#9A5B00; --ask-tint:#FBF2DF;
+    --deny:#B3261E; --deny-tint:#FBEAE8;
+    --r:14px;
+    --mono:"Cascadia Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--surface);color:var(--ink);
+    font-family:"Segoe UI",Inter,system-ui,-apple-system,Roboto,Arial,sans-serif;
+    line-height:1.45;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:960px;margin:0 auto;padding:26px 24px 72px}
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .comp{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);
+    border:1px solid var(--line);border-radius:999px;padding:4px 10px;display:inline-block;background:#fff}
+
+  /* top bar */
+  header{display:flex;align-items:center;gap:16px;margin-bottom:24px}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:19px;letter-spacing:-.02em}
+  .mark{width:28px;height:28px;border-radius:8px;background:var(--indigo);position:relative;flex:0 0 auto}
+  .mark:before{content:"";position:absolute;inset:7px 7px auto 7px;height:3px;background:#fff;border-radius:2px}
+  .mark:after{content:"";position:absolute;inset:13px 7px 7px 7px;border:2px solid #fff;border-top:0;border-radius:0 0 4px 4px}
+  .brand b{color:var(--indigo-deep)}
+  nav{margin-left:auto;display:flex;gap:4px}
+  nav a{font-size:13.5px;color:var(--ink-soft);text-decoration:none;padding:8px 13px;border-radius:999px}
+  nav a.on{background:var(--indigo-tint);color:var(--indigo-deep);font-weight:650}
+  .who{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--ink-soft)}
+  .av{width:25px;height:25px;border-radius:50%;background:#D9DAF7;color:var(--indigo-deep);
+    display:grid;place-items:center;font-size:10.5px;font-weight:700}
+
+  /* quiet agent line (not a competing banner) */
+  .agentline{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--ink-soft);margin-bottom:20px}
+  .live{width:7px;height:7px;border-radius:50%;background:#0E9F6E;box-shadow:0 0 0 4px rgba(14,159,110,.13)}
+  .agentline b{color:var(--ink);font-weight:600}
+
+  h1{font-size:24px;letter-spacing:-.02em;margin:0 0 3px}
+  .sub{color:var(--ink-soft);font-size:13.5px;margin-bottom:16px}
+
+  /* card */
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);
+    padding:20px 22px;margin-bottom:12px}
+  .head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .head h3{margin:0;font-size:16px;letter-spacing:-.01em}
+  .amt{font-size:16px;font-weight:700}
+  .cat{font-size:11.5px;padding:3px 9px;border-radius:999px;background:var(--surface);
+    border:1px solid var(--line);color:var(--ink-soft)}
+  .when{font-size:12px;color:var(--ink-faint);margin-left:auto}
+
+  /* the ONE status token system (decision status) */
+  .status{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;
+    padding:5px 11px;border-radius:999px;border:1px solid;white-space:nowrap}
+  .status .d{width:7px;height:7px;border-radius:50%;background:currentColor}
+  .st-await{color:var(--ask);border-color:#EAD5A8;background:var(--ask-tint)}
+  .st-block{color:var(--deny);border-color:#EFC9C5;background:var(--deny-tint)}
+  .st-allow{color:var(--allow);border-color:#BFE3D8;background:var(--allow-tint)}
+  .st-flight{color:var(--indigo-deep);border-color:#CDCAF2;background:var(--indigo-tint)}
+
+  .why{margin-top:12px;font-size:14px;color:#2C333D;max-width:62ch}
+  .why .lbl{color:var(--ink-soft);font-weight:600;margin-right:6px}
+  .policy{margin-top:9px;font-size:12px;color:var(--ink-faint)}
+  .policy code{font-family:var(--mono);font-size:11px;color:var(--ink-faint)}
+  .conseq{margin-top:12px;font-size:12.5px;color:var(--ink-soft);display:flex;gap:7px;align-items:flex-start}
+  .conseq b{color:var(--ink);font-weight:650}
+
+  .actions{display:flex;gap:10px;align-items:center;margin-top:16px}
+  .btn{font:inherit;font-size:13.5px;font-weight:650;border-radius:999px;padding:9px 18px;
+    border:1px solid transparent;cursor:pointer}
+  .btn.primary{background:var(--indigo);color:#fff}
+  .btn.ghost{background:#fff;border-color:var(--line);color:var(--ink)}
+  .btn.blocked{background:#fff;border-color:var(--line);color:var(--ink-soft);cursor:not-allowed}
+  .hint{font-size:12.5px;color:var(--ink-soft)}
+
+  /* budget card — precise semantics */
+  .budget .row{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+  .budget h2{margin:0;font-size:15px}
+  .budget .big{font-size:13px;color:var(--ink-soft)}
+  .budget .big b{color:var(--ink);font-weight:700}
+  .bar{height:14px;border-radius:99px;background:var(--surface);border:1px solid var(--line);position:relative;overflow:hidden}
+  .bar .fill{position:absolute;inset:0 auto 0 0;width:42%;background:linear-gradient(90deg,var(--indigo),var(--indigo-deep))}
+  .bar .cap{position:absolute;top:-3px;bottom:-3px;right:0;width:3px;background:var(--ink)}
+  .budget .meta{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--ink-soft)}
+  .budget .meta span{display:inline-flex;align-items:center;gap:7px}
+  .dotk{width:8px;height:8px;border-radius:2px;display:inline-block}
+  .lock{margin-top:12px;font-size:12.5px;color:var(--indigo-deep);font-weight:600}
+
+  /* receipt strip */
+  .receipt{margin-top:14px;border-top:1px dashed var(--line);padding-top:12px}
+  .strip{display:flex;gap:22px;flex-wrap:wrap}
+  .step{display:flex;flex-direction:column;gap:1px}
+  .step .s{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint)}
+  .step .t{font-size:12.5px}
+  .step.done .s{color:var(--indigo-deep)}
+  .step.now .s{color:var(--ask)}
+
+  .foot{margin-top:22px;display:flex;justify-content:space-between;font-size:13px;color:var(--ink-soft)}
+  .foot a{color:var(--indigo-deep);text-decoration:none;font-weight:650}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand"><span class="mark"></span><span>Anchor<b>Gate</b></span></div>
+    <nav>
+      <a class="on" href="#">The Gate</a>
+      <a href="#">Record</a>
+      <a href="#">Rules</a>
+    </nav>
+    <div class="who">Acme Ltd · <span class="av">AD</span> Ada <span style="opacity:.55">owner</span></div>
+  </header>
+
+  <div class="agentline"><span class="live"></span> Agent active · <b>4 attempts today</b> · 1 auto-allowed · 1 blocked</div>
+
+  <h1>Needs your decision</h1>
+  <div class="sub">2 requests are waiting. Approving authorizes that single payment — nothing more.</div>
+
+  <!-- ASK card -->
+  <div class="card">
+    <div class="head">
+      <h3>Acme Software</h3>
+      <span class="amt mono">$49.00</span>
+      <span class="cat">Software</span>
+      <span class="when mono">09:12</span>
+      <span class="status st-await" style="margin-left:auto"><span class="d"></span>Awaiting your approval</span>
+    </div>
+    <div class="why"><span class="lbl">Why</span>You haven’t paid this vendor before. New recipients are always held for your decision.</div>
+    <div class="policy">Rule applied ▸ <code>requireApprovalForNewPayee</code> · within your $50 per-purchase limit</div>
+    <div class="conseq">◆ Approving pays <b>this one request only</b>. It does not save the vendor for next time.</div>
+    <div class="actions">
+      <button class="btn primary">Approve</button>
+      <button class="btn ghost">Reject</button>
+      <span class="hint">Takes effect immediately.</span>
+    </div>
+  </div>
+
+  <!-- BLOCKED card -->
+  <div class="card">
+    <div class="head">
+      <h3>Wire.com</h3>
+      <span class="amt mono">$120.00</span>
+      <span class="cat">Travel</span>
+      <span class="when mono">08:40</span>
+      <span class="status st-block" style="margin-left:auto"><span class="d"></span>Blocked by policy</span>
+    </div>
+    <div class="why"><span class="lbl">Why</span>$120.00 is above your $50 limit for a single purchase, and it would take you past your $100 monthly cap.</div>
+    <div class="policy">Rules applied ▸ <code>perPurchaseLimit</code>, <code>monthlyCap</code></div>
+    <div class="conseq">◆ A hard rule refused this. Approval can’t override it, so there is nothing for you to approve.</div>
+    <div class="actions">
+      <button class="btn blocked" disabled>Approve</button>
+      <button class="btn ghost">Reject</button>
+      <span class="hint">The agent was told no.</span>
+    </div>
+  </div>
+
+  <!-- IN-FLIGHT card (outcome states) -->
+  <div class="card">
+    <div class="head">
+      <h3>Figma</h3>
+      <span class="amt mono">$15.00</span>
+      <span class="cat">Software</span>
+      <span class="when mono">08:02</span>
+      <span class="status st-flight" style="margin-left:auto"><span class="d"></span>In flight — awaiting capture</span>
+    </div>
+    <div class="why"><span class="lbl">Why</span>Within your limit, known vendor, allowed category — allowed automatically.</div>
+    <div class="receipt">
+      <div class="strip">
+        <div class="step done"><span class="s">Proposed</span><span class="t mono">08:02 · agent</span></div>
+        <div class="step done"><span class="s">Decided</span><span class="t mono">08:02 · Allowed</span></div>
+        <div class="step done"><span class="s">Submitted</span><span class="t mono">08:02 · PayPal</span></div>
+        <div class="step now"><span class="s">Captured</span><span class="t mono">pending…</span></div>
+      </div>
+    </div>
+    <div class="conseq" style="margin-top:12px">◆ Doesn’t count toward your cap until the payment is confirmed.</div>
+  </div>
+
+  <!-- budget — precise semantics -->
+  <div class="card budget">
+    <div class="row">
+      <h2>This month</h2>
+      <div class="big"><b class="mono">$42.00</b> captured of <b class="mono">$100.00</b> hard cap</div>
+    </div>
+    <div class="bar"><div class="fill"></div><div class="cap"></div></div>
+    <div class="meta">
+      <span><i class="dotk" style="background:var(--indigo)"></i>Captured (counts)</span>
+      <span><i class="dotk" style="background:#B9B4FF"></i>In flight (doesn’t count yet)</span>
+      <span><i class="dotk" style="background:var(--ask-tint);border:1px solid #EAD5A8"></i>Awaiting you (doesn’t count yet)</span>
+    </div>
+    <div class="lock">◆ The cap can’t be overridden — not by you, not by the agent.</div>
+  </div>
+
+  <div class="foot">
+    <span>Every decision is recorded and immutable. Re-checked before any payment moves.</span>
+    <a href="#">Open the Record →</a>
+  </div>
+
+  <div style="margin-top:26px"><span class="comp">Design comp v2 · not the app</span></div>
+
+</div>
+</body>
+</html>

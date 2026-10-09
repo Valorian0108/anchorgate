@@ -1,0 +1,240 @@
+<!doctype html>
+<!--
+  AnchorGate — Control room, COMP v3 (throwaway). NOT the app.
+  Structural swing: ink instrument masthead · editorial ledger queue ·
+  asymmetric workspace grid (queue left, budget/rules rail right) ·
+  Space Grotesk display + IBM Plex Mono data · one status language ·
+  signature: live engine ticker, anchor mark, receipt track.
+  Applies all 8 external-review points. Awaiting owner approval.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AnchorGate — The Gate (comp v3)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#14161A; --ink-soft:#5A6472; --ink-faint:#8B939E;
+    --paper:#FAFAFB; --hair:rgba(20,22,26,.09);
+    --indigo:#4138D6; --indigo-bright:#6A61FF;
+    --allow:#0E7C66; --ask:#996A00; --deny:#B3261E;
+    --sg:"Space Grotesk","Inter",system-ui,sans-serif;
+    --body:"Inter",system-ui,-apple-system,Roboto,Arial,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:var(--body);line-height:1.5;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .k{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
+
+  /* ---------- ink instrument masthead ---------- */
+  .mast{background:#121418;color:#fff}
+  .mast-inner{max-width:1160px;margin:0 auto;padding:0 32px;height:58px;
+    display:flex;align-items:center;gap:28px}
+  .brand{display:flex;align-items:center;gap:11px;color:#fff;text-decoration:none}
+  .brand .word{font-family:var(--sg);font-weight:600;font-size:17.5px;letter-spacing:-.02em}
+  .engine{display:flex;align-items:center;gap:10px;font-family:var(--mono);
+    font-size:11.5px;color:rgba(255,255,255,.52)}
+  .beacon{width:6px;height:6px;border-radius:50%;background:#35D29B;
+    box-shadow:0 0 0 0 rgba(53,210,155,.5);animation:beat 2.4s infinite}
+  @keyframes beat{0%{box-shadow:0 0 0 0 rgba(53,210,155,.45)}70%{box-shadow:0 0 0 7px rgba(53,210,155,0)}100%{box-shadow:0 0 0 0 rgba(53,210,155,0)}}
+  .who{margin-left:auto;display:flex;align-items:center;gap:11px;font-size:13px}
+  .who .muted{color:rgba(255,255,255,.5);font-size:12px}
+  .av{width:26px;height:26px;border-radius:50%;background:var(--indigo-bright);color:#fff;
+    display:grid;place-items:center;font-size:10.5px;font-weight:600;font-family:var(--sg)}
+
+  /* ---------- workspace grid ---------- */
+  .work{max-width:1160px;margin:0 auto;padding:46px 32px 90px;
+    display:grid;grid-template-columns:minmax(0,1fr) 296px;gap:64px;align-items:start}
+
+  /* ---------- queue (ledger) ---------- */
+  h1{font-family:var(--sg);font-weight:600;font-size:36px;letter-spacing:-.025em;
+    line-height:1.12;margin:10px 0 8px}
+  h1 em{font-style:normal;color:var(--indigo)}
+  .lead{font-size:14.5px;color:var(--ink-soft);max-width:56ch;margin:0 0 34px}
+
+  table.queue{width:100%;border-collapse:collapse;margin:0}
+  thead th{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--ink-faint);text-align:left;
+    padding:0 0 10px;border-bottom:1px solid var(--hair)}
+  tbody td{padding:20px 0;border-bottom:1px solid var(--hair);vertical-align:middle}
+  tbody tr:last-child td{border-bottom:0}
+  .rq{width:20px}
+  .bar{border-left:2px solid transparent;padding-left:0}
+  td.bar{border-left:2px solid;padding-left:16px}
+  td.a-ask{border-color:var(--ask)} td.a-deny{border-color:var(--deny)} td.a-allow{border-color:var(--indigo)}
+  .merch{font-family:var(--sg);font-weight:600;font-size:15.5px;letter-spacing:-.01em;display:block}
+  .whyline{font-size:13px;color:var(--ink-soft);margin-top:3px;max-width:52ch}
+  .rul{font-family:var(--mono);font-size:10.5px;color:var(--ink-faint);margin-top:5px;display:block}
+  td.nums{text-align:right;padding-left:24px}
+  .amt{font-family:var(--mono);font-weight:600;font-size:17px;letter-spacing:-.02em}
+  .st{display:block;font-size:12px;font-weight:600;margin-top:3px}
+  .st-ask{color:var(--ask)} .st-deny{color:var(--deny)} .st-allow{color:var(--allow)} .st-flight{color:var(--indigo)}
+  td.acts{text-align:right;padding-left:20px;white-space:nowrap}
+  .btn{font:inherit;font-family:var(--body);font-size:13px;font-weight:600;height:34px;
+    padding:0 15px;border-radius:9px;border:1px solid transparent;cursor:pointer;letter-spacing:.01em}
+  .btn.approve{background:var(--indigo);color:#fff}
+  .btn.ghost{background:transparent;border-color:var(--hair);color:var(--ink)}
+  .btn.text{background:transparent;border-color:transparent;color:var(--ink-soft)}
+  .btn.text:hover{color:var(--indigo)}
+
+  /* ---------- latest movement ---------- */
+  .move{margin-top:38px}
+  .move h2{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--ink-faint);margin:0 0 4px}
+  .mtrack{display:flex;align-items:center;gap:14px;padding:16px 0;border-bottom:1px solid var(--hair)}
+  .mtrack .who2{font-weight:600;font-family:var(--sg);font-size:14px}
+  .trk{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);letter-spacing:-.01em}
+  .trk b{color:var(--allow);font-weight:600}
+  .trk .fl{color:var(--indigo)}
+  .mtrack .mamt{font-family:var(--mono);font-size:14.5px;font-weight:600;margin-left:auto}
+  .mnote{font-size:12.5px;color:var(--ink-faint);padding:10px 0 0;display:flex;gap:8px}
+
+  /* ---------- right rail ---------- */
+  .rail{border-left:1px solid var(--hair);padding-left:34px;display:flex;flex-direction:column;gap:34px}
+  .cap-fig{font-family:var(--sg);font-weight:600;font-size:34px;letter-spacing:-.03em;margin:10px 0 2px;line-height:1}
+  .cap-fig span{font-size:16px;color:var(--ink-faint);font-weight:500;letter-spacing:-.01em}
+  .meter{position:relative;height:12px;border-radius:2px;background:rgba(20,22,26,.06);margin-top:16px}
+  .meter .fill{position:absolute;inset:0 auto 0 0;width:42%;background:var(--indigo);border-radius:2px 0 0 2px}
+  .meter .tick{position:absolute;top:-4px;bottom:-4px;right:0;width:2px;background:var(--ink);border-radius:1px}
+  .legend{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:8px;font-size:12.5px;color:var(--ink-soft)}
+  .legend li{display:flex;gap:9px;align-items:baseline}
+  .legend .sw{width:8px;height:8px;flex:0 0 auto;border-radius:2px;align-self:center}
+  .legend .v{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--ink)}
+  .legend .nope{color:var(--ink-faint)}
+  .capbox{margin-top:18px;border:1px solid var(--hair);border-left:2px solid var(--ink);
+    border-radius:6px;padding:13px 14px;font-size:12.5px;color:var(--ink-soft)}
+  .capbox b{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--ink);margin-bottom:4px}
+  ul.rules{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:0}
+  ul.rules li{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--hair);font-size:13.5px}
+  ul.rules li:last-child{border-bottom:0}
+  .sw2{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+  .sw2.on{background:var(--allow)} .sw2.hard{background:var(--ink)} .sw2.inh{background:var(--indigo)}
+  .rn{margin-right:auto}
+  .state{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase}
+  .state.on{color:var(--allow)} .state.hard{color:var(--ink);font-weight:600} .state.inh{color:var(--indigo)}
+  .railfoot{margin-top:2px;font-size:12.5px;color:var(--ink-faint);display:grid;gap:4px}
+
+  /* ---------- footer ---------- */
+  .foot{max-width:1160px;margin:0 auto;padding:22px 32px 34px;border-top:1px solid var(--hair);
+    display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--ink-faint)}
+  .foot a{color:var(--indigo);text-decoration:none;font-weight:600;font-size:13px}
+
+  @media(max-width:960px){ .work{grid-template-columns:1fr;gap:48px} .rail{border-left:0;padding-left:0;border-top:1px solid var(--hair);padding-top:34px} }
+</style>
+</head>
+<body>
+
+  <div class="mast">
+    <div class="mast-inner">
+      <a class="brand" href="#">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="5.2" r="3.1"/>
+          <path d="M12 8.3v11.5M4.5 20h15M7.4 15.6a6.3 6.3 0 0 0 9.2 0"/>
+          <circle cx="20.2" cy="3.8" r="1.7" fill="#6A61FF" stroke="none"/>
+        </svg>
+        <span class="word">AnchorGate</span>
+      </a>
+      <div class="engine"><span class="beacon"></span><span>engine: 3 rules active · 12,847 checks · last 09:12:04</span></div>
+      <div class="who"><span class="muted">Acme Ltd</span><span style="color:rgba(255,255,255,.85)">Ada</span><span class="av">AD</span></div>
+    </div>
+  </div>
+
+  <div class="work">
+
+    <!-- left: queue ledgder -->
+    <main>
+      <span class="k">The Gate</span>
+      <h1>Two payments are waiting on <em>you</em>.</h1>
+      <p class="lead">You are the choke point. One approval authorizes exactly one payment — it never
+        becomes a standing exception, and it is rechecked before any money moves.</p>
+
+      <table class="queue">
+        <thead>
+          <tr><th class="rq"></th><th>Request</th><th class="nums">Amount</th><th class="acts">Action</th></tr>
+        </thead>
+        <tbody>
+
+          <tr>
+            <td class="rq"></td>
+            <td class="bar a-ask">
+              <span class="merch">Acme Software</span>
+              <span class="whyline">New vendor — you’ve never paid them. First payments always come to you.</span>
+              <span class="rul">rule: new-payee approval · requested 09:12 · Software</span>
+            </td>
+            <td class="nums"><span class="amt">$49.00</span><span class="st st-ask">awaiting you</span></td>
+            <td class="acts"><button class="btn approve">Approve</button> <button class="btn ghost">Reject</button></td>
+          </tr>
+
+          <tr>
+            <td class="rq"></td>
+            <td class="bar a-deny">
+              <span class="merch">Wire.com</span>
+              <span class="whyline">$120.00 is above your $50 per-purchase limit and past the $100 monthly cap.</span>
+              <span class="rul">rules: per-purchase limit + monthly cap · requested 08:40 · Travel</span>
+            </td>
+            <td class="nums"><span class="amt">$120.00</span><span class="st st-deny">blocked · policy</span></td>
+            <td class="acts"><button class="btn text">Why →</button></td>
+          </tr>
+
+        </tbody>
+      </table>
+
+      <section class="move">
+        <h2>Latest movement</h2>
+        <div class="mtrack">
+          <span class="who2">Figma</span>
+          <span class="trk">proposed → engine <b>ALLOW</b> → submitted → <span class="fl">capturing…</span></span>
+          <span class="mamt">$15.00</span>
+        </div>
+        <div class="mnote">◆ Doesn’t count toward your cap until PayPal confirms the capture — then the ledger stamps it.</div>
+      </section>
+    </main>
+
+    <!-- right rail: budget + rule set -->
+    <aside class="rail">
+      <div>
+        <span class="k">This month</span>
+        <div class="cap-fig">$42.00<span> of $100.00</span></div>
+        <div class="meter"><div class="fill"></div><div class="tick"></div></div>
+        <ul class="legend">
+          <li><span class="sw" style="background:var(--indigo)"></span>Captured<span class="v">$42.00</span></li>
+          <li><span class="sw" style="background:var(--indigo-bright)"></span>In flight<span class="v nope">$15.00 · not counted</span></li>
+          <li><span class="sw" style="background:#E8C96C"></span>Awaiting you<span class="v nope">$169.00 · not counted</span></li>
+        </ul>
+        <div class="capbox">
+          <b>Hard cap</b>
+          The engine refuses any request that would cross $100. There is no override path — not for you, not for the agent.
+        </div>
+      </div>
+
+      <div>
+        <span class="k">Rule set</span>
+        <ul class="rules">
+          <li><span class="sw2 on"></span><span class="rn">New payees always require you</span><span class="state on">on</span></li>
+          <li><span class="sw2 on"></span><span class="rn">Max $50 per purchase</span><span class="state on">on</span></li>
+          <li><span class="sw2 hard"></span><span class="rn">Max $100 per month</span><span class="state hard">hard cap</span></li>
+          <li><span class="sw2 inh"></span><span class="rn">Approvals are single-use</span><span class="state inh">inherent</span></li>
+        </ul>
+        <div class="railfoot">
+          <span>◆ The agent proposes. The engine decides.</span>
+          <span>&nbsp;&nbsp;&nbsp;There is no appeal that overrides a hard rule.</span>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="foot">
+    <span>Every decision is immutable and rechecked before money moves.</span>
+    <a href="#">Open the Record →</a>
+  </div>
+
+  <div style="text-align:center;padding:0 0 30px"><span style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#B8BEC7">Design comp v3 · not the app</span></div>
+
+</body>
+</html>

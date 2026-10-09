@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AnchorGate — Record</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400..900&family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..500&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600&display=swap" rel="stylesheet">
+
+<style>
+  /* ------------------------------------------------------------------
+     AnchorGate · Record (audit register)
+     Tokens only. No inline hex outside this block. No gradients.
+     Icons: our stroke set only. No emojis.
+     ------------------------------------------------------------------ */
+  :root{
+    --ink:#1C1917;
+    --ink-soft:#57534E;
+    --ink-faint:#6F675C;
+    --paper:#FBF9F4;
+    --surface:#F3EFE7;
+    --line:#E4DED3;
+    --seal-deep:#122947;
+    --seal:#1C3A66;
+    --seal-bright:#2A5AA0;
+    --seal-tint:#E8EDF5;
+    --allow:#2F6B4F;
+    --ask:#A66312;
+    --deny:#9E2B25;
+    --g:"Schibsted Grotesk", sans-serif;
+    --s:"Newsreader", serif;
+    --m:"IBM Plex Mono", monospace;
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);
+    font-family:var(--g);font-size:16px;line-height:1.5;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  }
+  .num{font-variant-numeric:tabular-nums}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 48px 72px}
+
+  a{color:var(--seal);text-decoration:none}
+  a:hover{color:var(--seal-bright)}
+
+  header{
+    display:flex;align-items:center;gap:24px;
+    padding:26px 0 20px;border-bottom:1px solid var(--ink);
+  }
+  .wordmark{display:flex;align-items:center;gap:10px}
+  .wordmark svg{width:20px;height:20px;color:var(--seal);flex:none}
+  .wordmark .name{font-family:var(--g);font-weight:700;font-size:18px;letter-spacing:-.01em}
+  nav{margin-left:auto;display:flex;align-items:center;gap:26px}
+  nav a{font-family:var(--g);font-size:13.5px;font-weight:500;color:var(--ink-soft)}
+  nav a:hover{color:var(--ink)}
+  nav .active{color:var(--ink)}
+  nav .active::before{content:"";display:inline-block;width:6px;height:6px;background:var(--seal);margin-right:8px;transform:translateY(-1px)}
+
+  .engine{
+    display:flex;align-items:center;gap:10px;
+    padding:14px 0;border-bottom:1px solid var(--line);
+    font-family:var(--m);font-size:11px;letter-spacing:.04em;color:var(--ink-soft);
+  }
+  .engine .dot{width:6px;height:6px;background:var(--seal);border-radius:50%;flex:none}
+  .engine .tag{color:var(--ink-faint);margin-right:2px}
+
+  /* ---------------- page head ---------------- */
+  .page-head{
+    padding:40px 0 6px;
+    display:flex;align-items:baseline;justify-content:space-between;gap:24px;flex-wrap:wrap;
+  }
+  .page-head .ref{font-family:var(--m);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:12px}
+  .page-head h1{
+    font-family:var(--s);font-style:italic;font-weight:400;
+    font-size:clamp(30px,4.6vw,46px);line-height:1.06;letter-spacing:-.01em;margin:0;
+  }
+  .page-head .count{font-family:var(--m);font-size:11px;letter-spacing:.08em;color:var(--ink-soft);text-transform:uppercase}
+
+  .integrity{
+    margin-top:18px;padding:14px 16px;border:1px solid var(--seal);background:var(--seal-tint);
+    display:flex;gap:28px;flex-wrap:wrap;
+    font-family:var(--m);font-size:11px;letter-spacing:.03em;color:var(--seal-deep);
+  }
+  .integrity .it em{font-style:normal;color:var(--ink-faint);margin-right:6px}
+
+  /* ---------------- ledger ---------------- */
+  .ledger{margin-top:40px}
+  .ledger .colhead{
+    display:grid;grid-template-columns:150px 1fr 260px 110px 150px 190px;gap:16px;
+    padding:0 0 12px;border-bottom:1px solid var(--ink);
+    font-family:var(--m);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);
+  }
+  .ledger .colhead .amt{text-align:right}
+
+  .row{
+    display:grid;grid-template-columns:150px 1fr 260px 110px 150px 190px;gap:16px;
+    align-items:center;padding:16px 2px;border-bottom:1px solid var(--line);
+    transition:background-color .12s ease;
+  }
+  .row:hover{background:var(--surface)}
+
+  .row .t{font-family:var(--m);font-size:11px;color:var(--ink-soft);line-height:1.6}
+  .row .t .id{color:var(--ink-faint)}
+  .row .t time{display:block;letter-spacing:.02em}
+
+  .row .who{min-width:0}
+  .row .who .payee{font-family:var(--g);font-weight:600;font-size:14.5px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .who .purpose{font-family:var(--m);font-size:11px;color:var(--ink-soft);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .row .trail{font-family:var(--m);font-size:11px;color:var(--ink-soft);letter-spacing:.02em;line-height:1.65}
+  .row .trail .a{color:var(--ask)}
+  .row .trail .g{color:var(--allow)}
+  .row .trail .d{color:var(--deny)}
+
+  .row .amt{font-family:var(--m);font-size:13px;font-weight:500;text-align:right;white-space:nowrap}
+  .row .amt .cur{color:var(--ink-faint);font-weight:400;font-size:11px;margin-right:2px}
+
+  .chip{
+    display:inline-block;font-family:var(--m);font-size:10px;font-weight:500;
+    letter-spacing:.12em;padding:3px 9px;border:1px solid;border-radius:2px;white-space:nowrap;
+  }
+  .chip-allow{color:var(--allow);border-color:var(--allow)}
+  .chip-ask{color:var(--ask);border-color:var(--ask)}
+  .chip-deny{color:var(--deny);border-color:var(--deny)}
+  .outcome{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+  .outcome .state{font-family:var(--m);font-size:10.5px;color:var(--ink-faint);letter-spacing:.06em}
+
+  .row .proof{font-family:var(--m);font-size:10.5px;color:var(--ink-faint);letter-spacing:.02em;line-height:1.7;min-width:0}
+  .row .proof .ref{color:var(--ink-soft)}
+
+  .totals{
+    display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;
+    margin-top:26px;padding-top:16px;border-top:2px solid var(--ink);
+    font-family:var(--m);font-size:11.5px;color:var(--ink-soft);letter-spacing:.03em;
+  }
+  .totals b{color:var(--ink);font-weight:500}
+  .totals .hl{color:var(--seal)}
+
+  .note{margin-top:14px;font-family:var(--m);font-size:10px;letter-spacing:.06em;color:var(--ink-faint)}
+
+  @media (max-width:1000px){
+    .wrap{padding:0 24px 56px}
+    .ledger .colhead,.row{grid-template-columns:120px 1fr 200px 100px 130px 150px;gap:12px}
+  }
+  @media (max-width:780px){
+    .ledger .colhead{display:none}
+    .row{grid-template-columns:1fr auto;grid-template-areas:"t amt" "who who" "trail trail" "out proof";row-gap:8px}
+    .row .who{grid-area:who}.row .amt{grid-area:amt}.row .trail{grid-area:trail}
+    .row .outcome{grid-area:out}.row .proof{grid-area:proof}
+    .integrity{flex-direction:column;gap:8px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- masthead -->
+  <header>
+    <div class="wordmark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" aria-hidden="true">
+        <path d="M12 4.5v15"/>
+        <path d="M6 10.5h12"/>
+        <path d="M6 10.5 4 17c1.6.8 4.3.8 5.8 0L6 10.5Z"/>
+        <path d="M18 10.5 16 17c-1.5-.8-4.2-.8-5.8 0L18 10.5Z"/>
+      </svg>
+      <span class="name">AnchorGate</span>
+    </div>
+    <nav>
+      <a href="#">Gate</a>
+      <a href="#">Statute</a>
+      <a href="#" class="active">Record</a>
+    </nav>
+  </header>
+
+  <!-- engine line -->
+  <div class="engine">
+    <span class="dot"></span>
+    <span><span class="tag">engine</span> deterministic authorizer · rules read fresh, never cached · last evaluation <span class="tag">09:15:05 UTC · pre-execution · pass</span> · rule set <span class="tag">owner-1</span></span>
+  </div>
+
+  <!-- page head -->
+  <section class="page-head">
+    <div>
+      <div class="ref">Record · audit register · 09 oct 2026</div>
+      <h1>Everything the gate decided, in order.</h1>
+    </div>
+    <span class="count num">7 requests · all verdicts · snapshot 09:16:12 UTC</span>
+  </section>
+
+  <!-- integrity line -->
+  <div class="integrity">
+    <span class="it num"><em>hard cap</em>100.00 · no override</span>
+    <span class="it num"><em>counting</em>verified captures only</span>
+    <span class="it num"><em>engine</em>deterministic · no approvals from the model</span>
+    <span class="it num"><em>record</em>written once · approved once · re-read only</span>
+  </div>
+
+  <!-- the register -->
+  <section class="ledger">
+    <div class="colhead">
+      <span>Request</span>
+      <span>Payee / purpose</span>
+      <span>Decision trail</span>
+      <span class="amt">Amount</span>
+      <span>Outcome</span>
+      <span>Proof</span>
+    </div>
+
+    <div class="row">
+      <div class="t num"><span class="id">#0190</span><time>09:13:04</time></div>
+      <div class="who"><div class="payee">Hostinger International</div><div class="purpose">software · annual hosting</div></div>
+      <div class="trail num"><span class="d">deny</span> · monthly cap · 83.00 remaining · engine, hard</div>
+      <div class="amt num"><span class="cur">USD</span>479.00</div>
+      <div class="outcome"><span class="chip chip-deny">DENY</span><span class="state">closed</span></div>
+      <div class="proof num">fp 3a11…b204</div>
+    </div>
+
+    <div class="row">
+      <div class="t num"><span class="id">#0189</span><time>09:12:40</time></div>
+      <div class="who"><div class="payee">Adobe, Inc.</div><div class="purpose">software · subscription</div></div>
+      <div class="trail num"><span class="a">ask</span> 09:12:41 → <span class="g">allow</span> owner 09:15:04 · rechecks pass</div>
+      <div class="amt num"><span class="cur">USD</span>32.50</div>
+      <div class="outcome"><span class="chip chip-allow">ALLOW</span><span class="state">captured · verified once</span></div>
+      <div class="proof num">ref <span class="ref">5XU34245…</span><br>fp 9c2d18f0…e481</div>
+    </div>
+
+    <div class="row">
+      <div class="t num"><span class="id">#0188</span><time>09:12:01</time></div>
+      <div class="who"><div class="payee">Notion Labs</div><div class="purpose">software · team plan</div></div>
+      <div class="trail num"><span class="a">ask</span> · new payee · awaiting you</div>
+      <div class="amt num"><span class="cur">USD</span>24.00</div>
+      <div class="outcome"><span class="chip chip-ask">ASK</span><span class="state">awaiting · since 09:12:01</span></div>
+      <div class="proof num">fp 7e15…9c02</div>
+    </div>
+
+    <div class="row">
+      <div class="t num"><span class="id">#0187</span><time>09:10:44</time></div>
+      <div class="who"><div class="payee">GitHub, Inc.</div><div class="purpose">software · repo plan</div></div>
+      <div class="trail num"><span class="g">allow</span> · within limits · automatic</div>
+      <div class="amt num"><span class="cur">USD</span>19.00</div>
+      <div class="outcome"><span class="chip chip-allow">ALLOW</span><span class="state">executing</span></div>
+      <div class="proof num">fp 5b8d…e210</div>
+    </div>
+
+    <div class="row">
+      <div class="t num"><span class="id">#0186</span><time>09:03:22</time></div>
+      <div class="who"><div class="payee">Readwise</div><div class="purpose">books · subscription</div></div>
+      <div class="trail num"><span class="g">allow</span> · within limits · automatic</div>
+      <div class="amt num"><span class="cur">USD</span>5.00</div>
+      <div class="outcome"><span class="chip chip-allow">ALLOW</span><span class="state">captured · verified once</span></div>
+      <div class="proof num">fp a41c…77d5</div>
+    </div>
+
+    <div class="row">
+      <div class="t num"><span class="id">#0185</span><time>08:57:48</time></div>
+      <div class="who"><div class="payee">Figma, Inc.</div><div class="purpose">software · seat</div></div>
+      <div class="trail num"><span class="g">allow</span> · within limits · automatic</div>
+      <div class="amt num"><span class="cur">USD</span>12.00</div>
+      <div class="outcome"><span class="chip chip-allow">ALLOW</span><span class="state">captured · verified once</span></div>
+      <div class="proof num">fp 2f08…b16c</div>
+    </div>
+
+    <div class="row">
+      <div class="t num"><span class="id">#0184</span><time>08:44:12</time></div>
+      <div class="who"><div class="payee">WeTransfer</div><div class="purpose">software · one-off transfer</div></div>
+      <div class="trail num"><span class="a">ask</span> 08:44:13 → reject · owner 08:51:30</div>
+      <div class="amt num"><span class="cur">USD</span>40.00</div>
+      <div class="outcome"><span class="state" style="letter-spacing:.08em">rejected · by owner</span></div>
+      <div class="proof num">fp c6d9…3e11</div>
+    </div>
+
+    <div class="totals num">
+      <span>7 requests · 2 outstanding <b>(1 awaiting · 1 executing)</b></span>
+      <span>captured <b>49.50</b> · reserved <b>43.00</b> · cap <b>100.00</b> · headroom <b class="hl">7.50</b></span>
+    </div>
+  </section>
+
+  <div class="note">Demo data · shapes match the live schema · snapshot 09 oct 2026 · 09:16:12 UTC · every row is immutable once written</div>
+
+</div>
+</body>
+</html>

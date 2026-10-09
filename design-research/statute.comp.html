@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AnchorGate — Statute</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400..900&family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..500&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600&display=swap" rel="stylesheet">
+
+<style>
+  /* ------------------------------------------------------------------
+     AnchorGate · Statute (the rule set)
+     Tokens only. No inline hex outside this block. No gradients.
+     Icons: our stroke set only. No emojis.
+     ------------------------------------------------------------------ */
+  :root{
+    --ink:#1C1917;
+    --ink-soft:#57534E;
+    --ink-faint:#6F675C;
+    --paper:#FBF9F4;
+    --surface:#F3EFE7;
+    --line:#E4DED3;
+    --seal-deep:#122947;
+    --seal:#1C3A66;
+    --seal-bright:#2A5AA0;
+    --seal-tint:#E8EDF5;
+    --allow:#2F6B4F;
+    --ask:#A66312;
+    --deny:#9E2B25;
+    --g:"Schibsted Grotesk", sans-serif;
+    --s:"Newsreader", serif;
+    --m:"IBM Plex Mono", monospace;
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);
+    font-family:var(--g);font-size:16px;line-height:1.5;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  }
+  .num{font-variant-numeric:tabular-nums}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 48px 72px}
+
+  a{color:var(--seal);text-decoration:none}
+  a:hover{color:var(--seal-bright)}
+
+  header{
+    display:flex;align-items:center;gap:24px;
+    padding:26px 0 20px;border-bottom:1px solid var(--ink);
+  }
+  .wordmark{display:flex;align-items:center;gap:10px}
+  .wordmark svg{width:20px;height:20px;color:var(--seal);flex:none}
+  .wordmark .name{font-family:var(--g);font-weight:700;font-size:18px;letter-spacing:-.01em}
+  nav{margin-left:auto;display:flex;align-items:center;gap:26px}
+  nav a{font-family:var(--g);font-size:13.5px;font-weight:500;color:var(--ink-soft)}
+  nav a:hover{color:var(--ink)}
+  nav .active{color:var(--ink)}
+  nav .active::before{content:"";display:inline-block;width:6px;height:6px;background:var(--seal);margin-right:8px;transform:translateY(-1px)}
+
+  .engine{
+    display:flex;align-items:center;gap:10px;
+    padding:14px 0;border-bottom:1px solid var(--line);
+    font-family:var(--m);font-size:11px;letter-spacing:.04em;color:var(--ink-soft);
+  }
+  .engine .dot{width:6px;height:6px;background:var(--seal);border-radius:50%;flex:none}
+  .engine .tag{color:var(--ink-faint);margin-right:2px}
+
+  /* ---------------- page head ---------------- */
+  .page-head{
+    padding:40px 0 0;
+    display:flex;align-items:baseline;justify-content:space-between;gap:24px;flex-wrap:wrap;
+  }
+  .page-head .ref{font-family:var(--m);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:12px}
+  .page-head h1{
+    font-family:var(--s);font-style:italic;font-weight:400;
+    font-size:clamp(30px,4.6vw,46px);line-height:1.06;letter-spacing:-.01em;margin:0;
+  }
+  .page-head .count{font-family:var(--m);font-size:11px;letter-spacing:.08em;color:var(--ink-soft);text-transform:uppercase;text-align:right}
+
+  .preamble{
+    margin-top:22px;max-width:66ch;padding:18px 20px;
+    border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);
+    font-family:var(--g);font-weight:400;font-size:15px;line-height:1.65;color:var(--ink);
+  }
+  .preamble b{font-weight:600}
+
+  /* ---------------- clauses ---------------- */
+  .clauses{margin-top:8px}
+  .clause{
+    display:grid;grid-template-columns:100px 1fr 270px;gap:30px;
+    padding:26px 0;border-bottom:1px solid var(--line);
+  }
+  .clause .snum{font-family:var(--m);font-size:13px;color:var(--seal);letter-spacing:.06em;padding-top:2px}
+  .clause .txt{min-width:0}
+  .clause h2{font-family:var(--g);font-weight:600;font-size:17px;letter-spacing:-.01em;margin:0 0 6px}
+  .clause p{font-family:var(--g);font-weight:400;font-size:14.5px;line-height:1.6;color:var(--ink-soft);margin:0;max-width:56ch}
+  .clause .op{
+    border-left:1px solid var(--line);padding-left:24px;
+    display:flex;flex-direction:column;gap:7px;
+    font-family:var(--m);font-size:11.5px;color:var(--ink-soft);letter-spacing:.02em;
+  }
+  .clause .op .rv{font-family:var(--g);font-weight:600;font-size:13px;color:var(--ink);letter-spacing:0;margin-bottom:2px}
+  .clause .op .warn{color:var(--ask)}
+  .clause .op .hard{color:var(--deny)}
+
+  /* ---------------- decision order ---------------- */
+  .order{
+    margin-top:34px;padding:18px 20px;border:1px solid var(--seal);background:var(--seal-tint);
+    font-family:var(--m);font-size:11.5px;letter-spacing:.03em;color:var(--seal-deep);line-height:1.9;
+  }
+  .order .seq b{color:var(--seal-deep)}
+  .order .rule{color:var(--ink-soft)}
+  .order .strict{color:var(--deny)}
+
+  .note{margin-top:14px;font-family:var(--m);font-size:10px;letter-spacing:.06em;color:var(--ink-faint)}
+
+  @media (max-width:900px){
+    .wrap{padding:0 24px 56px}
+    .clause{grid-template-columns:70px 1fr;gap:18px}
+    .clause .op{border-left:none;border-top:1px solid var(--line);padding-left:0;padding-top:14px;grid-column:1 / -1}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- masthead -->
+  <header>
+    <div class="wordmark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" aria-hidden="true">
+        <path d="M12 4.5v15"/>
+        <path d="M6 10.5h12"/>
+        <path d="M6 10.5 4 17c1.6.8 4.3.8 5.8 0L6 10.5Z"/>
+        <path d="M18 10.5 16 17c-1.5-.8-4.2-.8-5.8 0L18 10.5Z"/>
+      </svg>
+      <span class="name">AnchorGate</span>
+    </div>
+    <nav>
+      <a href="#">Gate</a>
+      <a href="#" class="active">Statute</a>
+      <a href="#">Record</a>
+    </nav>
+  </header>
+
+  <!-- engine line -->
+  <div class="engine">
+    <span class="dot"></span>
+    <span><span class="tag">engine</span> deterministic authorizer · rules read fresh, never cached · rule set <span class="tag">owner-1</span></span>
+  </div>
+
+  <!-- page head -->
+  <section class="page-head">
+    <div>
+      <div class="ref">Statute · rule set owner-1 · 09 oct 2026</div>
+      <h1>The rules the agent can't move.</h1>
+    </div>
+    <span class="count num">8 clauses · in force · demo data</span>
+  </section>
+
+  <!-- preamble -->
+  <p class="preamble">This set governs every proposed purchase. The AI may propose — it has one tool and no money. <b>Only these rules, and then the owner (you), decide.</b> The rules are read fresh for every evaluation, and none of them can be overridden by a model.</p>
+
+  <!-- clauses -->
+  <section class="clauses">
+
+    <div class="clause">
+      <div class="snum num">§ 1</div>
+      <div class="txt">
+        <h2>Standing</h2>
+        <p>Every request is evaluated against this rule set at proposal, again at approval, and again immediately before execution. A request that has no decision yet is simply not spent.</p>
+      </div>
+      <div class="op"><span class="rv">rule set owner-1 · USD</span><span>evaluated at PROPOSAL · APPROVAL · PRE_EXECUTION</span><span class="hard">unreadable rules or state → fails closed, no spend</span></div>
+    </div>
+
+    <div class="clause">
+      <div class="snum num">§ 2</div>
+      <div class="txt">
+        <h2>A valid request</h2>
+        <p>Malformed, missing, or ambiguous requests are refused at the boundary — before any rule is applied, a garbage request is never permission.</p>
+      </div>
+      <div class="op"><span class="hard">invalid request → deny</span></div>
+    </div>
+
+    <div class="clause">
+      <div class="snum num">§ 3</div>
+      <div class="txt">
+        <h2>Amount and currency</h2>
+        <p>Amounts are positive integers in the currency's minor units; only USD is accepted — the MVP performs no exchange. Zero or negative amounts have no standing.</p>
+      </div>
+      <div class="op"><span class="rv">USD only</span><span>amount ≤ 0 → deny</span><span class="hard">currency mismatch → deny</span></div>
+    </div>
+
+    <div class="clause">
+      <div class="snum num">§ 4</div>
+      <div class="txt">
+        <h2>Permitted categories</h2>
+        <p>Only categories written here may be paid. An empty list permits nothing — the rule set fails safe by construction.</p>
+      </div>
+      <div class="op"><span class="rv">software · books</span><span class="hard">outside the list → deny</span></div>
+    </div>
+
+    <div class="clause">
+      <div class="snum num">§ 5</div>
+      <div class="txt">
+        <h2>The monthly cap</h2>
+        <p>A hard ceiling of 100.00 on verified captures for the month. It is checked before any approval condition, so no approval — human or otherwise — can override it.</p>
+      </div>
+      <div class="op"><span class="rv">cap 100.00 · hard</span><span>counted from verified captures only</span><span class="hard">would exceed the cap → deny</span></div>
+    </div>
+
+    <div class="clause">
+      <div class="snum num">§ 6</div>
+      <div class="txt">
+        <h2>The per-purchase line</h2>
+        <p>At or below the automatic limit, with everything else in order, no human is needed. Above it, a human is asked — the engine never waives its own line.</p>
+      </div>
+      <div class="op"><span class="rv">auto-allow ≤ 50.00</span><span class="warn">above 50.00 → ask</span></div>
+    </div>
+
+    <div class="clause">
+      <div class="snum num">§ 7</div>
+      <div class="txt">
+        <h2>First-time payees</h2>
+        <p>A payee we have not paid before goes to a human, every time — the unknown destination is exactly what the gate exists to slow down.</p>
+      </div>
+      <div class="op"><span class="warn">new payee → ask</span></div>
+    </div>
+
+    <div class="clause">
+      <div class="snum num">§ 8</div>
+      <div class="txt">
+        <h2>Otherwise</h2>
+        <p>Everything that passes all of the above is allowed by the engine and may execute automatically under the vault-once card.</p>
+      </div>
+      <div class="op"><span class="rv">else → allow · within limits</span></div>
+    </div>
+
+  </section>
+
+  <!-- the decision order as it literally runs -->
+  <div class="order num">
+    <span class="seq"><b>Decision order:</b></span>
+    <span class="rule">1 valid request &nbsp;·&nbsp; 2 positive amount &nbsp;·&nbsp; 3 currency &nbsp;·&nbsp; 4 category &nbsp;·&nbsp; 5 hard cap &nbsp;·&nbsp; 6 per-purchase line &nbsp;·&nbsp; 7 known payee &nbsp;·&nbsp; 8 allow</span>
+    <br>
+    <span class="seq"><b>Strictest wins:</b></span>
+    <span class="strict">DENY &nbsp;&gt;&nbsp; ASK &nbsp;&gt;&nbsp; ALLOW</span>
+  </div>
+
+  <div class="note">Demo data · rule set matches the live schema (owner-1) · amendments apply to the next evaluation — nothing already written is rewritten</div>
+
+</div>
+</body>
+</html>

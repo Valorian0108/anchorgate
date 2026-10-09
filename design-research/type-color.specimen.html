@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AnchorGate — Type &amp; Colour Specimen (decision aid)</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400..900&family=Hanken+Grotesk:wght@300..800&family=Instrument+Sans:wght@400..700&family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..500&family=Source+Serif+4:opsz,wght@8..60,300..700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    /* ---- warm neutrals ---- */
+    --ink:#1C1917;
+    --ink-soft:#57534E;
+    --ink-faint:#8A837A;
+    --paper:#FBF9F4;
+    --surface:#F3EFE7;
+    --line:#E4DED3;
+    --warm-dark:#201819;
+
+    /* ---- seal blue ---- */
+    --seal-deep:#122947;
+    --seal:#1C3A66;
+    --seal-bright:#2A5AA0;
+    --seal-tint:#E8EDF5;
+
+    /* ---- verdict ---- */
+    --allow:#2F6B4F;
+    --ask:#A66312;
+    --deny:#9E2B25;
+
+    /* ---- specimen type stacks ---- */
+    --g1:"Schibsted Grotesk", sans-serif;
+    --g2:"Hanken Grotesk", sans-serif;
+    --g3:"Instrument Sans", sans-serif;
+    --s1:"Newsreader", serif;
+    --s2:"Source Serif 4", serif;
+    --m1:"IBM Plex Mono", monospace;
+    --m2:"JetBrains Mono", monospace;
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--g1);
+    font-size:16px;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+
+  .wrap{max-width:1080px;margin:0 auto;padding:56px 40px 96px}
+
+  /* ---------- doc head ---------- */
+  .doc-kicker{
+    font-family:var(--m1);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--seal);display:flex;gap:10px;align-items:baseline;
+  }
+  .doc-kicker .dot{width:6px;height:6px;background:var(--seal);border-radius:50%;transform:translateY(-1px)}
+  h1.doc-title{
+    font-family:var(--s1);font-weight:400;font-size:clamp(34px,5vw,52px);
+    line-height:1.04;letter-spacing:-.01em;margin:18px 0 8px;max-width:20ch;
+  }
+  h1.doc-title em{font-style:italic;color:var(--seal)}
+  .doc-sub{font-family:var(--g1);font-weight:400;color:var(--ink-soft);font-size:16px;max-width:60ch;margin:0}
+
+  section{margin-top:64px}
+  .sec-head{
+    display:flex;align-items:baseline;gap:16px;
+    border-top:1px solid var(--ink);padding-top:12px;margin-bottom:24px;
+  }
+  .sec-head .n{font-family:var(--m1);font-size:12px;color:var(--seal);letter-spacing:.08em}
+  .sec-head h2{font-family:var(--g1);font-weight:500;font-size:14px;letter-spacing:.14em;text-transform:uppercase;margin:0}
+  .sec-head .hint{margin-left:auto;font-family:var(--m1);font-size:11px;color:var(--ink-faint);letter-spacing:.04em}
+
+  /* ---------- palette ---------- */
+  .swatches{display:flex;flex-wrap:wrap;gap:10px}
+  .sw{flex:1 1 150px;background:var(--paper);border:1px solid var(--line);overflow:hidden}
+  .sw .chip{height:88px;display:flex;align-items:flex-end;padding:10px}
+  .sw .meta{padding:10px 12px 12px}
+  .sw .name{font-family:var(--g1);font-weight:600;font-size:13px}
+  .sw .hex{font-family:var(--m1);font-size:11px;color:var(--ink-soft);margin-top:2px}
+
+  .rule-note{font-family:var(--m1);font-size:11px;color:var(--ink-faint);margin-top:10px;letter-spacing:.02em}
+
+  /* verdict chips */
+  .verdicts{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+  .vchip{font-family:var(--m1);font-size:12px;letter-spacing:.12em;padding:6px 12px;border:1px solid;border-radius:2px;background:transparent}
+  .vchip.a{color:var(--allow);border-color:var(--allow)}
+  .vchip.s{color:var(--ask);border-color:var(--ask)}
+  .vchip.d{color:var(--deny);border-color:var(--deny)}
+
+  /* ---------- type voice rows ---------- */
+  .voice{border-top:1px solid var(--line);padding:26px 0;display:grid;grid-template-columns:200px 1fr;gap:32px}
+  .voice:first-of-type{border-top:none}
+  .voice .label{font-family:var(--m1);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);padding-top:6px}
+  .voice .label b{display:block;font-family:var(--g1);font-weight:600;font-size:13px;letter-spacing:0;text-transform:none;color:var(--ink);margin-top:6px}
+  .voice .label span{display:block;color:var(--seal);margin-top:8px;letter-spacing:.02em;text-transform:none;font-size:11px}
+
+  .sample{margin-bottom:22px}
+  .sample:last-child{margin-bottom:0}
+  .sample .face{font-family:var(--m1);font-size:11px;color:var(--ink-faint);letter-spacing:.06em;margin-bottom:6px}
+  .sample .face b{color:var(--ink-soft);font-weight:500}
+
+  .display-1{font-family:var(--g1);font-weight:500;font-size:40px;line-height:1.06;letter-spacing:-.02em}
+  .display-2{font-family:var(--g2);font-weight:500;font-size:40px;line-height:1.06;letter-spacing:-.02em}
+  .display-3{font-family:var(--g3);font-weight:500;font-size:40px;line-height:1.06;letter-spacing:-.02em}
+  .ui-line{font-family:var(--g1);font-size:15px;color:var(--ink-soft);margin-top:8px;max-width:52ch}
+  .ui-line.g2{font-family:var(--g2)}
+  .ui-line.g3{font-family:var(--g3)}
+
+  .serif-1{font-family:var(--s1);font-weight:400;font-size:34px;line-height:1.12;letter-spacing:-.005em}
+  .serif-2{font-family:var(--s2);font-weight:400;font-size:34px;line-height:1.12}
+  .serif-1 em,.serif-2 em{font-style:italic}
+
+  .mono-1{font-family:var(--m1);font-size:14px;color:var(--ink);letter-spacing:.01em}
+  .mono-2{font-family:var(--m2);font-size:14px;color:var(--ink);letter-spacing:0}
+  .mono-sub{font-family:var(--m1);font-size:11px;color:var(--ink-faint);letter-spacing:.06em;margin-top:6px}
+
+  /* ---------- applied example ---------- */
+  .applied{
+    background:var(--warm-dark);color:#F4EFE7;
+    padding:40px 44px;display:grid;grid-template-columns:1fr 260px;gap:44px;
+  }
+  .applied .kicker{font-family:var(--m1);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#B9A98C}
+  .applied h3{font-family:var(--s1);font-weight:400;font-size:32px;line-height:1.1;margin:16px 0 14px;letter-spacing:-.005em}
+  .applied h3 em{font-style:italic;color:#C9B489}
+  .applied p{font-family:var(--g1);font-weight:300;font-size:15px;line-height:1.6;color:#D8D0C4;margin:0;max-width:44ch}
+  .applied .link{display:inline-block;margin-top:20px;font-family:var(--m1);font-size:12px;letter-spacing:.08em;color:#E9DFCB;border-bottom:1px solid rgba(233,223,203,.4);padding-bottom:2px;text-decoration:none}
+
+  .receipt{border-left:1px solid rgba(244,239,231,.16);padding-left:24px}
+  .receipt .rh{font-family:var(--m1);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#8C8271;margin-bottom:14px}
+  .receipt .row{display:flex;justify-content:space-between;gap:12px;font-family:var(--m1);font-size:12px;color:#CFC6B8;padding:6px 0;border-bottom:1px dotted rgba(244,239,231,.14)}
+  .receipt .row span:last-child{color:#F4EFE7}
+  .receipt .row .ok{color:#8FB79B}
+
+  .stamp{
+    display:inline-block;margin-top:18px;font-family:var(--s1);font-style:italic;
+    font-size:22px;color:var(--allow);border:1.5px solid var(--allow);
+    padding:6px 16px;border-radius:3px;transform:rotate(-1.4deg);
+  }
+
+  footer{margin-top:72px;border-top:1px solid var(--line);padding-top:18px;
+    font-family:var(--m1);font-size:11px;color:var(--ink-faint);letter-spacing:.03em}
+
+  @media (max-width:760px){
+    .voice{grid-template-columns:1fr;gap:12px}
+    .applied{grid-template-columns:1fr;gap:28px}
+    .receipt{border-left:none;border-top:1px solid rgba(244,239,231,.16);padding-left:0;padding-top:20px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="doc-kicker"><span class="dot"></span>AnchorGate · Phase 6 · specimen</div>
+  <h1 class="doc-title">Type &amp; colour, before we commit to a single screen.</h1>
+  <p class="doc-sub">A decision aid — not the product. Three type voices, the warm paper, and the Seal&nbsp;blue accent. Tell me which faces live and which die.</p>
+
+  <!-- ================= 1. COLOUR ================= -->
+  <section>
+    <div class="sec-head"><span class="n">01</span><h2>Colour</h2><span class="hint">warm neutrals · never cool gray</span></div>
+
+    <div class="swatches">
+      <div class="sw"><div class="chip" style="background:#1C1917"></div><div class="meta"><div class="name">ink</div><div class="hex">#1C1917</div></div></div>
+      <div class="sw"><div class="chip" style="background:#57534E"></div><div class="meta"><div class="name">ink-soft</div><div class="hex">#57534E</div></div></div>
+      <div class="sw light"><div class="chip" style="background:#8A837A"></div><div class="meta"><div class="name">ink-faint</div><div class="hex">#8A837A</div></div></div>
+      <div class="sw"><div class="chip" style="background:#FBF9F4;border-bottom:1px solid #E4DED3"></div><div class="meta"><div class="name">paper</div><div class="hex">#FBF9F4</div></div></div>
+      <div class="sw"><div class="chip" style="background:#F3EFE7"></div><div class="meta"><div class="name">surface</div><div class="hex">#F3EFE7</div></div></div>
+      <div class="sw"><div class="chip" style="background:#E4DED3"></div><div class="meta"><div class="name">line</div><div class="hex">#E4DED3</div></div></div>
+      <div class="sw light"><div class="chip" style="background:#201819"></div><div class="meta"><div class="name">warm-dark</div><div class="hex">#201819</div></div></div>
+    </div>
+
+    <div class="swatches" style="margin-top:24px">
+      <div class="sw light"><div class="chip" style="background:#122947"></div><div class="meta"><div class="name">seal-deep</div><div class="hex">#122947</div></div></div>
+      <div class="sw light"><div class="chip" style="background:#1C3A66"></div><div class="meta"><div class="name">seal</div><div class="hex">#1C3A66</div></div></div>
+      <div class="sw light"><div class="chip" style="background:#2A5AA0"></div><div class="meta"><div class="name">seal-bright</div><div class="hex">#2A5AA0</div></div></div>
+      <div class="sw"><div class="chip" style="background:#E8EDF5"></div><div class="meta"><div class="name">seal-tint</div><div class="hex">#E8EDF5</div></div></div>
+    </div>
+    <div class="rule-note">Seal blue is the brand accent — links, the primary action, the anchor mark. Footprint &lt; ~5% of any view.</div>
+
+    <div class="verdicts">
+      <span class="vchip a">ALLOW&nbsp;&nbsp;#2F6B4F</span>
+      <span class="vchip s">ASK&nbsp;&nbsp;#A66312</span>
+      <span class="vchip d">DENY&nbsp;&nbsp;#9E2B25</span>
+    </div>
+    <div class="rule-note">Verdict colours are functional and appear only inside the stamp / status mark — never as page decoration.</div>
+  </section>
+
+  <!-- ================= 2. TYPE ================= -->
+  <section>
+    <div class="sec-head"><span class="n">02</span><h2>The three voices</h2><span class="hint">grotesque · serif · mono</span></div>
+
+    <div class="voice">
+      <div class="label">Voice 1 — Display / UI<b>Grotesque</b><span>interface: headings, nav, labels</span></div>
+      <div>
+        <div class="sample">
+          <div class="face">A · <b>Schibsted Grotesk</b> — 500 / −0.02em</div>
+          <div class="display-1">Two payments are waiting on you.</div>
+          <div class="ui-line">Rules checked, no exceptions raised. Decide before the batch closes at 17:00.</div>
+        </div>
+        <div class="sample">
+          <div class="face">B · <b>Hanken Grotesk</b> — 500 / −0.02em</div>
+          <div class="display-2">Two payments are waiting on you.</div>
+          <div class="ui-line g2">Rules checked, no exceptions raised. Decide before the batch closes at 17:00.</div>
+        </div>
+        <div class="sample">
+          <div class="face">C · <b>Instrument Sans</b> — 500 / −0.02em</div>
+          <div class="display-3">Two payments are waiting on you.</div>
+          <div class="ui-line g3">Rules checked, no exceptions raised. Decide before the batch closes at 17:00.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="voice">
+      <div class="label">Voice 2 — Ceremony<b>Serif</b><span>the stamp, statements, wordmark</span></div>
+      <div>
+        <div class="sample">
+          <div class="face">A · <b>Newsreader</b> — 400</div>
+          <div class="serif-1">Approved — <em>one payment, no exceptions.</em></div>
+        </div>
+        <div class="sample">
+          <div class="face">B · <b>Source Serif 4</b> — 400</div>
+          <div class="serif-2">Approved — <em>one payment, no exceptions.</em></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="voice">
+      <div class="label">Voice 3 — Instrument<b>Mono</b><span>data: money, time, ids, lifecycle</span></div>
+      <div>
+        <div class="sample">
+          <div class="face">A · <b>IBM Plex Mono</b> — 500</div>
+          <div class="mono-1">USD 49.00 · 09:12:44 · rule: new-payee · ask</div>
+          <div class="mono-sub">PROPOSED&nbsp;→&nbsp;DECIDED&nbsp;→&nbsp;SUBMITTED&nbsp;→&nbsp;CAPTURED</div>
+        </div>
+        <div class="sample">
+          <div class="face">B · <b>JetBrains Mono</b> — 500</div>
+          <div class="mono-2">USD 49.00 · 09:12:44 · rule: new-payee · ask</div>
+          <div class="mono-sub" style="font-family:var(--m2)">PROPOSED&nbsp;→&nbsp;DECIDED&nbsp;→&nbsp;SUBMITTED&nbsp;→&nbsp;CAPTURED</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 3. APPLIED ================= -->
+  <section>
+    <div class="sec-head"><span class="n">03</span><h2>How they combine</h2><span class="hint">one moment from the request detail</span></div>
+
+    <div class="applied">
+      <div>
+        <div class="kicker">Decision · request&nbsp;#0186</div>
+        <h3>The agent asked. The <em>rules</em> said yes.</h3>
+        <p>A new payee, under every limit, with a verified destination. The gate allowed it — and the model was never the one that decided.</p>
+        <a href="#" class="link" style="color:#E9DFCB">Open the Record →</a>
+      </div>
+      <div class="receipt">
+        <div class="rh">Receipt strip</div>
+        <div class="row"><span>proposed</span><span>09:12:44</span></div>
+        <div class="row"><span>decided</span><span class="ok">ALLOW</span></div>
+        <div class="row"><span>submitted</span><span>09:12:46</span></div>
+        <div class="row"><span>captured</span><span>09:13:03</span></div>
+        <div class="row" style="border:none"><span>amount</span><span>USD 49.00</span></div>
+        <span class="stamp">allowed</span>
+      </div>
+    </div>
+  </section>
+
+  <footer>AnchorGate · specimen sheet · warm palette + Seal blue · faces shown from Google Fonts for review only</footer>
+
+</div>
+</body>
+</html>

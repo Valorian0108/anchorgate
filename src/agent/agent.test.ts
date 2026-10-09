@@ -197,6 +197,7 @@ describe("agent tool set", () => {
 describe("agent configuration", () => {
   it("defaults the base URL and agent id", () => {
     const config = readAgentConfig({
+      NODE_ENV: "test",
       AGENT_API_KEY: "placeholder-key",
       AGENT_MODEL: "some-model",
     });
@@ -206,7 +207,7 @@ describe("agent configuration", () => {
 
   it("names missing variables without leaking values", () => {
     try {
-      readAgentConfig({ AGENT_API_KEY: "super-secret-value" });
+      readAgentConfig({ NODE_ENV: "test", AGENT_API_KEY: "super-secret-value" });
       throw new Error("expected readAgentConfig to throw");
     } catch (error) {
       expect(error).toBeInstanceOf(AgentConfigError);
@@ -217,7 +218,7 @@ describe("agent configuration", () => {
   });
 
   it("requires an API key", () => {
-    expect(() => readAgentEndpoint({})).toThrow(AgentConfigError);
+    expect(() => readAgentEndpoint({ NODE_ENV: "test" })).toThrow(AgentConfigError);
   });
 });
 

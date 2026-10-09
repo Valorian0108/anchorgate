@@ -1,0 +1,238 @@
+<!doctype html>
+<!--
+  AnchorGate — DESIGN COMP (throwaway). NOT the app. Awaiting owner approval.
+  Direction: Ramp spine · BILL approval cards · our signature (stamp / anchor wall / receipt).
+  Accent: Indigo. Verdict signals: green/amber/red, stamps only.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AnchorGate — Control room (comp)</title>
+<style>
+  :root{
+    --ink:#14161A; --ink-soft:#5B6470; --paper:#fff; --surface:#F5F6F8; --line:#E4E7EC;
+    --indigo:#4138D6; --indigo-deep:#241C8A; --indigo-tint:#EEEDFB;
+    --allow:#0E7C66; --allow-tint:#E6F5F1;
+    --ask:#B26A00; --ask-tint:#FDF0DC;
+    --deny:#B3261E; --deny-tint:#FCE8E6;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--surface);color:var(--ink);
+    font-family:"Segoe UI",Inter,system-ui,-apple-system,Roboto,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 24px 64px}
+  .mono{font-family:"Cascadia Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-variant-numeric:tabular-nums}
+  .micro{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+
+  /* top bar */
+  header{display:flex;align-items:center;gap:18px;margin-bottom:22px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;letter-spacing:-.02em}
+  .mark{width:30px;height:30px;border-radius:9px;background:var(--indigo);position:relative;flex:0 0 auto}
+  .mark:before{content:"";position:absolute;inset:8px 8px auto 8px;height:3px;background:#fff;border-radius:2px}
+  .mark:after{content:"";position:absolute;inset:14px 8px 8px 8px;border:2px solid #fff;border-top:0;border-radius:0 0 4px 4px}
+  .brand b{color:var(--indigo-deep)}
+  nav{margin-left:auto;display:flex;align-items:center;gap:6px}
+  nav a{font-size:13.5px;color:var(--ink-soft);text-decoration:none;padding:8px 14px;border-radius:999px}
+  nav a.on{background:var(--indigo-tint);color:var(--indigo-deep);font-weight:650}
+  .who{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--ink-soft)}
+  .av{width:26px;height:26px;border-radius:50%;background:#D8D9F5;color:var(--indigo-deep);
+    display:grid;place-items:center;font-size:11px;font-weight:700}
+
+  /* ticker (Ramp-inspired) */
+  .ticker{background:#101216;color:#E9EAEE;border-radius:var(--radius);padding:14px 18px;
+    display:flex;align-items:center;gap:22px;flex-wrap:wrap;margin-bottom:16px}
+  .ticker .live{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.14em;
+    text-transform:uppercase;color:#9BA1B0}
+  .dot{width:7px;height:7px;border-radius:50%;background:#38D39F;box-shadow:0 0 0 4px rgba(56,211,159,.15)}
+  .ticker .stat{display:flex;flex-direction:column;gap:2px}
+  .ticker .stat .micro{color:#8B92A3}
+  .ticker .stat b{font-size:15px;font-weight:600}
+  .ticker .sep{width:1px;height:26px;background:#2A2E38}
+
+  /* anchor wall */
+  .wall{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px 20px;margin-bottom:20px}
+  .wall .top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+  .wall .top h2{margin:0;font-size:15px}
+  .wall .cap{font-size:12px;color:var(--ink-soft)}
+  .bar{height:16px;border-radius:99px;background:var(--surface);border:1px solid var(--line);
+    position:relative;overflow:hidden}
+  .bar .fill{position:absolute;inset:0 auto 0 0;width:42%;background:
+    linear-gradient(90deg,var(--indigo) 0%,var(--indigo-deep) 100%)}
+  .bar .cap-line{position:absolute;top:-3px;bottom:-3px;right:0;width:3px;background:var(--ink)}
+  .wall .foot{display:flex;justify-content:space-between;margin-top:10px;font-size:12px;color:var(--ink-soft)}
+  .wall .foot .lock{color:var(--indigo-deep);font-weight:600}
+
+  /* queue */
+  .qhead{display:flex;align-items:center;gap:10px;margin:26px 0 12px}
+  .qhead h2{margin:0;font-size:19px;letter-spacing:-.01em}
+  .pill{background:var(--indigo);color:#fff;font-size:12px;font-weight:700;border-radius:999px;padding:2px 9px}
+
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px 20px;display:flex;gap:20px;align-items:flex-start;margin-bottom:12px}
+  .card .body{flex:1;min-width:0}
+  .card .title{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .card .title h3{margin:0;font-size:16px;letter-spacing:-.01em}
+  .card .amt{font-size:16px;font-weight:700}
+  .chip{font-size:11px;padding:3px 9px;border-radius:999px;background:var(--surface);
+    border:1px solid var(--line);color:var(--ink-soft)}
+  .card .when{font-size:12px;color:var(--ink-soft);margin-left:auto}
+  .why{margin-top:10px;font-size:13.5px;color:#333A45;display:flex;gap:8px}
+  .why .tag{flex:0 0 auto;color:var(--ink-soft)}
+  .why code{font-family:"Cascadia Mono",ui-monospace,monospace;font-size:12.5px;background:var(--surface);
+    border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+  .actions{display:flex;gap:10px;margin-top:14px}
+  .btn{font:inherit;font-size:13.5px;font-weight:600;border-radius:999px;padding:9px 18px;border:1px solid transparent;cursor:pointer}
+  .btn.primary{background:var(--indigo);color:#fff}
+  .btn.ghost{background:#fff;border-color:var(--line);color:var(--ink)}
+  .btn.danger{background:#fff;border-color:#E7C4C1;color:var(--deny)}
+
+  /* stamp (signature) */
+  .stamp{flex:0 0 auto;transform:rotate(-6deg);border:2px solid;border-radius:8px;
+    padding:6px 12px 8px;text-align:center;min-width:96px;position:relative}
+  .stamp .v{font-size:19px;font-weight:800;letter-spacing:.12em}
+  .stamp .r{font-size:9px;letter-spacing:.06em;margin-top:2px;opacity:.85}
+  .stamp.ask{color:var(--ask);border-color:var(--ask);background:var(--ask-tint)}
+  .stamp.deny{color:var(--deny);border-color:var(--deny);background:var(--deny-tint)}
+  .stamp.allow{color:var(--allow);border-color:var(--allow);background:var(--allow-tint)}
+
+  /* receipt strip */
+  .receipt{margin-top:14px;border-top:1px dashed var(--line);padding-top:12px}
+  .strip{display:flex;gap:0;align-items:center;flex-wrap:wrap}
+  .step{display:flex;flex-direction:column;gap:2px;padding-right:18px;position:relative}
+  .step:after{content:"";position:absolute;right:6px;top:6px;width:8px;height:1px;background:var(--line)}
+  .step:last-child:after{display:none}
+  .step .s{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+  .step .t{font-size:12px}
+  .step.done .s{color:var(--indigo-deep)}
+  .step.pending .s{color:var(--ask)}
+
+  .foot-note{display:flex;justify-content:space-between;align-items:center;margin-top:22px;
+    font-size:13px;color:var(--ink-soft)}
+  .foot-note a{color:var(--indigo-deep);text-decoration:none;font-weight:600}
+  .banner{background:#101216;color:#fff;border-radius:10px;padding:9px 14px;font-size:12px;
+    letter-spacing:.04em;margin-bottom:18px;display:flex;gap:8px;align-items:center}
+  .banner b{color:#B9B4FF}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="banner">DESIGN COMP · throwaway mock for review — <b>not the app</b>, and not yet approved.</div>
+
+  <header>
+    <div class="brand"><span class="mark"></span><span class="word">Anchor<b>Gate</b></span></div>
+    <nav>
+      <a class="on" href="#">The Gate</a>
+      <a href="#">Record</a>
+      <a href="#">Rules</a>
+    </nav>
+    <div class="who">Acme Ltd &nbsp;·&nbsp; <span class="av">AD</span> Ada <span style="opacity:.6">owner</span></div>
+  </header>
+
+  <!-- Ramp-inspired live ticker -->
+  <div class="ticker">
+    <div class="live"><span class="dot"></span> Agent at work today</div>
+    <div class="stat"><span class="micro">Proposed</span><b class="mono">4</b></div>
+    <div class="sep"></div>
+    <div class="stat"><span class="micro">Needs you</span><b class="mono">2</b></div>
+    <div class="sep"></div>
+    <div class="stat"><span class="micro">Auto-allowed</span><b class="mono">1</b></div>
+    <div class="sep"></div>
+    <div class="stat"><span class="micro">Denied</span><b class="mono">1</b></div>
+    <div class="sep"></div>
+    <div class="stat"><span class="micro">Committed</span><b class="mono">$42.00</b></div>
+  </div>
+
+  <!-- anchor wall -->
+  <div class="wall">
+    <div class="top">
+      <h2>Monthly cap</h2>
+      <div class="cap mono">$42.00 committed · $58.00 left</div>
+    </div>
+    <div class="bar"><div class="fill"></div><div class="cap-line"></div></div>
+    <div class="foot">
+      <span class="mono">$0</span>
+      <span class="lock">◆ This line cannot be overridden — not by approval, not by the agent.</span>
+      <span class="mono">$100.00</span>
+    </div>
+  </div>
+
+  <div class="qhead"><h2>At the gate</h2><span class="pill">2</span>
+    <span style="font-size:13px;color:var(--ink-soft)">requests waiting on your decision</span></div>
+
+  <!-- ASK card -->
+  <div class="card">
+    <div class="body">
+      <div class="title">
+        <h3>Acme Software</h3>
+        <span class="amt mono">$49.00</span>
+        <span class="chip">software</span>
+        <span class="when mono">09:12</span>
+      </div>
+      <div class="why"><span class="tag">Why</span>
+        <span>First payment to this merchant — <code>requireApprovalForNewPayee</code> → <b>ASK</b>. Within the $50 per-purchase limit.</span>
+      </div>
+      <div class="actions">
+        <button class="btn primary">Approve</button>
+        <button class="btn ghost">Reject</button>
+      </div>
+    </div>
+    <div class="stamp ask"><div class="v">ASK</div><div class="r">NEW PAYEE</div></div>
+  </div>
+
+  <!-- DENY card -->
+  <div class="card">
+    <div class="body">
+      <div class="title">
+        <h3>Wire.com</h3>
+        <span class="amt mono">$120.00</span>
+        <span class="chip">travel</span>
+        <span class="when mono">08:40</span>
+      </div>
+      <div class="why"><span class="tag">Why</span>
+        <span>Over the $50 per-purchase limit <i>and</i> would break the monthly cap — <code>perPurchaseLimit</code>, <code>monthlyCap</code> → <b>DENY</b>.</span>
+      </div>
+      <div class="actions">
+        <button class="btn danger">Reject</button>
+        <span style="font-size:12.5px;color:var(--ink-soft);align-self:center">Approval can’t override a hard rule.</span>
+      </div>
+    </div>
+    <div class="stamp deny"><div class="v">DENY</div><div class="r">OVER LIMIT + CAP</div></div>
+  </div>
+
+  <!-- ALLOW card (already handled), shows the receipt strip -->
+  <div class="card">
+    <div class="body">
+      <div class="title">
+        <h3>Figma</h3>
+        <span class="amt mono">$15.00</span>
+        <span class="chip">software</span>
+        <span class="when mono">08:02</span>
+      </div>
+      <div class="why"><span class="tag">Why</span>
+        <span>Within limit, known payee, category allowed — <b>ALLOW</b>, executed without you.</span>
+      </div>
+      <div class="receipt">
+        <div class="strip">
+          <div class="step done"><span class="s">Proposed</span><span class="t mono">08:02 · agent</span></div>
+          <div class="step done"><span class="s">Decided</span><span class="t mono">08:02 · ALLOW</span></div>
+          <div class="step done"><span class="s">Submitted</span><span class="t mono">08:02 → PayPal</span></div>
+          <div class="step done"><span class="s">Captured</span><span class="t mono">08:03 · #0005…</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="stamp allow"><div class="v">ALLOW</div><div class="r">AUTO · IN POLICY</div></div>
+  </div>
+
+  <div class="foot-note">
+    <span>Every request is immutable once decided. Re-checked against the rules at approval and before payment.</span>
+    <a href="#">Open the Record →</a>
+  </div>
+
+</div>
+</body>
+</html>

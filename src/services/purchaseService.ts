@@ -15,7 +15,13 @@
  * work even when PayPal credentials are absent.
  */
 
-import type { SpendingRules, SpendingRulesStore } from "../core/authorization";
+import type {
+  DecisionResult,
+  PurchaseRequest,
+  SpendingRules,
+  SpendingRulesStore,
+} from "../core/authorization";
+import { evaluatePurchase } from "../core/authorization";
 import {
   approvePurchase,
   rejectPurchase,
@@ -30,7 +36,12 @@ import {
   type ExecutionOutcome,
   type PaymentGateway,
 } from "../core/execution";
-import { SpendingLedger, utcMonthPeriod, type SpendingStore } from "../core/spending";
+import {
+  SpendingLedger,
+  utcMonthPeriod,
+  type SpendingEvent,
+  type SpendingStore,
+} from "../core/spending";
 import { readSpendingState } from "./spendingState";
 
 export interface PurchaseServiceDeps {
@@ -133,6 +144,27 @@ export class PurchaseService {
     }
 
     return outcome;
+  }
+
+  /**
+   * Re-evaluate a request against the CURRENT rules and spending state.
+   *
+   * This is the same evaluation the approval gate performs — shown on the case
+   * file so the "re-run just now" line is the engine's real output, never a
+   * display guess.
+   */
+  async evaluateNow(request: PurchaseRequest): Promise<DecisionResult> {
+    const now = this.now();
+    const [rules, state] = await Promise.all([
+      this.deps.rules.getActive(),
+      readSpendingState(this.deps, now),
+    ]);
+    return evaluatePurchase(request, rules, state);
+  }
+
+  /** Immutable ledger events for one request (capture refs, lifecycle). */
+  async eventsByRequest(requestId: string): Promise<SpendingEvent[]> {
+    return this.deps.spending.listByRequest(requestId);
   }
 
   /**

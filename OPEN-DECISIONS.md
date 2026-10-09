@@ -137,6 +137,29 @@ A proposal, a recommendation, or generated code is **not** a decision.
   (no browser). This is a **Sandbox/test** convenience; in production, card data
   would be collected with PayPal hosted fields so raw card data never reaches our
   server. Recorded as a deviation-safe MVP choice, not a production payment path.
+- **Identity scope: owner-only (approved, 09 oct 2026).** One human identity
+  owns the gate; no read-only teammate accounts for the Nov 12 demo. The
+  architecture stays multi-user-ready on purpose: decision records already carry
+  `approvedBy` / `rejectedBy`, so adding viewer accounts later is additive, not a
+  redesign.
+- **Auth provider: Supabase Auth (approved, 09 oct 2026).** Entry: **magic link
+  primary + Google OAuth** (both, free tier). **Privy evaluated and rejected**:
+  it is web3/embedded-wallet infrastructure (keys, onchain login) with zero use
+  in a PayPal-rail product; Supabase Auth already covers magic link, Google, and
+  passkeys inside our existing stack, keeping identity and Postgres in one
+  provider. No crypto claims, no second identity silo.
+- **Session timeout: 30 minutes idle (approved, 09 oct 2026).** Enforced
+  **server-side**: an approve/decline arriving with an expired session is refused
+  no matter what the UI shows. The 30-minute number is a config value and
+  trivially adjustable; the server-side refusal rule is not negotiable.
+- **Sign-in comp approved (09 oct 2026).** The owner approved the owner-identity
+  screen (`design-research/signin.comp.html`): wordmark-only masthead, serif
+  statement "The gate opens for one human. You.", three trust lines, bordered
+  sign-in slip (email → magic link primary, Google secondary), slip footer
+  stating owner-only + 30-minute idle + server-side enforcement. This closes the
+  five-screen comp set in the locked language (Gate · Request detail ×2 states ·
+  Record · Statute · Sign-in), all owner-approved. PNG proofs saved for all six
+  comps in `design-research/` (window now visible).
 
 ------------------------------------------------------------------------
 
@@ -302,6 +325,18 @@ were used).
 - **Initial:** Created this record. Logged the product-name correction
   ("Trust Layer" is a placeholder). Carried forward open decisions from
   `architecture.md` section 14.
+- **Product decisions (design phase, owner input):** Working product name
+  **AnchorGate** (owner's suggestion; adopted as the working name; a quick
+  trademark/collision check is still owed before the public submission).
+  Target audience: **small business / team**. A **login is in scope** for the
+  MVP and must be implemented professionally (structured plan, not a tacked-on
+  build); the identity *model* (single-owner vs. per-user data) remains open and
+  is **parked** — it does not block the design work, and it leans toward
+  multi-user given the team audience. The UI build process is approved as:
+  **anti-generic, multi-disciplinary (creative direction, information
+  architecture, visual design, engineering), and incremental** — every screen
+  and material choice is decided one at a time before it is built, and design
+  (`DESIGN.md`) + identity (`AUTH.md`) charters are agreed **before any code**.
 - **Update:** Removed Render from the working tool set (owner decision). Added
   the remaining sponsor/partner tools as a candidate working set to be filtered
   against scope over time.
@@ -489,3 +524,45 @@ were used).
   `BLOCKED` (`EXECUTED`) with no double-count; a fresh process read `spent 1.00 /
   remaining 99.00` from the database. Added 11 service tests. Suite now **161
   passing**; typecheck clean. Recorded the interim-CLI assumption above.
+- **Update (Phase 6 design direction locked — "Ledger & Print").** Comps v1–v3
+  were pulled after the owner refused the "generic AI dashboard" feel. Research
+  against builder-endorsed anti-slop guidance (Anthropic's frontend-aesthetics
+  cookbook/skill, Hallmark's 58-gate slop test — 12k+ stars, Adam Wathan's
+  Tailwind `indigo-500` apology, Refactoring UI, Laws of UX) produced a
+  named-tell audit of the comps (~10 tells, several critical: indigo accent,
+  Space Grotesk + Inter, per-section eyebrows, colored side stripes, invented
+  metrics, "Acme" placeholder, unmixed tokens, weak small-text contrast). The
+  owner approved the direction: **Ledger base + print signature + whisper of
+  instrument**. The **indigo accent is retired**; references to study are set
+  (Mercury · Stripe · Bloomberg spirit · FT/Economist print · Stripe Press);
+  **no comps until the constraint doc (tokens + type + bans + structure) is
+  studied, written, and approved**. Logged in `DESIGN.md` § 7c.
+- **Update (UI slices 1–3 wired and live-verified).** Built the Next.js app
+  against the live backend, slice by slice: **Slice 1** foundation + live Gate;
+  **Slice 2** the request-detail case file with real server-side approve/decline;
+  **Slice 3** the real PayPal capture.
+  - The pending slip's primary action is **"Approve & pay"** (the comp's wording,
+    restored once capture existed): the server action approves (engine re-check)
+    and then executes. If the engine refuses at approval (e.g. the cap no longer
+    holds), **no payment is attempted**.
+  - An `APPROVED` record exposes a **Pay** action — also the retry path after a
+    provider failure.
+  - `PENDING_SETTLEMENT` is now a first-class "Capturing — settling" state with a
+    read-only **Re-check with PayPal** (`reconcile`); it never re-pays.
+  - Accuracy fixes on the case file: receipt step 02 shows the **proposal**
+    verdict (not the latest); an already-`EXECUTED` record no longer adds its
+    amount to the cap a second time; and an ASK→ALLOW move during execution is
+    described as the **facts moving** (a human cleared the ASK), not as "the
+    engine changed its answer."
+  - Durable enrollment: added `scripts/vault-card.ts` (`npm run vault:card`,
+    facts-only; `--enroll` vaults the Sandbox test card into
+    `saved_payment_methods`) because `sandbox:verify` vaults into an in-memory
+    store, not the app's durable store. The vault token is never printed.
+  - **Observed live, through the app's own button:** the agent proposed **$1** to
+    a first-time payee (Vercel Inc) → **ASK** (`APPROVAL_REQUIRED`); **Approve &
+    pay** approved and captured via the vaulted card → `EXECUTED`, capture ref
+    `0YK4105449848211V`, counted once; the Gate posture moved to
+    `captured 42.00`. A prior live capture (`Expedia 40.00`, ref
+    `6D377252179999139`) is also in the ledger. Suite **161 passing**; typecheck
+    clean. Supabase Auth (`SUPABASE_URL` + anon key) is the only thing still
+    blocking the sign-in slice.

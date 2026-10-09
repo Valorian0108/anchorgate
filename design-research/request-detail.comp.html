@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AnchorGate — Request #0189</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400..900&family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..500&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600&display=swap" rel="stylesheet">
+
+<style>
+  /* ------------------------------------------------------------------
+     AnchorGate · Request detail (case file) — comp v1
+     Tokens only. No inline hex outside this block. No gradients.
+     Icons: our stroke set only (anchor mark). No emojis.
+     ------------------------------------------------------------------ */
+  :root{
+    /* warm neutrals */
+    --ink:#1C1917;
+    --ink-soft:#57534E;
+    --ink-faint:#6F675C;
+    --paper:#FBF9F4;
+    --surface:#F3EFE7;
+    --line:#E4DED3;
+    --warm-dark:#201819;
+    --dark-ink:#F4EFE7;
+    --dark-soft:#CFC6B8;
+    --dark-line:#3A302A;
+    /* seal blue */
+    --seal-deep:#122947;
+    --seal:#1C3A66;
+    --seal-bright:#2A5AA0;
+    --seal-tint:#E8EDF5;
+    /* verdict — inside the stamp / mark only */
+    --allow:#2F6B4F;
+    --ask:#A66312;
+    --ask-bright:#C77F2A;
+    --deny:#9E2B25;
+    /* type */
+    --g:"Schibsted Grotesk", sans-serif;
+    --s:"Newsreader", serif;
+    --m:"IBM Plex Mono", monospace;
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);
+    font-family:var(--g);font-size:16px;line-height:1.5;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  }
+  .num{font-variant-numeric:tabular-nums}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 48px 72px}
+
+  a{color:var(--seal);text-decoration:none}
+  a:hover{color:var(--seal-bright)}
+
+  /* ---------------- masthead ---------------- */
+  header{
+    display:flex;align-items:center;gap:24px;
+    padding:26px 0 20px;border-bottom:1px solid var(--ink);
+  }
+  .wordmark{display:flex;align-items:center;gap:10px}
+  .wordmark svg{width:20px;height:20px;color:var(--seal);flex:none}
+  .wordmark .name{font-family:var(--g);font-weight:700;font-size:18px;letter-spacing:-.01em}
+  nav{margin-left:auto;display:flex;align-items:center;gap:26px}
+  nav a{font-family:var(--g);font-size:13.5px;font-weight:500;color:var(--ink-soft)}
+  nav a:hover{color:var(--ink)}
+  nav .active{color:var(--ink)}
+  nav .active::before{content:"";display:inline-block;width:6px;height:6px;background:var(--seal);margin-right:8px;transform:translateY(-1px)}
+
+  /* engine line */
+  .engine{
+    display:flex;align-items:center;gap:10px;
+    padding:14px 0;border-bottom:1px solid var(--line);
+    font-family:var(--m);font-size:11px;letter-spacing:.04em;color:var(--ink-soft);
+  }
+  .engine .dot{width:6px;height:6px;background:var(--seal);border-radius:50%;flex:none}
+  .engine .tag{color:var(--ink-faint);margin-right:2px}
+
+  /* ---------------- back link ---------------- */
+  .back{display:inline-block;margin-top:22px;font-family:var(--m);font-size:11.5px;letter-spacing:.06em;color:var(--seal)}
+
+  /* ---------------- case header ---------------- */
+  .case-head{
+    display:grid;grid-template-columns:1fr auto;gap:32px;align-items:end;
+    padding:26px 0 30px;border-bottom:1px solid var(--ink);
+  }
+  .case-head .ref{font-family:var(--m);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:10px}
+  .case-head h1{
+    font-family:var(--s);font-style:italic;font-weight:400;
+    font-size:clamp(30px,4.6vw,46px);line-height:1.06;letter-spacing:-.01em;margin:0;max-width:26ch;
+  }
+  .case-head h1 .pay{font-style:normal}
+  .case-head .meta{display:flex;flex-direction:column;align-items:flex-end;gap:12px}
+  .chip{
+    display:inline-block;font-family:var(--m);font-size:11px;font-weight:500;
+    letter-spacing:.12em;padding:5px 12px;border:1px solid;border-radius:2px;
+  }
+  .chip-ask{color:var(--ask);border-color:var(--ask)}
+  .case-head .waiting{font-family:var(--m);font-size:11px;color:var(--ink-soft);text-align:right;letter-spacing:.02em}
+  .case-head .waiting .open{color:var(--ask)}
+
+  /* ---------------- body: file + decision slip ---------------- */
+  .body{display:grid;grid-template-columns:1fr 340px;gap:56px;margin-top:44px}
+
+  .label{
+    font-family:var(--m);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--ink-faint);margin-bottom:14px;
+  }
+
+  /* the file — facts */
+  .facts{border-top:1px solid var(--line);padding-top:14px}
+  .facts .frow{
+    display:grid;grid-template-columns:180px 1fr;gap:20px;padding:9px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .facts .k{font-family:var(--m);font-size:11px;color:var(--ink-faint);letter-spacing:.04em}
+  .facts .v{font-family:var(--m);font-size:12.5px;color:var(--ink)}
+  .facts .v .fp{color:var(--ink-faint)}
+
+  /* the check — rule by rule */
+  .check{margin-top:44px}
+  .check .crow{display:grid;grid-template-columns:1fr auto auto;gap:20px;align-items:baseline;padding:12px 0;border-bottom:1px solid var(--line)}
+  .check .rule{font-family:var(--g);font-weight:500;font-size:14.5px}
+  .check .det{font-family:var(--m);font-size:11px;color:var(--ink-soft);margin-top:2px}
+  .check .verdict{
+    display:flex;align-items:baseline;justify-content:space-between;gap:20px;
+    padding:16px 0 2px;
+  }
+  .check .verdict .label{margin-bottom:0}
+  .check .vd{font-family:var(--m);font-size:12px;color:var(--ink-soft);letter-spacing:.02em}
+  .check .vd b{color:var(--ink);font-weight:500}
+
+  .result{font-family:var(--m);font-size:11px;font-weight:500;letter-spacing:.08em}
+  .result.pass{color:var(--allow)}
+  .result.ask-x{color:var(--ask)}
+  .result.deny{color:var(--deny)}
+
+  /* ---------------- decision slip ---------------- */
+  .slip{
+    border:1px solid var(--ink);padding:26px 26px 22px;
+    align-self:start;background:var(--paper);
+  }
+  .slip .slip-title{font-family:var(--g);font-weight:600;font-size:16px;letter-spacing:-.01em;margin:0 0 6px}
+  .slip .slip-sub{font-family:var(--m);font-size:11px;color:var(--ink-soft);line-height:1.7;margin:0 0 18px}
+  .slip .prime{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;
+    background:var(--seal);color:var(--paper);border:none;border-radius:2px;
+    font-family:var(--g);font-weight:600;font-size:14.5px;letter-spacing:-.01em;
+    padding:13px 16px;cursor:pointer;
+  }
+  .slip .prime:hover{background:var(--seal-bright)}
+  .slip .prime .amt{font-family:var(--m);font-weight:500;font-size:12.5px}
+  .slip .decline{
+    width:100%;margin-top:10px;background:none;border:1px solid var(--ink);border-radius:2px;
+    font-family:var(--g);font-weight:500;font-size:13.5px;color:var(--ink);padding:11px 16px;cursor:pointer;
+  }
+  .slip .decline:hover{background:var(--surface)}
+  .slip .note{margin-top:16px;font-family:var(--m);font-size:10.5px;line-height:1.8;color:var(--ink-faint);letter-spacing:.02em}
+  .slip .note .k{color:var(--ink-soft)}
+  .slip .posture{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+  .slip .posture .pro{font-family:var(--m);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:8px}
+  .slip .posture .pl{display:flex;justify-content:space-between;font-family:var(--m);font-size:11.5px;color:var(--ink-soft);padding:3px 0}
+  .slip .posture .pl b{color:var(--ink);font-weight:500}
+  .slip .posture .pl .hl{color:var(--seal)}
+
+  /* ---------------- receipt strip (print moment) ---------------- */
+  .receipt{
+    margin-top:64px;background:var(--warm-dark);color:var(--dark-ink);
+    padding:34px 38px 30px;
+    display:grid;grid-template-columns:repeat(4,1fr);gap:30px;
+  }
+  .receipt .rh{grid-column:1 / -1;font-family:var(--m);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--dark-soft);padding-bottom:10px;border-bottom:1px solid var(--dark-line)}
+  .receipt .st{min-width:0}
+  .receipt .st .sn{font-family:var(--m);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dark-soft)}
+  .receipt .st .sv{font-family:var(--m);font-size:13px;margin-top:8px;color:var(--dark-ink)}
+  .receipt .st .sv time{display:block;font-size:11px;color:var(--dark-soft);margin-top:3px}
+  .receipt .st .sv.ask{color:var(--ask-bright)}
+  .receipt .st.st-open .sv{color:var(--ask-bright)}
+  .receipt .st .sa{font-style:italic;font-family:var(--s);font-size:15px}
+
+  .stamp-line{margin-top:26px;font-family:var(--m);font-size:10.5px;color:var(--dark-soft);letter-spacing:.04em}
+  .stamp-line .in{color:var(--ask-bright)}
+
+  .note{margin-top:14px;font-family:var(--m);font-size:10px;letter-spacing:.06em;color:var(--ink-faint)}
+
+  @media (max-width:980px){
+    .wrap{padding:0 24px 56px}
+    .body{grid-template-columns:1fr;gap:36px}
+    .receipt{grid-template-columns:repeat(2,1fr)}
+  }
+  @media (max-width:760px){
+    .case-head{grid-template-columns:1fr}
+    .case-head .meta{align-items:flex-start}
+    .receipt{grid-template-columns:1fr}
+    .facts .frow{grid-template-columns:1fr;gap:4px}
+    .check .crow{grid-template-columns:1fr auto}
+    .check .det{grid-column:1 / -1}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- masthead -->
+  <header>
+    <div class="wordmark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" aria-hidden="true">
+        <path d="M12 4.5v15"/>
+        <path d="M6 10.5h12"/>
+        <path d="M6 10.5 4 17c1.6.8 4.3.8 5.8 0L6 10.5Z"/>
+        <path d="M18 10.5 16 17c-1.5-.8-4.2-.8-5.8 0L18 10.5Z"/>
+      </svg>
+      <span class="name">AnchorGate</span>
+    </div>
+    <nav>
+      <a href="#">Gate</a>
+      <a href="#">Statute</a>
+      <a href="#">Record</a>
+    </nav>
+  </header>
+
+  <!-- engine line -->
+  <div class="engine">
+    <span class="dot"></span>
+    <span><span class="tag">engine</span> deterministic authorizer · rules read fresh, never cached · last evaluation <span class="tag">09:12:41 UTC</span> · rule set <span class="tag">owner-1</span></span>
+  </div>
+
+  <a href="#" class="back">← Today's register</a>
+
+  <!-- case header -->
+  <section class="case-head">
+    <div>
+      <div class="ref num">Request · #0189 · 09 oct 2026</div>
+      <h1>A renewal with a payee <span class="pay">we haven't paid before.</span></h1>
+    </div>
+    <div class="meta">
+      <span class="chip chip-ask num">ASK</span>
+      <span class="waiting num">awaiting you · since <span class="open">09:12:41</span></span>
+      <span class="waiting num">proposed by <span class="open">agent-1</span></span>
+    </div>
+  </section>
+
+  <!-- file + decision slip -->
+  <div class="body">
+    <div>
+
+      <!-- the facts -->
+      <section class="facts">
+        <div class="label">The file</div>
+        <div class="frow"><span class="k">payee</span><span class="v num">Adobe, Inc.</span></div>
+        <div class="frow"><span class="k">purpose</span><span class="v">software · subscription</span></div>
+        <div class="frow"><span class="k">category</span><span class="v">software</span></div>
+        <div class="frow"><span class="k">amount</span><span class="v num">USD 32.50</span></div>
+        <div class="frow"><span class="k">currency</span><span class="v">USD</span></div>
+        <div class="frow"><span class="k">agent</span><span class="v">agent-1</span></div>
+        <div class="frow"><span class="k">fingerprint</span><span class="v num"><span class="fp">9c2d18f0…e481</span> <span class="fp">(full in the Record)</span></span></div>
+      </section>
+
+      <!-- the check -->
+      <section class="check">
+        <div class="label">The check · re-run at approval, and again at execution</div>
+
+        <div class="crow">
+          <div><div class="rule">Currency matches the statute</div><div class="det num">USD → USD</div></div>
+          <span class="result pass num">pass</span>
+        </div>
+        <div class="crow">
+          <div><div class="rule">Category is permitted</div><div class="det num">software ∈ software, books</div></div>
+          <span class="result pass num">pass</span>
+        </div>
+        <div class="crow">
+          <div><div class="rule">Under the per-purchase auto limit</div><div class="det num">32.50 ≤ 50.00</div></div>
+          <span class="result pass num">pass</span>
+        </div>
+        <div class="crow">
+          <div><div class="rule">Payee is known</div><div class="det num">Adobe, Inc. ∉ known payees · rule: new payee needs a human</div></div>
+          <span class="result ask-x num">ask</span>
+        </div>
+        <div class="crow">
+          <div><div class="rule">Monthly cap still holds after capture</div><div class="det num">49.50 ≤ 100.00 · counted only from a verified capture</div></div>
+          <span class="result pass num">pass</span>
+        </div>
+
+        <div class="verdict">
+          <span class="label">Verdict</span>
+          <span class="vd num"><b>ASK</b> · APPROVAL_REQUIRED · rule set owner-1</span>
+        </div>
+      </section>
+    </div>
+
+    <!-- decision slip -->
+    <aside class="slip">
+      <h2 class="slip-title">Your decision</h2>
+      <p class="slip-sub">Only you can move this one. The engine never decides, and it never approves itself.</p>
+      <button class="prime">Approve &amp; pay<span class="amt num">USD 32.50 →</span></button>
+      <button class="decline">Decline</button>
+      <div class="note">
+        <span class="k">Recheck:</span> the gate re-runs the whole file before any money moves.<br>
+        <span class="k">Cap:</span> 100.00 is a hard limit — no approval can override it.<br>
+        <span class="k">Counting:</span> nothing counts until the provider verifies the capture.
+      </div>
+      <div class="posture">
+        <div class="pro">After this approval</div>
+        <div class="pl num"><span>captured</span><b>49.50</b></div>
+        <div class="pl num"><span>reserved</span><b>43.00</b></div>
+        <div class="pl num"><span>headroom</span><b class="hl">7.50</b></div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- receipt strip — the print moment -->
+  <section class="receipt">
+    <div class="rh">Receipt strip · request #0189</div>
+
+    <div class="st">
+      <div class="sn">01 · Proposed</div>
+      <div class="sv">agent-1 filed the request<time>09:12:40</time></div>
+    </div>
+    <div class="st">
+      <div class="sn">02 · Decided</div>
+      <div class="sv">engine asked, kept its hands off<time>09:12:41 · ask</time></div>
+    </div>
+    <div class="st st-open">
+      <div class="sn">03 · Submitted — awaiting you</div>
+      <div class="sv">no money has moved<time>open since 09:12:41</time></div>
+    </div>
+    <div class="st">
+      <div class="sn">04 · Captured</div>
+      <div class="sv" style="color:var(--dark-soft)">— once verified, counted<time>not yet</time></div>
+    </div>
+
+    <div class="stamp-line"><span class="in">The stamp</span> is earned here the moment you decide — your word is the seal, the engine's check is the ink.</div>
+  </section>
+
+  <div class="note">Demo data · shapes match the live schema · snapshot 09 oct 2026 · decision is server-side only; this screen proposes nothing</div>
+
+</div>
+</body>
+</html>

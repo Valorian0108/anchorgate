@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AnchorGate — The Gate</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400..900&family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..500&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600&display=swap" rel="stylesheet">
+
+<style>
+  /* ------------------------------------------------------------------
+     AnchorGate · The Gate (home) — v1 comp
+     Tokens only. No inline hex outside this block. No gradients.
+     No icons beyond our own stroke set. No emojis.
+     ------------------------------------------------------------------ */
+  :root{
+    /* warm neutrals */
+    --ink:#1C1917;
+    --ink-soft:#57534E;
+    --ink-faint:#6F675C;
+    --paper:#FBF9F4;
+    --surface:#F3EFE7;
+    --line:#E4DED3;
+    --warm-dark:#201819;
+    /* seal blue */
+    --seal-deep:#122947;
+    --seal:#1C3A66;
+    --seal-bright:#2A5AA0;
+    --seal-tint:#E8EDF5;
+    /* verdict — inside the stamp / mark only */
+    --allow:#2F6B4F;
+    --ask:#A66312;
+    --deny:#9E2B25;
+    /* type */
+    --g:"Schibsted Grotesk", sans-serif;
+    --s:"Newsreader", serif;
+    --m:"IBM Plex Mono", monospace;
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--g);
+    font-size:16px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  .num{font-variant-numeric:tabular-nums}
+
+  .wrap{max-width:1120px;margin:0 auto;padding:0 48px 72px}
+
+  a{color:var(--seal);text-decoration:none}
+  a:hover{color:var(--seal-bright)}
+
+  /* ---------------- masthead ---------------- */
+  header{
+    display:flex;align-items:center;gap:24px;
+    padding:26px 0 20px;border-bottom:1px solid var(--ink);
+  }
+  .wordmark{display:flex;align-items:center;gap:10px}
+  .wordmark svg{width:20px;height:20px;color:var(--seal);flex:none}
+  .wordmark .name{font-family:var(--g);font-weight:700;font-size:18px;letter-spacing:-.01em}
+  nav{margin-left:auto;display:flex;align-items:center;gap:26px}
+  nav a{font-family:var(--g);font-size:13.5px;font-weight:500;color:var(--ink-soft)}
+  nav a:hover{color:var(--ink)}
+  nav .active{color:var(--ink)}
+  nav .active::before{content:"";display:inline-block;width:6px;height:6px;background:var(--seal);margin-right:8px;transform:translateY(-1px)}
+
+  /* ---------------- engine line (instrument whisper) ---------------- */
+  .engine{
+    display:flex;align-items:center;gap:10px;
+    padding:14px 0;border-bottom:1px solid var(--line);
+    font-family:var(--m);font-size:11px;letter-spacing:.04em;color:var(--ink-soft);
+  }
+  .engine .dot{width:6px;height:6px;background:var(--seal);border-radius:50%;flex:none}
+  .engine .tag{color:var(--ink-faint);margin-right:2px}
+
+  /* ---------------- budget rule (print gauge) ---------------- */
+  .budget{padding:26px 0 22px;border-bottom:1px solid var(--line)}
+  .budget .top{
+    display:flex;align-items:baseline;justify-content:space-between;gap:20px;flex-wrap:wrap;
+    font-family:var(--m);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);
+  }
+  .budget .top .fig{color:var(--ink);font-size:12px;letter-spacing:.03em;text-transform:none}
+  .budget .top .fig b{font-weight:600;color:var(--ink)}
+  .budget .top .fig .hl{color:var(--seal)}
+  .budget .top .fig .sep{color:var(--line);margin:0 10px}
+
+  .gauge{position:relative;height:26px;margin-top:18px}
+  .gauge .base{position:absolute;left:0;right:0;bottom:6px;height:2px;background:var(--line)}
+  .gauge .spent{position:absolute;left:0;bottom:6px;height:2px;background:var(--ink);width:var(--spent)}
+  .gauge .reserved{position:absolute;bottom:6px;height:2px;background:var(--surface)}
+  .gauge .cap{
+    position:absolute;bottom:0;width:2px;height:14px;background:var(--seal);transform:translateX(-1px);
+  }
+  .gauge .lbl{position:absolute;bottom:20px;font-family:var(--m);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint)}
+  .gauge .lbl.sp-ent{left:0}
+  .gauge .lbl.rs-ent{color:var(--ink-soft)}
+  .gauge .lbl.cp-ent{color:var(--seal);transform:translateX(-14px)}
+
+  /* ---------------- register (the dominant element) ---------------- */
+  .register{margin:56px 0 0}
+  .reg-head{display:flex;align-items:baseline;justify-content:space-between;gap:20px;margin-bottom:6px}
+  .reg-head h1{
+    font-family:var(--s);font-style:italic;font-weight:400;
+    font-size:clamp(28px,4vw,38px);line-height:1.08;letter-spacing:-.01em;margin:0;
+  }
+  .reg-head .count{font-family:var(--m);font-size:11px;letter-spacing:.08em;color:var(--ink-soft);text-transform:uppercase}
+
+  .ledger{margin-top:18px}
+  .ledger .colhead{
+    display:grid;grid-template-columns:150px 1fr 200px 130px 96px 110px;gap:20px;
+    padding:0 0 10px;border-bottom:1px solid var(--ink);
+    font-family:var(--m);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);
+  }
+  .ledger .colhead .amt{text-align:right}
+
+  .row{
+    display:grid;grid-template-columns:150px 1fr 200px 130px 96px 110px;gap:20px;
+    align-items:center;padding:18px 2px;border-bottom:1px solid var(--line);
+    transition:background-color .12s ease;
+  }
+  .row:hover{background:var(--surface)}
+
+  .row .t{font-family:var(--m);font-size:11px;color:var(--ink-soft);line-height:1.6}
+  .row .t .id{color:var(--ink-faint)}
+  .row .t time{display:block;letter-spacing:.02em}
+
+  .row .who{min-width:0}
+  .row .who .payee{font-family:var(--g);font-weight:600;font-size:15px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .who .purpose{font-family:var(--m);font-size:11px;color:var(--ink-soft);margin-top:3px;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .row .check{font-family:var(--m);font-size:11px;color:var(--ink-soft);letter-spacing:.02em}
+  .row .check .rc{display:block;color:var(--ink-faint);font-size:10px;margin-top:3px}
+
+  .row .amt{font-family:var(--m);font-size:13.5px;font-weight:500;text-align:right;white-space:nowrap}
+  .row .amt .cur{color:var(--ink-faint);font-weight:400;font-size:11px;margin-right:2px}
+
+  .chip{
+    display:inline-block;font-family:var(--m);font-size:10px;font-weight:500;
+    letter-spacing:.12em;padding:3px 9px;border:1px solid;border-radius:2px;
+    white-space:nowrap;
+  }
+  .chip-allow{color:var(--allow);border-color:var(--allow)}
+  .chip-ask{color:var(--ask);border-color:var(--ask)}
+  .chip-deny{color:var(--deny);border-color:var(--deny)}
+  .row .muted{font-family:var(--m);font-size:10.5px;color:var(--ink-faint);letter-spacing:.06em}
+
+  .row .act{font-family:var(--g);font-weight:600;font-size:13px;color:var(--seal);white-space:nowrap}
+  .row .act:hover{color:var(--seal-bright)}
+
+  /* ---------------- footer record strip ---------------- */
+  .record{
+    margin-top:64px;border-top:1px solid var(--ink);padding-top:16px;
+    display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;
+    font-family:var(--m);font-size:11px;letter-spacing:.04em;color:var(--ink-soft);
+  }
+  .record .rv{color:var(--ink-faint)}
+  .note{
+    margin-top:10px;font-family:var(--m);font-size:10px;letter-spacing:.06em;
+    color:var(--ink-faint);
+  }
+
+  @media (max-width:980px){
+    .wrap{padding:0 24px 56px}
+    .ledger .colhead,.row{grid-template-columns:120px 1fr 150px 110px 84px 92px;gap:14px}
+  }
+  @media (max-width:760px){
+    .ledger .colhead{display:none}
+    .row{grid-template-columns:1fr auto;grid-template-areas:"who amt" "t check" "st act";row-gap:6px}
+    .row .t{grid-area:t}.row .who{grid-area:who}.row .amt{grid-area:amt}
+    .row .check{grid-area:check}.row .status{grid-area:st}.row .act{grid-area:act;text-align:right}
+    .row .check .rc{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- masthead -->
+  <header>
+    <div class="wordmark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" aria-hidden="true">
+        <path d="M12 4.5v15"/>
+        <path d="M6 10.5h12"/>
+        <path d="M6 10.5 4 17c1.6.8 4.3.8 5.8 0L6 10.5Z"/>
+        <path d="M18 10.5 16 17c-1.5-.8-4.2-.8-5.8 0L18 10.5Z"/>
+      </svg>
+      <span class="name">AnchorGate</span>
+    </div>
+    <nav>
+      <a href="#" class="active">Gate</a>
+      <a href="#">Statute</a>
+      <a href="#">Record</a>
+    </nav>
+  </header>
+
+  <!-- engine line — the instrument whisper, one line only -->
+  <div class="engine">
+    <span class="dot"></span>
+    <span><span class="tag">engine</span> deterministic authorizer · rules read fresh, never cached · evaluated 09:13:04 UTC · rule set <span class="tag">owner-1</span></span>
+  </div>
+
+  <!-- budget rule -->
+  <section class="budget" aria-label="Monthly budget posture">
+    <div class="top">
+      <span>Budget · October</span>
+      <span class="fig num">
+        captured <b>17.00</b><span class="sep">/</span>
+        reserved <b>75.50</b><span class="sep">/</span>
+        headroom <b class="hl">7.50</b><span class="sep">/</span>
+        cap <b>100.00</b>
+      </span>
+    </div>
+    <div class="gauge num" style="--spent:17%;--reserved:75.5%">
+      <div class="base"></div>
+      <div class="spent" style="left:0"></div>
+      <div class="reserved" style="left:17%;width:75.5%"></div>
+      <div class="cap" style="left:100%"></div>
+      <span class="lbl sp-ent">captured</span>
+      <span class="lbl rs-ent" style="left:17%">reserved</span>
+      <span class="lbl cp-ent" style="left:100%">cap</span>
+    </div>
+  </section>
+
+  <!-- the register — one dominant element -->
+  <section class="register" aria-label="Today's decision register">
+    <div class="reg-head">
+      <h1>Today's register</h1>
+      <span class="count num">09 oct 2026 · 6 records · 2 need you</span>
+    </div>
+
+    <div class="ledger">
+      <div class="colhead">
+        <span>Request</span>
+        <span>Payee / purpose</span>
+        <span>Check</span>
+        <span class="amt">Amount</span>
+        <span>Status</span>
+        <span></span>
+      </div>
+
+      <div class="row">
+        <div class="t num"><span class="id">#0190</span><time>09:13:04</time></div>
+        <div class="who"><div class="payee">Hostinger International</div><div class="purpose">software · annual hosting</div></div>
+        <div class="check">monthly cap → deny<span class="rc">MONTHLY_CAP_EXCEEDED</span></div>
+        <div class="amt num"><span class="cur">USD</span>479.00</div>
+        <div class="status"><span class="chip chip-deny">DENY</span></div>
+        <div class="muted">closed</div>
+      </div>
+
+      <div class="row">
+        <div class="t num"><span class="id">#0189</span><time>09:12:40</time></div>
+        <div class="who"><div class="payee">Adobe, Inc.</div><div class="purpose">software · subscription</div></div>
+        <div class="check">new payee → human<span class="rc">APPROVAL_REQUIRED</span></div>
+        <div class="amt num"><span class="cur">USD</span>32.50</div>
+        <div class="status"><span class="chip chip-ask">ASK</span></div>
+        <a href="#" class="act">Decide →</a>
+      </div>
+
+      <div class="row">
+        <div class="t num"><span class="id">#0188</span><time>09:12:01</time></div>
+        <div class="who"><div class="payee">Notion Labs</div><div class="purpose">software · team plan</div></div>
+        <div class="check">new payee → human<span class="rc">APPROVAL_REQUIRED</span></div>
+        <div class="amt num"><span class="cur">USD</span>24.00</div>
+        <div class="status"><span class="chip chip-ask">ASK</span></div>
+        <a href="#" class="act">Decide →</a>
+      </div>
+
+      <div class="row">
+        <div class="t num"><span class="id">#0187</span><time>09:10:44</time></div>
+        <div class="who"><div class="payee">GitHub, Inc.</div><div class="purpose">software · repo plan</div></div>
+        <div class="check">within limits → allow<span class="rc">WITHIN_LIMITS</span></div>
+        <div class="amt num"><span class="cur">USD</span>19.00</div>
+        <div class="status"><span class="chip chip-allow">ALLOW</span></div>
+        <div class="muted">executing</div>
+      </div>
+
+      <div class="row">
+        <div class="t num"><span class="id">#0186</span><time>09:03:22</time></div>
+        <div class="who"><div class="payee">Readwise</div><div class="purpose">books · subscription</div></div>
+        <div class="check">within limits → allow<span class="rc">WITHIN_LIMITS</span></div>
+        <div class="amt num"><span class="cur">USD</span>5.00</div>
+        <div class="status"><span class="chip chip-allow">ALLOW</span></div>
+        <div class="muted">verified</div>
+      </div>
+
+      <div class="row">
+        <div class="t num"><span class="id">#0185</span><time>08:57:48</time></div>
+        <div class="who"><div class="payee">Figma, Inc.</div><div class="purpose">software · seat</div></div>
+        <div class="check">within limits → allow<span class="rc">WITHIN_LIMITS</span></div>
+        <div class="amt num"><span class="cur">USD</span>12.00</div>
+        <div class="status"><span class="chip chip-allow">ALLOW</span></div>
+        <div class="muted">verified</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- footer record strip -->
+  <footer class="record">
+    <span>record · latest decision <span class="rv">#0187 ALLOW · within-limits · 09:10:44</span></span>
+    <span>rules <span class="rv">owner-1 · USD</span></span>
+  </footer>
+  <div class="note">Demo data · shapes match the live schema · snapshot 09 Oct 2026 · the model proposes, the gate decides</div>
+
+</div>
+</body>
+</html>
