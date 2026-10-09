@@ -5,11 +5,16 @@
  */
 
 export { fromPayPalAmount, minorUnitExponent, toPayPalAmount } from "./money";
-export type { PayPalOrdersPort, PayPalVaultPort } from "./ports";
+export type {
+  PayPalOrdersPort,
+  PayPalPaymentsPort,
+  PayPalVaultPort,
+} from "./ports";
 export {
   createPayPalClient,
   readPayPalConfigFromEnv,
   SdkOrdersPort,
+  SdkPaymentsPort,
   SdkVaultPort,
   type PayPalConfig,
 } from "./config";
@@ -18,8 +23,10 @@ export type { PayPalPaymentGatewayDeps } from "./gateway";
 export { describePayPalError } from "./errors";
 export {
   completeVaultEnrollment,
+  enrollCardVault,
   startVaultEnrollment,
   type CompleteVaultEnrollmentArgs,
+  type EnrollCardVaultArgs,
   type StartVaultEnrollmentArgs,
   type VaultEnrollmentStart,
 } from "./vault";

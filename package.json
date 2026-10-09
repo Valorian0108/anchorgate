@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "sandbox:verify": "tsx scripts/sandbox-verify.ts",
+    "sandbox:verify:wallet": "tsx scripts/sandbox-verify.ts --wallet",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"
   },

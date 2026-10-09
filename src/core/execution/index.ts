@@ -12,8 +12,11 @@ export type {
 } from "./types";
 export {
   executeAuthorizedPurchase,
+  reconcilePendingPurchase,
   type ExecuteAuthorizedPurchaseArgs,
   type ExecutionCapture,
   type ExecutionOutcome,
   type ExecutionStatus,
+  type PendingCapture,
+  type ReconcilePendingPurchaseArgs,
 } from "./execute";

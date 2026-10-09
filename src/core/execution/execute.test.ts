@@ -23,7 +23,10 @@ import {
   proposePurchase,
 } from "../purchases";
 import { InMemorySpendingStore, SpendingLedger } from "../spending";
-import { executeAuthorizedPurchase } from "./execute";
+import {
+  executeAuthorizedPurchase,
+  reconcilePendingPurchase,
+} from "./execute";
 import type {
   PaymentGateway,
   PaymentInstruction,
@@ -58,11 +61,22 @@ function request(overrides: Partial<PurchaseRequest> = {}): PurchaseRequest {
 /** A gateway that replays a fixed list of outcomes and records its calls. */
 class FakeGateway implements PaymentGateway {
   readonly calls: PaymentInstruction[] = [];
-  constructor(private readonly outcomes: PaymentOutcome[]) {}
+  readonly checkCalls: string[] = [];
+  constructor(
+    private readonly outcomes: PaymentOutcome[],
+    private readonly checkOutcome: PaymentOutcome = {
+      status: "FAILED",
+      reason: "checkCapture was not expected",
+    },
+  ) {}
   async pay(instruction: PaymentInstruction): Promise<PaymentOutcome> {
     this.calls.push(instruction);
     const index = Math.min(this.calls.length - 1, this.outcomes.length - 1);
     return this.outcomes[index]!;
+  }
+  async checkCapture(providerCaptureId: string): Promise<PaymentOutcome> {
+    this.checkCalls.push(providerCaptureId);
+    return this.checkOutcome;
   }
 }
 
@@ -254,5 +268,174 @@ describe("executeAuthorizedPurchase", () => {
 
     expect(outcome.status).toBe("BLOCKED");
     expect(gateway.calls).toHaveLength(0);
+  });
+});
+
+function pending(
+  overrides: Partial<Extract<PaymentOutcome, { status: "PENDING" }>> = {},
+): PaymentOutcome {
+  return {
+    status: "PENDING",
+    providerCaptureId: "CAP-P1",
+    amountMinor: 500,
+    currency: "USD",
+    createdAt: "2026-10-09T12:00:05.000Z",
+    reason: "PENDING_REVIEW",
+    ...overrides,
+  };
+}
+
+describe("pending captures", () => {
+  it("records a pending capture for audit but counts nothing", async () => {
+    const record = proposePurchase(request(), RULES, EMPTY_STATE, NOW).record!;
+    const ledger = freshLedger();
+
+    const outcome = await executeAuthorizedPurchase({
+      record,
+      rules: RULES,
+      state: EMPTY_STATE,
+      now: NOW,
+      gateway: new FakeGateway([pending()]),
+      ledger,
+    });
+
+    expect(outcome.status).toBe("PENDING");
+    expect(outcome.record.status).toBe("PENDING_SETTLEMENT");
+    expect(outcome.pending?.providerCaptureId).toBe("CAP-P1");
+    expect(await ledger.capturedMinor()).toBe(0);
+
+    const events = await ledger.eventsForRequest(record.id);
+    const pendingEvent = events.find((e) => e.kind === "CAPTURE_PENDING");
+    expect(pendingEvent?.providerRef).toBe("CAP-P1");
+    expect(events.some((e) => e.kind === "CAPTURE_VERIFIED")).toBe(false);
+  });
+
+  it("reconciles a settled capture and counts it exactly once", async () => {
+    const record = proposePurchase(request(), RULES, EMPTY_STATE, NOW).record!;
+    const ledger = freshLedger();
+    const gateway = new FakeGateway(
+      [pending()],
+      captured({ providerCaptureId: "CAP-P1" }),
+    );
+
+    const first = await executeAuthorizedPurchase({
+      record,
+      rules: RULES,
+      state: EMPTY_STATE,
+      now: NOW,
+      gateway,
+      ledger,
+    });
+    expect(first.status).toBe("PENDING");
+
+    const reconciled = await reconcilePendingPurchase({
+      record: first.record,
+      gateway,
+      ledger,
+      now: NOW,
+    });
+    expect(reconciled.status).toBe("CAPTURED");
+    expect(reconciled.record.status).toBe("EXECUTED");
+    expect(await ledger.capturedMinor()).toBe(500);
+    expect(gateway.checkCalls).toEqual(["CAP-P1"]);
+
+    // A second reconcile must not double-count.
+    const again = await reconcilePendingPurchase({
+      record: first.record,
+      gateway,
+      ledger,
+      now: NOW,
+    });
+    expect(again.status).toBe("CAPTURED");
+    expect(await ledger.capturedMinor()).toBe(500);
+  });
+
+  it("keeps reporting PENDING while the capture is still unsettled", async () => {
+    const record = proposePurchase(request(), RULES, EMPTY_STATE, NOW).record!;
+    const ledger = freshLedger();
+    const gateway = new FakeGateway([pending()], pending());
+
+    const first = await executeAuthorizedPurchase({
+      record,
+      rules: RULES,
+      state: EMPTY_STATE,
+      now: NOW,
+      gateway,
+      ledger,
+    });
+
+    const again = await reconcilePendingPurchase({
+      record: first.record,
+      gateway,
+      ledger,
+      now: NOW,
+    });
+    expect(again.status).toBe("PENDING");
+    expect(await ledger.capturedMinor()).toBe(0);
+  });
+
+  it("records a failure and counts nothing when the pending capture is declined", async () => {
+    const record = proposePurchase(request(), RULES, EMPTY_STATE, NOW).record!;
+    const ledger = freshLedger();
+    const gateway = new FakeGateway([pending()], { status: "FAILED", reason: "declined" });
+
+    const first = await executeAuthorizedPurchase({
+      record,
+      rules: RULES,
+      state: EMPTY_STATE,
+      now: NOW,
+      gateway,
+      ledger,
+    });
+
+    const again = await reconcilePendingPurchase({
+      record: first.record,
+      gateway,
+      ledger,
+      now: NOW,
+    });
+    expect(again.status).toBe("FAILED");
+    expect(await ledger.capturedMinor()).toBe(0);
+    expect(
+      (await ledger.eventsForRequest(record.id)).some((e) => e.kind === "CAPTURE_FAILED"),
+    ).toBe(true);
+  });
+
+  it("never counts a settled capture whose amount does not match", async () => {
+    const record = proposePurchase(request(), RULES, EMPTY_STATE, NOW).record!;
+    const ledger = freshLedger();
+    const gateway = new FakeGateway(
+      [pending()],
+      captured({ providerCaptureId: "CAP-P1", amountMinor: 999 }),
+    );
+
+    const first = await executeAuthorizedPurchase({
+      record,
+      rules: RULES,
+      state: EMPTY_STATE,
+      now: NOW,
+      gateway,
+      ledger,
+    });
+
+    const again = await reconcilePendingPurchase({
+      record: first.record,
+      gateway,
+      ledger,
+      now: NOW,
+    });
+    expect(again.status).toBe("MISMATCH");
+    expect(await ledger.capturedMinor()).toBe(0);
+  });
+
+  it("fails safely when there is no pending capture to reconcile", async () => {
+    const record = proposePurchase(request(), RULES, EMPTY_STATE, NOW).record!;
+    const outcome = await reconcilePendingPurchase({
+      record,
+      gateway: new FakeGateway([]),
+      ledger: freshLedger(),
+      now: NOW,
+    });
+    expect(outcome.status).toBe("FAILED");
   });
 });

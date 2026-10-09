@@ -121,6 +121,11 @@ export const savedPaymentMethods = pgTable(
     id: text("id").primaryKey(),
     ownerId: text("owner_id").notNull(),
     provider: text("provider").notNull(),
+    /**
+     * Which provider payment source the token is for: "paypal" (wallet) or
+     * "card". Existing rows default to "paypal" (the original enrollment type).
+     */
+    sourceType: text("source_type").notNull().default("paypal"),
     providerTokenId: text("provider_token_id").notNull().unique(),
     providerCustomerId: text("provider_customer_id"),
     payerEmail: text("payer_email"),

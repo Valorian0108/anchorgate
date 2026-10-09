@@ -44,6 +44,17 @@ A proposal, a recommendation, or generated code is **not** a decision.
   adopt the existing capture. This preserves the "count once, from a verified
   capture" invariant and makes the payment path idempotent with respect to
   duplicate capture.
+- **Vaulted PayPal-wallet captures sit in `PENDING_REVIEW` in Sandbox
+  (observed).** After the duplicate-capture fix, the next live run returned an
+  order of `COMPLETED` with a capture of `PENDING` and
+  `statusDetails.reason = PENDING_REVIEW`. This matched the order correctly, so
+  the cause was isolated by re-running against a **card** vault: the card capture
+  returned `COMPLETED` immediately, while the wallet capture stayed `PENDING`
+  across repeated polls and `storedCredential` variants. Conclusion: this is
+  PayPal risk review for a **wallet-vault merchant-initiated** charge in Sandbox —
+  **not** a defect in our code. The correct behavior is to treat it as a real
+  "initiated but not settled" state: record it, do **not** count it, and
+  reconcile later (see Decisions).
 
 ------------------------------------------------------------------------
 
@@ -113,6 +124,19 @@ A proposal, a recommendation, or generated code is **not** a decision.
   without a human present. PayPal supplies the payment rails; our deterministic
   layer supplies the mandate/cap. The vault token is stored server-side only
   (`saved_payment_methods`, UNIQUE per token) and never reaches the browser.
+- **Support both payment sources; treat a pending capture as a first-class
+  state (owner-approved).** Payment sources: **PayPal wallet** *and* **card**,
+  selected per saved method (`sourceType`). A `PENDING` provider capture is a real
+  state — recorded for audit (`CAPTURE_PENDING`, with the provider capture id) and
+  **never counted** until it settles; `reconcilePendingPurchase(...)` re-reads it
+  by id and counts it exactly once on settlement. For the **live green demo** we
+  use a **card** vault (settles immediately in Sandbox); the wallet path is kept
+  and correctly reports "pending, not counted."
+- **Card enrollment is server-side for the Sandbox check (approved).** The
+  verification runner enrolls PayPal's standard Sandbox test card server-side
+  (no browser). This is a **Sandbox/test** convenience; in production, card data
+  would be collected with PayPal hosted fields so raw card data never reaches our
+  server. Recorded as a deviation-safe MVP choice, not a production payment path.
 
 ------------------------------------------------------------------------
 
@@ -347,3 +371,18 @@ _None recorded yet._
   `getOrder` when creation reports `COMPLETED` without one, and recovers from a
   rejected duplicate capture by re-reading the order. Added 3 gateway tests
   (12 total). Suite now **118 passing**; typecheck clean. Re-run pending.
+- **Update (third live run + decision).** After the duplicate-capture fix, the
+  live run reached capture but PayPal returned `PENDING` /
+  `PENDING_REVIEW` for a **vaulted PayPal-wallet** charge (order `COMPLETED`).
+  Diagnosed by contrast: a **card** vault captures `COMPLETED` immediately, and
+  the wallet stayed `PENDING` across repeated polls. Owner decided: **support both
+  sources; use a card vault for the live green demo; treat `PENDING` as a real,
+  non-counted state.** Implemented: `sourceType` on saved methods + `source_type`
+  column and migration; the gateway charges `payment_source.card` or
+  `payment_source.paypal`; a `PENDING` outcome + `PENDING_SETTLEMENT` request
+  status; `CAPTURE_PENDING` audit events; and read-only
+  `reconcilePendingPurchase(...)` (counts exactly once on settlement). The runner
+  now enrolls a card by default (`--wallet` for the wallet path) and reconciles
+  once. **Observed live PASS (card):** decision `ALLOW`, execution `CAPTURED`,
+  capture id `4GR46789K0392653X`, ledger `capturedMinor = 100` (counted once).
+  Suite now **132 passing**; typecheck clean.

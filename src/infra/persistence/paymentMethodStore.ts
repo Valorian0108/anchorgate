@@ -36,6 +36,7 @@ export class DrizzlePaymentMethodStore implements PaymentMethodStore {
           set: {
             ownerId: row.ownerId,
             provider: row.provider,
+            sourceType: row.sourceType,
             providerTokenId: row.providerTokenId,
             providerCustomerId: row.providerCustomerId,
             payerEmail: row.payerEmail,

@@ -1,0 +1,1 @@
+ALTER TABLE "saved_payment_methods" ADD COLUMN "source_type" text DEFAULT 'paypal' NOT NULL;

@@ -20,7 +20,9 @@ import {
   PaypalPaymentTokenCustomerType,
   PaypalPaymentTokenUsageType,
   PaymentTokenStatus,
+  VaultCardVerificationMethod,
   VaultTokenRequestType,
+  type Address,
   type LinkDescription,
 } from "@paypal/paypal-server-sdk";
 
@@ -125,9 +127,92 @@ export async function completeVaultEnrollment(
     id: randomUUID(),
     ownerId: args.ownerId,
     provider: "paypal",
+    sourceType: "paypal",
     providerTokenId: token.id,
     providerCustomerId: token.customer?.id,
     payerEmail: token.paymentSource?.paypal?.emailAddress,
+    status: "ACTIVE",
+    createdAt: (args.now ?? new Date()).toISOString(),
+  };
+}
+
+export interface EnrollCardVaultArgs {
+  ownerId: string;
+  /**
+   * Raw card details. This is a SERVER-SIDE, PCI-SAQ-D path and is intended for
+   * Sandbox verification only. In production, collect card details with PayPal
+   * hosted fields so raw card data never touches this server.
+   */
+  card: {
+    number: string;
+    /** ISO-8601 `YYYY-MM`. */
+    expiry: string;
+    name?: string;
+    billingAddress?: Address;
+  };
+  returnUrl?: string;
+  cancelUrl?: string;
+  now?: Date;
+}
+
+/**
+ * Enroll a CARD in PayPal's vault, server-side (no payer redirect needed for a
+ * no-3DS test card). Used for the live Sandbox verification, where PayPal
+ * settles a card-vault charge immediately (a PayPal-wallet vault charge is held
+ * as `PENDING_REVIEW` in Sandbox).
+ *
+ * The returned method is marked `sourceType: "card"` so the gateway charges the
+ * correct `payment_source`.
+ */
+export async function enrollCardVault(
+  vault: PayPalVaultPort,
+  args: EnrollCardVaultArgs,
+): Promise<SavedPaymentMethod> {
+  const setup = await vault.createSetupToken({
+    body: {
+      paymentSource: {
+        card: {
+          number: args.card.number,
+          expiry: args.card.expiry,
+          ...(args.card.name ? { name: args.card.name } : {}),
+          ...(args.card.billingAddress
+            ? { billingAddress: args.card.billingAddress }
+            : {}),
+          verificationMethod: VaultCardVerificationMethod.ScaWhenRequired,
+          experienceContext: {
+            returnUrl: args.returnUrl ?? "https://example.com/card/return",
+            cancelUrl: args.cancelUrl ?? "https://example.com/card/cancel",
+          },
+        },
+      },
+    },
+    paypalRequestId: `card-setup:${args.ownerId}:${Date.now()}`,
+  });
+
+  if (!setup.id) {
+    throw new Error("PayPal did not return a setup token id.");
+  }
+
+  const token = await vault.createPaymentToken({
+    body: {
+      paymentSource: {
+        token: { id: setup.id, type: VaultTokenRequestType.SetupToken },
+      },
+    },
+    paypalRequestId: `card-vault:${setup.id}`,
+  });
+
+  if (!token.id) {
+    throw new Error("PayPal did not return a payment token id.");
+  }
+
+  return {
+    id: randomUUID(),
+    ownerId: args.ownerId,
+    provider: "paypal",
+    sourceType: "card",
+    providerTokenId: token.id,
+    providerCustomerId: token.customer?.id,
     status: "ACTIVE",
     createdAt: (args.now ?? new Date()).toISOString(),
   };

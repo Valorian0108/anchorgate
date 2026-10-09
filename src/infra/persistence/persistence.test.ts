@@ -182,6 +182,7 @@ function paymentMethod(
     id: "pm-1",
     ownerId: "default",
     provider: "paypal",
+    sourceType: "paypal",
     providerTokenId: "VAULT-1",
     payerEmail: "buyer@example.com",
     status: "ACTIVE",
@@ -197,6 +198,16 @@ describe("DrizzlePaymentMethodStore", () => {
     const active = await store.getActive("default");
     expect(active?.providerTokenId).toBe("VAULT-1");
     expect(active?.payerEmail).toBe("buyer@example.com");
+    expect(active?.sourceType).toBe("paypal");
+  });
+
+  it("round-trips a card payment source", async () => {
+    const store = new DrizzlePaymentMethodStore(db);
+    await store.save(
+      paymentMethod({ id: "pm-card", providerTokenId: "VAULT-CARD", sourceType: "card" }),
+    );
+    const loaded = await store.getById("pm-card");
+    expect(loaded?.sourceType).toBe("card");
   });
 
   it("keeps a single row per provider token across repeated saves", async () => {

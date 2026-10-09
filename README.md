@@ -17,13 +17,13 @@ allowed.
 Early development. The **authorization core** (deterministic decision engine),
 the **purchase lifecycle** (approval handling and revalidation), **spending
 accounting** (counts only verified captures, exactly once), **durable
-storage** (PostgreSQL, including the persisted spending rules), and the
-**authorization-gated payment execution** plus the **PayPal Sandbox adapter**
+storage** (PostgreSQL, including the persisted spending rules), the
+**authorization-gated payment execution**, and the **PayPal Sandbox adapter**
 (orders create + capture against a vaulted payment method) are implemented and
-tested. The PayPal adapter is unit-tested with fakes and has a one-command live
-Sandbox verification (`npm run sandbox:verify`); a real Sandbox run is still
-pending Sandbox credentials. The AI agent and the UI are not built yet. The UI
-has not been designed or approved.
+tested. The PayPal path is **live-verified against Sandbox**
+(`npm run sandbox:verify`): a card vault was `ALLOW`ed, captured, and counted
+exactly once. The AI agent and the UI are not built yet. The UI has not been
+designed or approved.
 
 ## Tech stack
 
@@ -79,17 +79,26 @@ payment method); without it, payments fail safe.
 Once the PayPal Sandbox variables are in `.env`, run:
 
 ```bash
-npm run sandbox:verify
+npm run sandbox:verify          # card vault (server-side, no browser)
+npm run sandbox:verify:wallet   # PayPal wallet vault (browser approval)
 ```
 
-This drives the real code path once: it starts a **vault enrollment** (you approve
-saving a payment method in the browser with your Sandbox *personal* account),
-then proposes a tiny purchase, runs the deterministic authorization engine, and —
-only if the engine returns `ALLOW` — creates and captures a real Sandbox payment,
-verifies the receipt, and counts it exactly once in the spending ledger. It
-prints the provider capture id and the ledger total. Credentials and the vault
-token are never printed. The script is Sandbox-only and uses an in-memory vault
-for this one-shot check; the app stores vault tokens durably in PostgreSQL.
+Either mode drives the real code path once: it enrolls a **vault**, proposes a
+tiny purchase, runs the deterministic authorization engine, and — only if the
+engine returns `ALLOW` — creates and captures a real Sandbox payment, verifies
+the receipt, and counts it exactly once in the spending ledger. It prints the
+provider capture id and the ledger total. Credentials and the vault token are
+never printed. The script is Sandbox-only and uses an in-memory vault for this
+one-shot check; the app stores vault tokens durably in PostgreSQL.
+
+- **Default (card):** enrolls PayPal's standard Sandbox **test card** server-side.
+  PayPal settles the capture immediately, so this is the green end-to-end check.
+- **`--wallet`:** you approve saving a PayPal wallet in the browser with your
+  Sandbox *personal* (buyer) account. In Sandbox, PayPal often holds the resulting
+  capture as `PENDING_REVIEW`; the runner reports **`PENDING`** and counts
+  **nothing**, which is the correct behavior — a capture is only counted once it
+  has actually settled. (Reconciliation re-reads the capture and counts it once it
+  settles.)
 
 ## Project layout
 
@@ -115,10 +124,11 @@ src/
       ledger.test.ts
     execution/         # authorizer-gated payment execution
       types.ts         # PaymentGateway port + payment vocabulary
-      execute.ts       # re-check -> pay -> verify -> record (exactly once)
+      execute.ts       # re-check -> pay -> verify -> record (exactly once);
+                       # pending captures + reconciliation
       execute.test.ts
     payments/          # saved (vaulted) payment methods
-      types.ts         # SavedPaymentMethod vocabulary
+      types.ts         # SavedPaymentMethod vocabulary (sourceType: paypal/card)
       store.ts         # storage interface + in-memory implementation
   infra/
     persistence/       # durable storage (Drizzle ORM + PostgreSQL/Supabase)
@@ -131,9 +141,10 @@ src/
       persistence.test.ts
     paypal/            # PayPal Sandbox adapter (server-only)
       config.ts        # SDK client + env config (refuses production)
-      ports.ts         # narrow SDK ports (orders, vault)
-      gateway.ts       # PaymentGateway implementation (create + capture)
-      vault.ts         # one-time vault enrollment
+      ports.ts         # narrow SDK ports (orders, payments, vault)
+      gateway.ts       # PaymentGateway implementation (create + capture,
+                       # card/wallet source, PENDING + checkCapture)
+      vault.ts         # vault enrollment (PayPal wallet + server-side card)
       money.ts         # minor units <-> PayPal decimal strings
   app/                 # Next.js shell (placeholder only)
 scripts/

@@ -55,18 +55,22 @@ test suite is run with `npm test`.
 
 | # | Requirement (source) | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- |
-| D1 | Sandbox OAuth + Orders API flow (§3.1, §3.2) | `infra/paypal/config.ts` (SDK client), `infra/paypal/gateway.ts` (create + capture), `infra/paypal/ports.ts` | `gateway.test.ts` (fake port); live run via `scripts/sandbox-verify.ts` | Partial (adapter implemented; `npm run sandbox:verify` ready; real Sandbox run pending credentials) |
-| D2 | No payment execution for denied requests (§11.3) | `core/execution/execute.ts` (re-check gate before any provider call; agent never gets `pay_order`) | `execute.test.ts` | Done (execution core; live adapter pending) |
-| D3 | Capture verification & status persistence (§11.3) | `core/execution/execute.ts` (receipt amount/currency verified; capture recorded via ledger) + `infra/paypal/gateway.ts` extracts the provider receipt | `execute.test.ts`, `gateway.test.ts` | Done (execution core; live adapter pending) |
-| D4 | Failure/timeout handling without duplicate payment (§10, §11.3) | `core/execution/execute.ts` (FAILED records nothing; idempotent by provider capture id) + `gateway.ts` (idempotent `paypalRequestId`; provider errors fail safe) | `execute.test.ts`, `gateway.test.ts` | Partial (retry/timeout semantics against live provider pending) |
-| D5 | Secrets server-side; never in browser/logs/commits (§6.2, §15) | `infra/paypal/config.ts` refuses non-Sandbox; env read by app layer only; vault token stored server-side; `.gitignore` | `gateway.test.ts`, `vault.test.ts` | Partial (live check pending) |
+| D1 | Sandbox OAuth + Orders API flow (§3.1, §3.2) | `infra/paypal/config.ts` (SDK client), `infra/paypal/gateway.ts` (create + capture), `infra/paypal/ports.ts` | `gateway.test.ts` (fake port); live run via `scripts/sandbox-verify.ts` | Done (live Sandbox PASS — card vault, capture `4GR46789K0392653X`) |
+| D2 | No payment execution for denied requests (§11.3) | `core/execution/execute.ts` (re-check gate before any provider call; agent never gets `pay_order`) | `execute.test.ts` | Done (execution core; live adapter wired) |
+| D3 | Capture verification & status persistence (§11.3) | `core/execution/execute.ts` (receipt amount/currency verified; capture recorded via ledger) + `infra/paypal/gateway.ts` extracts the provider receipt | `execute.test.ts`, `gateway.test.ts` | Done (live card capture verified & counted once) |
+| D4 | Failure/timeout handling without duplicate payment (§10, §11.3) | `core/execution/execute.ts` (FAILED/PENDING record nothing; idempotent by provider capture id) + `gateway.ts` (idempotent `paypalRequestId`; duplicate capture recovered; provider errors fail safe) | `execute.test.ts`, `gateway.test.ts` | Partial (duplicate capture handled live; explicit retry/timeout policy still to be exercised against the live provider) |
+| D5 | Secrets server-side; never in browser/logs/commits (§6.2, §15) | `infra/paypal/config.ts` refuses non-Sandbox; env read by app layer only; vault token stored server-side; `.gitignore` | `gateway.test.ts`, `vault.test.ts`; live run printed no secrets | Done |
 | D6 | Integration path chosen (Orders API vs MCP vs Agent Toolkit) (§6.4) | Chosen: **Agent Toolkit (TypeScript) + Vercel AI SDK** (`OPEN-DECISIONS.md`); execution via the underlying server SDK | — | Done (decision; agent wiring pending) |
-| D7 | Allow the agent to pay without a human present (§7, §8) | `infra/paypal/vault.ts` (setup token → approval URL → payment token) | `vault.test.ts`; live run via `scripts/sandbox-verify.ts` | Partial (implemented & unit-tested; `npm run sandbox:verify` ready; real Sandbox run pending credentials) |
-| D8 | Vaulted payment method stored durably, server-side only (§2.8, §9) | `core/payments/*`, `infra/persistence/paymentMethodStore.ts` (`DrizzlePaymentMethodStore`), `saved_payment_methods` table (UNIQUE provider token) | `persistence.test.ts` | Done |
+| D7 | Allow the agent to pay without a human present (§7, §8) | `infra/paypal/vault.ts` (setup token → approval URL → payment token; card enrollment server-side) | `vault.test.ts`; live run via `scripts/sandbox-verify.ts` | Done (live vault enrollment + authorizer-gated capture) |
+| D8 | Vaulted payment method stored durably, server-side only (§2.8, §9) | `core/payments/*`, `infra/persistence/paymentMethodStore.ts` (`DrizzlePaymentMethodStore`), `saved_payment_methods` table (UNIQUE provider token, `source_type`) | `persistence.test.ts` | Done |
+| D9 | A pending (unsettled) capture is never counted, and can be reconciled (§4.10, §5.3) | `core/execution/execute.ts` (`PENDING` outcome, `PENDING_SETTLEMENT` status, `CAPTURE_PENDING` event, `reconcilePendingPurchase`); `spending/types.ts` + `validation.ts`; `infra/paypal/gateway.ts` (`checkCapture`) | `execute.test.ts`, `gateway.test.ts`, `spending` validation | Done (unit); live wallet path observed `PENDING_REVIEW` |
+| D10 | Card and PayPal-wallet payment sources both supported (§3.2, §7) | `core/payments/types.ts` (`sourceType`), `infra/paypal/gateway.ts` (`buildCreateOrderBody`), `infra/paypal/vault.ts` (`enrollCardVault`), `saved_payment_methods.source_type` | `gateway.test.ts`, `persistence.test.ts` | Done (card live-verified; wallet live-verified as pending) |
 
 **Live verification:** `scripts/sandbox-verify.ts` (`npm run sandbox:verify`)
-exercises D1, D2, D3, D5, and D7 against PayPal Sandbox in a single run. It is a
-manual, credential-gated step (it requires a browser approval and real Sandbox
+exercises D1, D2, D3, D5, D7, D9, and D10 against PayPal Sandbox in a single run.
+By default it enrolls a server-side Sandbox test **card** (no browser step); the
+`--wallet` flag (`npm run sandbox:verify:wallet`) uses a PayPal wallet with
+browser approval. It is a manual, credential-gated step (it needs real Sandbox
 credentials), so it is not part of `npm test`.
 
 - **Observed (first live attempt):** the setup-token call returned HTTP 403
@@ -89,6 +93,19 @@ credentials), so it is not part of `npm test`.
   capture instead of reporting a false failure. PayPal is treated as the source
   of truth, so spending is counted from the provider's verified capture. Re-run
   pending.
+- **Observed (third live run + decision, PASS on the card path):** the re-run
+  returned an order of `COMPLETED` with an **unsettled** capture (`PENDING`,
+  `statusDetails.reason = PENDING_REVIEW`) for the **PayPal-wallet** vault. A
+  contrast run with a **card** vault captured `COMPLETED` immediately, and the
+  wallet capture stayed pending across repeated polls — so this is PayPal risk
+  review for a wallet-vault, merchant-initiated charge in Sandbox, not a code
+  defect. The owner approved **supporting both sources**, using a **card** for
+  the live green demo, and treating `PENDING` as a real, non-counted state.
+  **Result — `npm run sandbox:verify` (card):** decision `ALLOW`
+  (`WITHIN_LIMITS`); execution `CAPTURED`; provider capture id
+  `4GR46789K0392653X`; `100 USD`; record `EXECUTED`; ledger
+  `capturedMinor = 100` (counted exactly once). The `--wallet` path reports
+  `PENDING` and counts nothing, as designed.
 
 ## AI agent
 
@@ -112,10 +129,12 @@ credentials), so it is not part of `npm test`.
 
 - Location: `src/**/*.test.ts`
 - Runner: Vitest (`npm test`)
-- Current: **118 tests passing** — 23 authorization, 19 lifecycle, 19 spending,
-  8 execution, 14 persistence (against a real in-process PostgreSQL engine,
-  including a close-and-reopen durability test), 11 PayPal money conversion,
-  12 PayPal gateway (fake port), 6 PayPal vault enrollment (fake port),
+- Current: **132 tests passing** — 23 authorization, 19 lifecycle, 19 spending,
+  14 execution (including pending-capture handling and reconciliation),
+  15 persistence (against a real in-process PostgreSQL engine, including a
+  close-and-reopen durability test and the card payment-source round-trip),
+  11 PayPal money conversion, 19 PayPal gateway (fake port, including card
+  bodies, `PENDING`, and `checkCapture`), 6 PayPal vault enrollment (fake port),
   6 PayPal error description.
 
 Update this file whenever a requirement's status changes.

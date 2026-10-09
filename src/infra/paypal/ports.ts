@@ -7,6 +7,7 @@
  */
 
 import type {
+  CapturedPayment,
   Order,
   OrderRequest,
   PaymentTokenRequest,
@@ -41,4 +42,12 @@ export interface PayPalVaultPort {
     body: PaymentTokenRequest;
     paypalRequestId?: string;
   }): Promise<PaymentTokenResponse>;
+}
+
+export interface PayPalPaymentsPort {
+  /**
+   * Read a capture by its provider id. READ-ONLY. Used to reconcile a capture
+   * the provider previously reported as `PENDING`.
+   */
+  getCapture(input: { captureId: string }): Promise<CapturedPayment>;
 }

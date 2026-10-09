@@ -15,6 +15,7 @@ import type {
   RequestStatus,
 } from "../../core/purchases";
 import type {
+  PaymentSourceType,
   SavedPaymentMethod,
   SavedPaymentMethodStatus,
 } from "../../core/payments";
@@ -43,6 +44,7 @@ const REQUEST_STATUSES: readonly RequestStatus[] = [
   "PENDING_APPROVAL",
   "APPROVED",
   "REJECTED",
+  "PENDING_SETTLEMENT",
   "EXECUTED",
 ];
 
@@ -212,6 +214,8 @@ const PAYMENT_METHOD_STATUSES: readonly SavedPaymentMethodStatus[] = [
   "REVOKED",
 ];
 
+const PAYMENT_SOURCE_TYPES: readonly PaymentSourceType[] = ["paypal", "card"];
+
 export function toSavedPaymentMethodRow(
   method: SavedPaymentMethod,
 ): typeof savedPaymentMethods.$inferInsert {
@@ -219,6 +223,7 @@ export function toSavedPaymentMethodRow(
     id: method.id,
     ownerId: method.ownerId,
     provider: method.provider,
+    sourceType: method.sourceType,
     providerTokenId: method.providerTokenId,
     providerCustomerId: method.providerCustomerId ?? null,
     payerEmail: method.payerEmail ?? null,
@@ -233,6 +238,7 @@ export function toSavedPaymentMethod(row: PaymentMethodRow): SavedPaymentMethod 
     id: row.id,
     ownerId: row.ownerId,
     provider: row.provider,
+    sourceType: assertOneOf(row.sourceType, PAYMENT_SOURCE_TYPES, "payment source type"),
     providerTokenId: row.providerTokenId,
     ...(row.providerCustomerId ? { providerCustomerId: row.providerCustomerId } : {}),
     ...(row.payerEmail ? { payerEmail: row.payerEmail } : {}),

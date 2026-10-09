@@ -22,6 +22,9 @@ import type { DecisionResult, PurchaseRequest } from "../authorization";
  * - `PENDING_APPROVAL`  engine asked for human approval; awaiting a decision.
  * - `APPROVED`          a human approved it; may proceed to execution.
  * - `REJECTED`          a human rejected it. Final.
+ * - `PENDING_SETTLEMENT` the provider initiated the capture but has not settled
+ *                       it yet; nothing is counted until it settles (see
+ *                       `reconcilePendingPurchase`). Not final.
  * - `EXECUTED`          payment was captured and verified with the provider.
  *                       Final.
  */
@@ -31,6 +34,7 @@ export type RequestStatus =
   | "PENDING_APPROVAL"
   | "APPROVED"
   | "REJECTED"
+  | "PENDING_SETTLEMENT"
   | "EXECUTED";
 
 /** When and by whom a request was approved. */

@@ -23,7 +23,7 @@
  *
  * Informational kinds record lifecycle without affecting any total:
  *   PROPOSED, AUTHORIZED, PENDING_APPROVAL, APPROVED, REJECTED, DENIED,
- *   SUBMITTED, CAPTURE_FAILED, CANCELLED.
+ *   SUBMITTED, CAPTURE_PENDING, CAPTURE_FAILED, CANCELLED.
  *
  * Money-affecting kinds:
  *   CAPTURE_VERIFIED -> counts toward completed spending (exactly once).
@@ -41,6 +41,7 @@ export type SpendingEventKind =
   | "RESERVED"
   | "RELEASED"
   | "CAPTURE_VERIFIED"
+  | "CAPTURE_PENDING"
   | "CAPTURE_FAILED"
   | "CANCELLED";
 
@@ -56,6 +57,7 @@ export const SPENDING_EVENT_KINDS: readonly SpendingEventKind[] = [
   "RESERVED",
   "RELEASED",
   "CAPTURE_VERIFIED",
+  "CAPTURE_PENDING",
   "CAPTURE_FAILED",
   "CANCELLED",
 ];

@@ -12,6 +12,14 @@
 
 export type SavedPaymentMethodStatus = "ACTIVE" | "REVOKED";
 
+/**
+ * The kind of provider payment source a vault token represents.
+ *
+ * The gateway must send the vault token in the matching `payment_source` object
+ * (`paypal` vs `card`); PayPal rejects a token sent against the wrong source.
+ */
+export type PaymentSourceType = "paypal" | "card";
+
 export interface SavedPaymentMethod {
   /** Our id. */
   id: string;
@@ -19,6 +27,8 @@ export interface SavedPaymentMethod {
   ownerId: string;
   /** Provider name, e.g. "paypal". */
   provider: string;
+  /** Which provider payment source this token is for (wallet vs card). */
+  sourceType: PaymentSourceType;
   /** The provider's vault / payment-token id (sensitive). */
   providerTokenId: string;
   /** The provider's customer id, when the provider supplies one. */

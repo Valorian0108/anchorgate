@@ -30,17 +30,34 @@ export interface ExecutionCapture {
   capturedAt: string;
 }
 
+/** A capture the provider initiated but has not settled yet. Not counted. */
+export interface PendingCapture {
+  providerCaptureId: string;
+  providerOrderId?: string;
+  amountMinor: number;
+  currency: string;
+  createdAt: string;
+  reason: string;
+}
+
 /**
  * The result of an execution attempt.
  *
  * - `CAPTURED` the payment was captured, verified, and counted.
+ * - `PENDING`  the provider initiated the capture but has not settled it; NOT
+ *              counted (see `reconcilePendingPurchase`).
  * - `BLOCKED`  the pre-execution gate refused it (hard constraint or new
  *              approval requirement); the provider was never called.
  * - `FAILED`   the provider declined/errored; nothing was counted.
  * - `MISMATCH` the provider's receipt did not match what was authorized; nothing
  *              was counted (fail safe).
  */
-export type ExecutionStatus = "CAPTURED" | "BLOCKED" | "FAILED" | "MISMATCH";
+export type ExecutionStatus =
+  | "CAPTURED"
+  | "PENDING"
+  | "BLOCKED"
+  | "FAILED"
+  | "MISMATCH";
 
 export interface ExecutionOutcome {
   status: ExecutionStatus;
@@ -48,6 +65,8 @@ export interface ExecutionOutcome {
   record: PurchaseRecord;
   reason: string;
   capture?: ExecutionCapture;
+  /** Present when `status` is `PENDING`; the unsettled capture to reconcile. */
+  pending?: PendingCapture;
 }
 
 export interface ExecuteAuthorizedPurchaseArgs {
@@ -124,6 +143,39 @@ export async function executeAuthorizedPurchase(
     };
   }
 
+  // 4b. The provider initiated the capture but has not settled it. Record it for
+  //     audit and reconciliation, but NEVER count it: a pending capture can still
+  //     fail, and no money has completed yet.
+  if (outcome.status === "PENDING") {
+    await ledger.record({
+      id: `capture-pending:${outcome.providerCaptureId}`,
+      requestId: request.id,
+      kind: "CAPTURE_PENDING",
+      amountMinor: outcome.amountMinor,
+      currency: outcome.currency,
+      occurredAt: outcome.createdAt,
+      providerRef: outcome.providerCaptureId,
+      note: outcome.reason,
+    });
+    return {
+      status: "PENDING",
+      record: { ...gate.record, status: "PENDING_SETTLEMENT" },
+      reason:
+        `Payment initiated but not yet settled (${outcome.reason}). ` +
+        `Nothing is counted until the provider settles it.`,
+      pending: {
+        providerCaptureId: outcome.providerCaptureId,
+        ...(outcome.providerOrderId
+          ? { providerOrderId: outcome.providerOrderId }
+          : {}),
+        amountMinor: outcome.amountMinor,
+        currency: outcome.currency,
+        createdAt: outcome.createdAt,
+        reason: outcome.reason,
+      },
+    };
+  }
+
   // 5. Record the verified capture (idempotent by provider capture id).
   await ledger.record({
     id: captureEventId(outcome.providerCaptureId),
@@ -139,6 +191,117 @@ export async function executeAuthorizedPurchase(
     status: "CAPTURED",
     record: { ...gate.record, status: "EXECUTED" },
     reason: "Payment captured and verified.",
+    capture: {
+      providerCaptureId: outcome.providerCaptureId,
+      amountMinor: outcome.amountMinor,
+      currency: outcome.currency,
+      capturedAt: outcome.capturedAt,
+    },
+  };
+}
+
+export interface ReconcilePendingPurchaseArgs {
+  /** The record whose payment is awaiting settlement (`PENDING_SETTLEMENT`). */
+  record: PurchaseRecord;
+  gateway: PaymentGateway;
+  ledger: SpendingLedger;
+  now: Date;
+}
+
+/**
+ * Reconcile a purchase whose provider capture was left `PENDING`.
+ *
+ * This NEVER creates a payment. It only asks the provider for the capture's
+ * current state:
+ *   - settled  -> verify amount/currency, count it exactly once (idempotent),
+ *                 and mark the record `EXECUTED`.
+ *   - still open -> report `PENDING`; nothing counted.
+ *   - declined/reversed -> report `FAILED`; nothing counted.
+ *
+ * The capture id comes from the `CAPTURE_PENDING` audit event recorded at
+ * execution time, so reconciliation is bound to the exact provider capture.
+ */
+export async function reconcilePendingPurchase(
+  args: ReconcilePendingPurchaseArgs,
+): Promise<ExecutionOutcome> {
+  const { record, gateway, ledger, now } = args;
+  const request = record.request;
+
+  const events = await ledger.eventsForRequest(record.id);
+  const pendingEvent = [...events]
+    .reverse()
+    .find((event) => event.kind === "CAPTURE_PENDING");
+  const providerCaptureId = pendingEvent?.providerRef;
+  if (!providerCaptureId) {
+    return {
+      status: "FAILED",
+      record,
+      reason: "No pending capture is recorded for this request; nothing to reconcile.",
+    };
+  }
+
+  const outcome = await gateway.checkCapture(providerCaptureId);
+
+  if (outcome.status === "FAILED") {
+    await ledger.record({
+      id: `capture-failed:${record.id}`,
+      requestId: request.id,
+      kind: "CAPTURE_FAILED",
+      amountMinor: request.amountMinor,
+      currency: request.currency,
+      occurredAt: now.toISOString(),
+      note: outcome.reason,
+    });
+    return { status: "FAILED", record, reason: outcome.reason };
+  }
+
+  if (outcome.status === "PENDING") {
+    return {
+      status: "PENDING",
+      record,
+      reason: `Payment is still awaiting settlement (${outcome.reason}).`,
+      pending: {
+        providerCaptureId: outcome.providerCaptureId,
+        ...(outcome.providerOrderId
+          ? { providerOrderId: outcome.providerOrderId }
+          : {}),
+        amountMinor: outcome.amountMinor,
+        currency: outcome.currency,
+        createdAt: outcome.createdAt,
+        reason: outcome.reason,
+      },
+    };
+  }
+
+  if (
+    outcome.amountMinor !== request.amountMinor ||
+    outcome.currency !== request.currency
+  ) {
+    return {
+      status: "MISMATCH",
+      record,
+      reason:
+        `Settled capture did not match the authorized amount/currency ` +
+        `(authorized ${request.amountMinor} ${request.currency}; ` +
+        `settled ${outcome.amountMinor} ${outcome.currency}).`,
+    };
+  }
+
+  // Idempotent by provider capture id, so calling this more than once counts once.
+  await ledger.record({
+    id: captureEventId(outcome.providerCaptureId),
+    requestId: request.id,
+    kind: "CAPTURE_VERIFIED",
+    amountMinor: outcome.amountMinor,
+    currency: outcome.currency,
+    occurredAt: outcome.capturedAt,
+    providerRef: outcome.providerCaptureId,
+  });
+
+  return {
+    status: "CAPTURED",
+    record: { ...record, status: "EXECUTED" },
+    reason: "Pending payment settled and verified.",
     capture: {
       providerCaptureId: outcome.providerCaptureId,
       amountMinor: outcome.amountMinor,

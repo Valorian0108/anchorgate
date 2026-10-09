@@ -4,11 +4,19 @@
  * This is the one command that proves the real adapter works against PayPal,
  * end to end, using the SAME code paths the application uses:
  *
- *   1. Enroll (vault) a payment method once, by opening a PayPal-hosted URL.
+ *   1. Enroll (vault) a payment source once.
  *   2. Propose a small purchase and run the deterministic authorization engine.
  *   3. Execute the authorized purchase through the PayPal gateway (server-side
  *      create + capture, charged against the vault).
  *   4. Verify the capture and count it exactly once in the spending ledger.
+ *
+ * Two sources are supported:
+ *   - CARD  (default): enrolled server-side with PayPal's standard test card, no
+ *     browser step. PayPal settles a card-vault charge immediately, so this is
+ *     the green live path.
+ *   - WALLET (`--wallet`): you approve a PayPal wallet in the browser. In
+ *     Sandbox PayPal holds the resulting capture as `PENDING_REVIEW`, so this
+ *     path demonstrates the correct "initiated but not counted" handling.
  *
  * SAFETY / SECRETS:
  *   - Sandbox only. The config layer refuses anything that is not `sandbox`.
@@ -16,7 +24,8 @@
  *     They are never printed, logged, or committed.
  *   - The vault (payment-token) id is a secret handle and is never printed.
  *
- * Run it with:  npm run sandbox:verify
+ * Run it with:  npm run sandbox:verify            (card, no browser)
+ *               npm run sandbox:verify:wallet     (PayPal wallet, browser)
  */
 
 import { existsSync, readdirSync } from "node:fs";
@@ -24,7 +33,10 @@ import { createInterface } from "node:readline/promises";
 import process from "node:process";
 
 import { proposePurchase } from "../src/core/purchases";
-import { executeAuthorizedPurchase } from "../src/core/execution";
+import {
+  executeAuthorizedPurchase,
+  reconcilePendingPurchase,
+} from "../src/core/execution";
 import { InMemorySpendingStore, SpendingLedger } from "../src/core/spending";
 import {
   DEFAULT_OWNER_ID,
@@ -35,9 +47,11 @@ import {
   completeVaultEnrollment,
   createPayPalClient,
   describePayPalError,
+  enrollCardVault,
   PayPalPaymentGateway,
   readPayPalConfigFromEnv,
   SdkOrdersPort,
+  SdkPaymentsPort,
   SdkVaultPort,
   startVaultEnrollment,
 } from "../src/infra/paypal";
@@ -48,6 +62,20 @@ const OWNER_ID = DEFAULT_OWNER_ID;
 /** A deliberately tiny amount so the Sandbox charge is negligible and reversible. */
 const AMOUNT_MINOR = 100; // 1.00 USD
 const CURRENCY = "USD";
+
+/** PayPal's standard Sandbox test card (Visa, always approves, no 3DS). */
+const SANDBOX_TEST_CARD = {
+  number: "4111111111111111",
+  expiry: "2027-02",
+  name: "Sandbox Tester",
+  billingAddress: {
+    addressLine1: "2211 N First Street",
+    adminArea1: "CA",
+    adminArea2: "San Jose",
+    postalCode: "95131",
+    countryCode: "US",
+  },
+};
 
 function line(): void {
   console.log("-".repeat(64));
@@ -114,18 +142,20 @@ function printSetupInstructions(): void {
   console.log('       PAYPAL_CLIENT_ID="<your sandbox client id>"');
   console.log('       PAYPAL_CLIENT_SECRET="<your sandbox secret>"');
   console.log();
-  console.log("You will also need the Sandbox *personal* (buyer) account to");
-  console.log("approve the vault enrollment in the browser:");
+  console.log("The `--wallet` mode also needs the Sandbox *personal* (buyer) account to");
+  console.log("approve enrollment in the browser:");
   console.log("  Dashboard -> Accounts -> Sandbox -> Personal -> the test buyer.");
   console.log();
 }
 
 async function main(): Promise<void> {
+  const useWallet = process.argv.includes("--wallet");
   const envWarning = loadLocalEnv();
 
   console.log();
   console.log("PayPal Sandbox verification  (Sandbox only - no real money)");
   console.log("This runs the real code path: propose -> authorize -> pay -> count.");
+  console.log(`Payment source: ${useWallet ? "PayPal wallet (browser)" : "card (server-side)"}`);
   if (envWarning) {
     console.log(`\nNote: ${envWarning}`);
   }
@@ -144,42 +174,54 @@ async function main(): Promise<void> {
 
   const client = createPayPalClient(config);
   const orders = new SdkOrdersPort(client);
+  const payments = new SdkPaymentsPort(client);
   const vault = new SdkVaultPort(client);
 
   // ---------------------------------------------------------------------
-  // Step 1: vault enrollment (once). The user approves in the browser.
+  // Step 1: vault enrollment (once).
   // ---------------------------------------------------------------------
   step("Step 1 of 3 - Save a payment method (vault enrollment)");
 
-  const enrollment = await startVaultEnrollment(vault, {
-    returnUrl: "https://example.com/paypal/return",
-    cancelUrl: "https://example.com/paypal/cancel",
-    merchantCustomerId: OWNER_ID,
-  });
-
-  console.log("Open this URL in your browser and approve saving the payment method:");
-  console.log();
-  console.log(`  ${enrollment.approveUrl}`);
-  console.log();
-  console.log("Sign in with your Sandbox *personal* (buyer) account, not a real account.");
-  console.log("After PayPal confirms, come back here.");
-
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  const paymentMethods = new InMemoryPaymentMethodStore();
+  const enrollmentRl = createInterface({ input: process.stdin, output: process.stdout });
   try {
-    await rl.question("\nPress Enter once you have approved in the browser... ");
+    let method: SavedPaymentMethod;
+    if (useWallet) {
+      const enrollment = await startVaultEnrollment(vault, {
+        returnUrl: "https://example.com/paypal/return",
+        cancelUrl: "https://example.com/paypal/cancel",
+        merchantCustomerId: OWNER_ID,
+      });
 
-    const method: SavedPaymentMethod = await completeVaultEnrollment(vault, {
-      setupTokenId: enrollment.setupTokenId,
-      ownerId: OWNER_ID,
-    });
+      console.log("Open this URL in your browser and approve saving the payment method:");
+      console.log();
+      console.log(`  ${enrollment.approveUrl}`);
+      console.log();
+      console.log("Sign in with your Sandbox *personal* (buyer) account, not a real account.");
+      console.log("After PayPal confirms, come back here.");
+
+      await enrollmentRl.question("\nPress Enter once you have approved in the browser... ");
+
+      method = await completeVaultEnrollment(vault, {
+        setupTokenId: enrollment.setupTokenId,
+        ownerId: OWNER_ID,
+      });
+    } else {
+      console.log("Enrolling a Sandbox test CARD in PayPal's vault (server-side).");
+      console.log("No browser approval is required for this path.");
+      method = await enrollCardVault(vault, {
+        ownerId: OWNER_ID,
+        card: SANDBOX_TEST_CARD,
+      });
+    }
 
     console.log();
     console.log("Vault enrollment complete.");
-    console.log(`  payer:  ${method.payerEmail ?? "(not provided by PayPal)"}`);
-    console.log(`  status: ${method.status}`);
+    console.log(`  source type: ${method.sourceType}`);
+    console.log(`  payer:       ${method.payerEmail ?? "(not provided by PayPal)"}`);
+    console.log(`  status:      ${method.status}`);
     console.log(`  vault token: hidden (length ${method.providerTokenId.length})`);
 
-    const paymentMethods = new InMemoryPaymentMethodStore();
     await paymentMethods.save(method);
 
     // -------------------------------------------------------------------
@@ -236,6 +278,7 @@ async function main(): Promise<void> {
     const ledger = new SpendingLedger(new InMemorySpendingStore());
     const gateway = new PayPalPaymentGateway({
       orders,
+      payments,
       paymentMethods,
       ownerId: OWNER_ID,
     });
@@ -243,7 +286,7 @@ async function main(): Promise<void> {
     console.log("Calling PayPal Sandbox. This creates a real Sandbox order and");
     console.log(`captures ${AMOUNT_MINOR} minor units (${CURRENCY}).`);
 
-    const outcome = await executeAuthorizedPurchase({
+    let outcome = await executeAuthorizedPurchase({
       record: proposal.record,
       rules,
       state: spentState,
@@ -252,9 +295,24 @@ async function main(): Promise<void> {
       ledger,
     });
 
+    // If PayPal initiated the capture but has not settled it, reconcile once.
+    if (outcome.status === "PENDING") {
+      console.log();
+      console.log("PayPal has initiated the capture but not settled it yet.");
+      console.log("Reconciling once against the provider (read-only)...");
+      outcome = await reconcilePendingPurchase({
+        record: outcome.record,
+        gateway,
+        ledger,
+        now: new Date(),
+      });
+    }
+
     console.log();
     console.log(`execution status: ${outcome.status}`);
     console.log(`reason:           ${outcome.reason}`);
+
+    const summary = await ledger.summary();
 
     if (outcome.status === "CAPTURED" && outcome.capture) {
       console.log();
@@ -264,7 +322,6 @@ async function main(): Promise<void> {
       console.log(`  captured at:         ${outcome.capture.capturedAt}`);
       console.log(`  record status:       ${outcome.record.status}`);
 
-      const summary = await ledger.summary();
       console.log();
       console.log("LEDGER (must equal the capture, counted exactly once)");
       console.log(`  capturedMinor: ${summary.capturedMinor}`);
@@ -274,6 +331,19 @@ async function main(): Promise<void> {
       line();
       console.log("RESULT: PASS - real Sandbox payment authorized, captured, and counted once.");
       line();
+    } else if (outcome.status === "PENDING") {
+      console.log();
+      console.log("LEDGER (nothing counted while the provider holds the capture)");
+      console.log(`  capturedMinor: ${summary.capturedMinor}`);
+      console.log(`  reservedMinor: ${summary.reservedMinor}`);
+      console.log(`  committedMinor: ${summary.committedMinor}`);
+
+      line();
+      console.log("RESULT: PENDING - provider holds the capture; correctly NOT counted.");
+      line();
+      console.log("This is expected in Sandbox for a PayPal-wallet vault (PENDING_REVIEW).");
+      console.log("Re-running later (or a reconciliation job) will count it once it settles.");
+      console.log("For an immediately-settled live pass, run `npm run sandbox:verify` (card).");
     } else {
       line();
       console.log(`RESULT: ${outcome.status} - no verified capture was counted.`);
@@ -284,7 +354,7 @@ async function main(): Promise<void> {
       process.exitCode = 1;
     }
   } finally {
-    rl.close();
+    enrollmentRl.close();
   }
 }
 

@@ -14,10 +14,15 @@ import {
   Environment,
   type OrderRequest,
   OrdersController,
+  PaymentsController,
   VaultController,
 } from "@paypal/paypal-server-sdk";
 
-import type { PayPalOrdersPort, PayPalVaultPort } from "./ports";
+import type {
+  PayPalOrdersPort,
+  PayPalPaymentsPort,
+  PayPalVaultPort,
+} from "./ports";
 
 export interface PayPalConfig {
   environment: "sandbox";
@@ -84,6 +89,20 @@ export class SdkOrdersPort implements PayPalOrdersPort {
     id: string;
   }): Promise<import("@paypal/paypal-server-sdk").Order> {
     const response = await this.orders.getOrder(input);
+    return response.result;
+  }
+}
+
+/** Wrap an SDK client in the narrow payments port (capture reads). */
+export class SdkPaymentsPort implements PayPalPaymentsPort {
+  private readonly payments: PaymentsController;
+  constructor(client: Client) {
+    this.payments = new PaymentsController(client);
+  }
+  async getCapture(input: {
+    captureId: string;
+  }): Promise<import("@paypal/paypal-server-sdk").CapturedPayment> {
+    const response = await this.payments.getCapturedPayment(input);
     return response.result;
   }
 }

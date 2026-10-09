@@ -35,8 +35,9 @@ function isEventKind(value: unknown): value is SpendingEventKind {
 /**
  * Parse an untrusted value into a `SpendingEvent`.
  *
- * A `CAPTURE_VERIFIED` event MUST carry a `providerRef`, so that completed
- * spending can always be traced to a provider-verifiable capture.
+ * A `CAPTURE_VERIFIED` or `CAPTURE_PENDING` event MUST carry a `providerRef`, so
+ * that a capture can always be traced to a provider-verifiable transaction
+ * (and a pending capture can later be reconciled by its provider id).
  */
 export function parseSpendingEvent(input: unknown): ParseResult<SpendingEvent> {
   if (!isRecord(input)) {
@@ -55,10 +56,13 @@ export function parseSpendingEvent(input: unknown): ParseResult<SpendingEvent> {
   if (!isIsoTimestamp(occurredAt)) {
     return { ok: false, reason: "occurredAt must be an ISO 8601 timestamp." };
   }
-  if (kind === "CAPTURE_VERIFIED" && !isNonEmptyString(providerRef)) {
+  if (
+    (kind === "CAPTURE_VERIFIED" || kind === "CAPTURE_PENDING") &&
+    !isNonEmptyString(providerRef)
+  ) {
     return {
       ok: false,
-      reason: "CAPTURE_VERIFIED requires a providerRef (the verified provider capture id).",
+      reason: `${kind} requires a providerRef (the provider capture id).`,
     };
   }
   if (providerRef !== undefined && !isNonEmptyString(providerRef)) {

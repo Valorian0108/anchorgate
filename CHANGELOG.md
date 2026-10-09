@@ -46,12 +46,28 @@ project aims to follow [Semantic Versioning](https://semver.org/).
     strings, including zero- and three-decimal currencies.
   - Configuration refuses `production`, so a stray environment variable cannot
     move real money.
+  - **Card or PayPal-wallet payment sources.** A saved method records its
+    `sourceType` (`"paypal"` or `"card"`), and the gateway charges the matching
+    `payment_source`. A card can be enrolled **server-side** (Sandbox test card)
+    with no browser step, which is the path used for the live green check; the
+    PayPal-wallet path keeps the browser approval.
+  - **Pending captures are handled honestly (not counted, not lost).** A provider
+    capture that is initiated but not settled (`PENDING`) is recorded for audit
+    (`CAPTURE_PENDING`, carrying the provider capture id) and **never counted**. A
+    new request status `PENDING_SETTLEMENT` marks the request, and
+    `reconcilePendingPurchase(...)` re-reads the capture by id (read-only) and
+    counts it **exactly once** when it settles (or records a failure if it
+    declines). This is real Sandbox behavior for vaulted PayPal-wallet payments
+    (`statusDetails.reason = PENDING_REVIEW`).
 - **PayPal Sandbox verification runner** (`scripts/sandbox-verify.ts`,
   `npm run sandbox:verify`). One command that drives the real flow against
-  PayPal Sandbox: vault enrollment (browser approval), propose → deterministic
-  authorization, then authorizer-gated create + capture, receipt verification,
-  and exactly-once ledger counting. Reads credentials only from the local
-  `.env`; never prints secrets or the vault token.
+  PayPal Sandbox: enroll a payment source, propose → deterministic authorization,
+  then authorizer-gated create + capture, receipt verification, and exactly-once
+  ledger counting. `--wallet` (or `npm run sandbox:verify:wallet`) uses a PayPal
+  wallet with browser approval; the default uses a server-side Sandbox test
+  **card**, which settles immediately. When the provider holds a capture as
+  `PENDING`, the runner reconciles once and reports the result. Reads credentials
+  only from the local `.env`; never prints secrets or the vault token.
 - Project scaffold: Next.js + TypeScript, Vitest test runner.
 - Engineering standards (`ENGINEERING.md`), requirements traceability
   (`TRACEABILITY.md`), decision register (`OPEN-DECISIONS.md`).
@@ -71,6 +87,11 @@ project aims to follow [Semantic Versioning](https://semver.org/).
   creation reports `COMPLETED` without a capture, and recovers from a rejected
   duplicate capture by re-reading the order — counting spending only from the
   provider's verified capture.
+- **A `PENDING` capture was reported as a failure.** A vaulted PayPal-wallet
+  capture in Sandbox is initiated but held for review (`PENDING_REVIEW`); the
+  gateway previously classified any non-`COMPLETED` capture as `FAILED`. It is now
+  a distinct `PENDING` outcome, recorded for audit and excluded from spending
+  until the provider settles it.
 
 ### Security
 
