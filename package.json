@@ -13,7 +13,8 @@
     "sandbox:verify": "tsx scripts/sandbox-verify.ts",
     "sandbox:verify:wallet": "tsx scripts/sandbox-verify.ts --wallet",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "db:check": "tsx scripts/db-check.ts"
   },
   "dependencies": {
     "@paypal/paypal-server-sdk": "^2.5.0",

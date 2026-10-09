@@ -177,6 +177,13 @@ A proposal, a recommendation, or generated code is **not** a decision.
   needs no database. The running application persists vault tokens durably in
   PostgreSQL (`saved_payment_methods`). This simplification applies only to the
   verification tool.
+- **Supabase connections use the shared pooler.** The Supabase **Direct
+  connection is IPv6-only** and is unreachable from IPv4-only networks, so both
+  `DATABASE_URL` (app) and `DATABASE_URL_DIRECT` (migrations) use the shared
+  **Session pooler** (IPv4, port 5432). Session mode supports prepared statements
+  and session state, so migrations work; the app disables prepared statements for
+  pooling anyway. The transaction pooler (port 6543) remains the eventual choice
+  for a high-traffic serverless deployment.
 
 ------------------------------------------------------------------------
 
@@ -386,3 +393,11 @@ _None recorded yet._
   once. **Observed live PASS (card):** decision `ALLOW`, execution `CAPTURED`,
   capture id `4GR46789K0392653X`, ledger `capturedMinor = 100` (counted once).
   Suite now **132 passing**; typecheck clean.
+- **Update (durable storage live-verified).** Wired the project to a Supabase
+  PostgreSQL database. Fix: `drizzle-kit` does not read `.env`, so `db:migrate`
+  now loads it (Node 20.12+, guarded). Finding: the Supabase **Direct connection
+  is IPv6-only** and `ENOTFOUND` on an IPv4-only network, so both connection
+  variables use the shared **Session pooler**. Observed: `npm run db:migrate`
+  applied all migrations, and a new **`npm run db:check`** (`scripts/db-check.ts`)
+  reported all 5 tables present and reachable. Also recorded the common footgun of
+  leaving the literal `[YOUR-PASSWORD]` brackets around the password in `.env`.

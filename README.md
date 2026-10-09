@@ -49,10 +49,15 @@ The tests run against an **in-process PostgreSQL engine**, so `npm test` needs n
 database. To point the app at your Supabase database:
 
 1. Copy `.env.example` to `.env` and fill in `DATABASE_URL` and
-   `DATABASE_URL_DIRECT` from your Supabase project
-   (Project Settings → Database). **Never commit `.env`** — it is gitignored.
+   `DATABASE_URL_DIRECT` from your Supabase project (click **Connect** in the
+   dashboard; choose the **Transaction pooler** for `DATABASE_URL` and the
+   **Session pooler** for `DATABASE_URL_DIRECT`, then replace
+   `[YOUR-PASSWORD]` — including the brackets — with your database password).
+   **Never commit `.env`** — it is gitignored.
 2. Apply the committed migrations: `npm run db:migrate`
    (regenerate them after schema changes with `npm run db:generate`).
+3. Verify the connection and schema: `npm run db:check` — prints the tables and
+   their row counts, and fails if a migration is missing.
 
 ### PayPal Sandbox setup (only needed to run real payments)
 
@@ -149,6 +154,7 @@ src/
   app/                 # Next.js shell (placeholder only)
 scripts/
   sandbox-verify.ts    # one-command live PayPal Sandbox verification (real payments)
+  db-check.ts          # connect to the durable DB and confirm the schema
 ```
 
 ## Authorization decisions

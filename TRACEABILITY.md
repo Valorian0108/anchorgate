@@ -41,7 +41,7 @@ test suite is run with `npm test`.
 
 | # | Requirement (source) | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- |
-| C1 | Durable spending records; no in-memory-only counter (§2.8, §5.4) | `src/infra/persistence/*` (Drizzle + PostgreSQL/Supabase) | `persistence.test.ts` | Done |
+| C1 | Durable spending records; no in-memory-only counter (§2.8, §5.4) | `src/infra/persistence/*` (Drizzle + PostgreSQL/Supabase) | `persistence.test.ts`; live `npm run db:check` | Done (live Supabase: all 5 tables migrated and reachable) |
 | C2 | Track spending against the monthly cap (§2.8) | `spending/ledger.ts` (`capturedMinor`) + engine reads `spentThisMonthMinor` | `spending/ledger.test.ts`, `engine.test.ts` | Partial (live read/write wiring into the running app pending) |
 | C3 | Count spending only after a verified capture (§4.10, §5.3) | `spending/ledger.ts` | `spending/ledger.test.ts` | Done |
 | C4 | Duplicate requests/retries/captures don't double-count (§5.3, §11.2) | `spending/ledger.ts` + DB primary key (`persistence/schema.ts`) | `spending/ledger.test.ts`, `persistence.test.ts` | Done |
@@ -50,6 +50,14 @@ test suite is run with `npm test`.
 | C7 | Monthly period/reset semantics (§5.4) | `spending/period.ts` (`utcMonthPeriod`) | `spending/ledger.test.ts` | Done (UTC calendar month, per owner decision) |
 | C8 | Audit fields recorded (§9) | `purchases/types.ts`, `spending/types.ts`, `infra/persistence/*` | `persistence.test.ts` | Done |
 | C9 | Users can define spending rules; rules are persisted (§2.9, §5.1) | `core/authorization/rulesStore.ts`, `infra/persistence/ruleStore.ts` (`DrizzleSpendingRulesStore`) | `persistence.test.ts` | Done (single global rule set, per owner decision) |
+
+**Live verification:** `npm run db:check` (`scripts/db-check.ts`) connects with
+the application's `DATABASE_URL` and confirms the migrated schema.
+
+- **Observed (Supabase):** `npm run db:migrate` applied all committed migrations,
+  and `npm run db:check` reported all 5 tables present and reachable
+  (`purchase_requests`, `evaluations`, `spending_events`, `spending_rules`,
+  `saved_payment_methods`). Counts start at 0 until the application writes.
 
 ## PayPal integration
 

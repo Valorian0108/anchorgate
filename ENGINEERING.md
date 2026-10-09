@@ -115,7 +115,7 @@ automated + end-to-end tests have been run and reported.
 | Authorization engine | ✅ Implemented & tested |
 | Purchase lifecycle (approval) | ✅ Implemented & tested |
 | Spending accounting (verified captures only) | ✅ Logic implemented & tested; not yet wired into the engine |
-| Durable storage | ✅ Implemented & tested (PostgreSQL / Supabase, Drizzle) |
+| Durable storage | ✅ Implemented & tested (PostgreSQL / Supabase, Drizzle); live-verified against a Supabase project (`db:migrate` + `db:check`) |
 | Payment execution (authorizer-gated) | ✅ Implemented & tested with a fake gateway; live flow verified end-to-end |
 | PayPal integration | ✅ Live Sandbox **PASS** (card vault: `ALLOW` → `CAPTURED` → counted once; capture `4GR46789K0392653X`). Wallet vaults are correctly reported as `PENDING` (provider holds for review) and not counted |
 | Pending capture handling & reconciliation | ✅ Implemented & tested; wallet path observed `PENDING_REVIEW` live |

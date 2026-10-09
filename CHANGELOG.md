@@ -68,6 +68,10 @@ project aims to follow [Semantic Versioning](https://semver.org/).
   **card**, which settles immediately. When the provider holds a capture as
   `PENDING`, the runner reconciles once and reports the result. Reads credentials
   only from the local `.env`; never prints secrets or the vault token.
+- **Database health check** (`scripts/db-check.ts`, `npm run db:check`). Confirms
+  the durable database is reachable and migrated: prints the tables and their row
+  counts, and exits non-zero if a required table is missing. Never prints the
+  connection string or any credential.
 - Project scaffold: Next.js + TypeScript, Vitest test runner.
 - Engineering standards (`ENGINEERING.md`), requirements traceability
   (`TRACEABILITY.md`), decision register (`OPEN-DECISIONS.md`).
@@ -92,6 +96,10 @@ project aims to follow [Semantic Versioning](https://semver.org/).
   gateway previously classified any non-`COMPLETED` capture as `FAILED`. It is now
   a distinct `PENDING` outcome, recorded for audit and excluded from spending
   until the provider settles it.
+- **`db:migrate` ignored `.env`.** `drizzle-kit` does not load `.env` on its own,
+  so migrations saw empty credentials even after Supabase was configured. The
+  migration config now loads `.env` itself (Node 20.12+), guarded by a file check
+  so CI can still supply real environment variables.
 
 ### Security
 
