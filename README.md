@@ -14,10 +14,11 @@ allowed.
 
 ## Status
 
-Early development. The **authorization core** (deterministic decision engine) and
-the **purchase lifecycle** (approval handling and revalidation) are implemented
-and tested. Database, spending accounting, PayPal execution, the AI agent, and
-the UI are not built yet. The UI has not been designed or approved.
+Early development. The **authorization core** (deterministic decision engine),
+the **purchase lifecycle** (approval handling and revalidation), and **spending
+accounting** (counts only verified captures, exactly once) are implemented and
+tested. A durable database, PayPal execution, the AI agent, and the UI are not
+built yet. The UI has not been designed or approved.
 
 ## Tech stack
 
@@ -50,6 +51,12 @@ src/
       lifecycle.ts     # propose / approve / reject / revalidate
       store.ts         # storage interface + in-memory implementation
       lifecycle.test.ts
+    spending/          # spending accounting (event log)
+      types.ts         # spending event vocabulary + summary
+      validation.ts    # validates events; capture idempotency key
+      ledger.ts        # totals from verified captures; idempotent writer
+      store.ts         # storage interface + in-memory implementation
+      ledger.test.ts
   app/                 # Next.js shell (placeholder only)
 ```
 

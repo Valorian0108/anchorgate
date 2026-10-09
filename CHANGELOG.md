@@ -15,6 +15,10 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 - **Purchase lifecycle (Phase 3).** Request fingerprints, propose / approve /
   reject flow with re-check against current rules, pre-execution revalidation,
   and a pluggable storage interface with an in-memory implementation.
+- **Spending accounting (Phase 3).** An event-log ledger that counts completed
+  spending only from a verified capture, is idempotent by provider capture id,
+  tracks reservations without counting them as spent, and derives monthly totals
+  from persisted events.
 - Project scaffold: Next.js + TypeScript, Vitest test runner.
 - Engineering standards (`ENGINEERING.md`), requirements traceability
   (`TRACEABILITY.md`), decision register (`OPEN-DECISIONS.md`).

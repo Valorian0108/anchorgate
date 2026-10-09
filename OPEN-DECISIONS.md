@@ -72,6 +72,13 @@ A proposal, a recommendation, or generated code is **not** a decision.
 - **Rules tightening in flight.** If an `AUTHORIZED` request is later found to
   require approval under tightened rules, it is downgraded to
   `PENDING_APPROVAL` rather than executed. (Reversible; flagged for review.)
+- **Capture idempotency is keyed on the provider capture id.** A
+  `CAPTURE_VERIFIED` event's id is derived from the PayPal capture id, so a
+  replayed callback cannot double-count spending even if it arrives with a
+  different envelope id.
+- **The monthly period is caller-supplied.** Spending totals are computed for an
+  explicit `[start, end)` window; the ledger does not assume a timezone or a
+  reset rule, leaving that (open) decision to configuration.
 
 ------------------------------------------------------------------------
 
@@ -187,3 +194,12 @@ _None recorded yet._
   `TRACEABILITY.md` (requirements mapped to code and tests), and `CHANGELOG.md`.
   Recorded that AG Grid and other sponsor tooling are **not** implemented and
   belong to Phase 6 (UI), which is gated on a design discussion.
+- **Update:** Spending accounting implemented (Phase 3). Added an event-log
+  ledger (`src/core/spending/`) that counts completed spending only from a
+  verified capture, is idempotent by provider capture id, tracks reservations
+  without counting them as spent, and derives monthly totals from persisted
+  events over an explicit period. Tests: 57 passing (23 authorization + 19
+  lifecycle + 15 spending); typecheck clean. Reservations are **not** wired into
+  the engine yet — the reservation policy is still open. Refunds/reversals,
+  monthly reset timezone, and the concurrency/reservation policy remain open
+  (see below).
