@@ -114,15 +114,16 @@ automated + end-to-end tests have been run and reported.
 | --- | --- |
 | Authorization engine | ✅ Implemented & tested |
 | Purchase lifecycle (approval) | ✅ Implemented & tested |
-| Spending accounting (verified captures only) | ✅ Logic implemented & tested; the agent's proposal path feeds verified captures into the engine as `spentThisMonthMinor` |
+| Spending accounting (verified captures only) | ✅ Logic implemented & tested; **live read/write wiring complete** — the application service reads verified spend into the engine at approval and execution (`readSpendingState`), and `npm run purchase -- budget` shows it |
 | Durable storage | ✅ Implemented & tested (PostgreSQL / Supabase, Drizzle); live-verified against a Supabase project (`db:migrate` + `db:check`) |
-| Payment execution (authorizer-gated) | ✅ Implemented & tested with a fake gateway; live flow verified end-to-end |
-| PayPal integration | ✅ Live Sandbox **PASS** (card vault: `ALLOW` → `CAPTURED` → counted once; capture `4GR46789K0392653X`). Wallet vaults are correctly reported as `PENDING` (provider holds for review) and not counted |
+| Payment execution (authorizer-gated) | ✅ Implemented & tested with a fake gateway; **live end-to-end flow PASS** (propose → approve → pay → verified capture → counted once) via `npm run purchase` |
+| Purchase operations CLI / end-to-end flow | ✅ `npm run purchase` (`scripts/purchase.ts`) + `src/services/` — budget, approve/reject, pay, reconcile, enroll; live PASS (double-pay blocked, no double-count) |
+| PayPal integration | ✅ Live Sandbox **PASS**. End-to-end capture `00053762B0399214K` (card vault, `1.00 USD`, counted once); earlier adapter capture `4GR46789K0392653X`. Wallet vaults are correctly reported as `PENDING` (provider holds for review) and not counted |
 | Pending capture handling & reconciliation | ✅ Implemented & tested; wallet path observed `PENDING_REVIEW` live |
 | Sandbox verification runner | ✅ Added (`scripts/sandbox-verify.ts`); default card path live-PASS; `--wallet` path reports pending |
 | Saved payment method (vault) storage | ✅ Durable (PostgreSQL), token server-side only; `source_type` (paypal/card) |
 | AI agent | ✅ Implemented & tested — proposal-only; exactly one tool (`propose_purchase`), no payment tool; deterministic engine decides |
 | AI framework / provider | ✅ Vercel AI SDK + `@ai-sdk/openai-compatible`; Experiential Labs (OpenAI-compatible gateway); model id set locally via `AGENT_MODEL` |
 | UI | ⛔ Not built (design not approved) |
-| Automated tests | ✅ 150 passing, including real-Postgres persistence and the agent's structural safety tests |
+| Automated tests | ✅ 161 passing, including real-Postgres persistence, the end-to-end approval/payment service, and the agent's structural safety tests |
 | Typecheck | ✅ Clean |

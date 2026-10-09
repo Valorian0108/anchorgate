@@ -177,6 +177,11 @@ A proposal, a recommendation, or generated code is **not** a decision.
   needs no database. The running application persists vault tokens durably in
   PostgreSQL (`saved_payment_methods`). This simplification applies only to the
   verification tool.
+- **The `npm run purchase` CLI is the interim operator surface (assumption).**
+  Until the UI is designed and approved (Phase 6), reviewing, approving, and
+  paying happen through `scripts/purchase.ts`. It composes the SAME deterministic
+  core, durable stores, and authorizer-gated PayPal path the UI will use; it is a
+  thin surface, not a second code path for money. The UI decision remains open.
 - **Supabase connections use the shared pooler.** The Supabase **Direct
   connection is IPv6-only** and is unreachable from IPv4-only networks, so both
   `DATABASE_URL` (app) and `DATABASE_URL_DIRECT` (migrations) use the shared
@@ -468,3 +473,19 @@ were used).
   (`MONTHLY_CAP_EXCEEDED`); a **$75** request -> **ASK**
   (`PER_PURCHASE_LIMIT_EXCEEDED`); a **$40 travel** booking from a new payee ->
   **ASK** (`APPROVAL_REQUIRED`), proving the new category is permitted.
+- **Update (end-to-end flow wired and live-verified).** Built the application
+  layer (`src/services/`): `PurchaseService` composes the deterministic core with
+  the durable stores and the (lazily built) PayPal gateway, and
+  `readSpendingState` became the single source of truth for the facts the engine
+  evaluates against (verified spend this UTC month + known payees), shared by the
+  agent's proposal path and the approval/execution path. Added the operator CLI
+  `npm run purchase` (`scripts/purchase.ts`): `budget`, `pending`, `list`,
+  `show`, `approve` (optionally `--pay`), `reject`, `pay`, `reconcile`, `enroll`,
+  `payments`. It records `APPROVED` / `REJECTED` / `DENIED` audit events and
+  prints the engine's evaluations and the ledger. **Observed live, durable:**
+  agent proposed `$1` to a first-time payee -> `ASK` (`APPROVAL_REQUIRED`); owner
+  approved; `pay` returned `CAPTURED` via the vaulted card (capture
+  `00053762B0399214K`, `1.00 USD`) and counted it once; a second `pay` was
+  `BLOCKED` (`EXECUTED`) with no double-count; a fresh process read `spent 1.00 /
+  remaining 99.00` from the database. Added 11 service tests. Suite now **161
+  passing**; typecheck clean. Recorded the interim-CLI assumption above.

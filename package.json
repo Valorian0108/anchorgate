@@ -14,6 +14,7 @@
     "sandbox:verify:wallet": "tsx scripts/sandbox-verify.ts --wallet",
     "agent": "tsx scripts/agent-cli.ts",
     "agent:models": "tsx scripts/agent-models.ts",
+    "purchase": "tsx scripts/purchase.ts",
     "rules:show": "tsx scripts/rules.ts show",
     "rules:set": "tsx scripts/rules.ts set",
     "db:generate": "drizzle-kit generate",

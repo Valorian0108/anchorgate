@@ -24,10 +24,10 @@ import {
 } from "../core/purchases";
 import {
   SpendingLedger,
-  utcMonthPeriod,
   type SpendingStore,
 } from "../core/spending";
 import { toPayPalAmount } from "../infra/paypal/money";
+import { readSpendingState } from "../services/spendingState";
 
 /** Everything the service needs, injected so it stays pure and testable. */
 export interface ProposalServiceDeps {
@@ -85,7 +85,7 @@ export class ProposalService {
   async propose(input: ProposalInput): Promise<ProposalResult> {
     const now = this.now();
     const rules = await this.deps.rules.getActive();
-    const state = await this.currentState(now);
+    const state = await readSpendingState(this.deps, now);
 
     const request = {
       id: this.newId(),
@@ -107,31 +107,6 @@ export class ProposalService {
     }
 
     return outcome;
-  }
-
-  /** The facts the engine evaluates against, read fresh for every proposal. */
-  private async currentState(
-    now: Date,
-  ): Promise<{ spentThisMonthMinor: number; knownPayees: string[] }> {
-    const ledger = new SpendingLedger(this.deps.spending);
-    const spentThisMonthMinor = await ledger.capturedMinor(utcMonthPeriod(now));
-    return { spentThisMonthMinor, knownPayees: await this.knownPayees() };
-  }
-
-  /**
-   * Payees the owner has previously approved or paid. Only records in a
-   * positive terminal state count; a denied or rejected request does not make
-   * its payee "known".
-   */
-  private async knownPayees(): Promise<string[]> {
-    const records = await this.deps.purchases.list();
-    const payees = new Set<string>();
-    for (const record of records) {
-      if (record.status === "APPROVED" || record.status === "EXECUTED") {
-        payees.add(record.request.payee);
-      }
-    }
-    return [...payees];
   }
 
   /** Append an informational `PROPOSED` event so the ledger shows the attempt. */

@@ -42,7 +42,7 @@ test suite is run with `npm test`.
 | # | Requirement (source) | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- |
 | C1 | Durable spending records; no in-memory-only counter (§2.8, §5.4) | `src/infra/persistence/*` (Drizzle + PostgreSQL/Supabase) | `persistence.test.ts`; live `npm run db:check` | Done (live Supabase: all 5 tables migrated and reachable) |
-| C2 | Track spending against the monthly cap (§2.8) | `spending/ledger.ts` (`capturedMinor`) + engine reads `spentThisMonthMinor` | `spending/ledger.test.ts`, `engine.test.ts` | Partial (live read/write wiring into the running app pending) |
+| C2 | Track spending against the monthly cap (§2.8) | `spending/ledger.ts` (`capturedMinor`) + `services/spendingState.ts` reads it into the engine at approval and execution | `spending/ledger.test.ts`, `engine.test.ts`, `services/purchaseService.test.ts`; live `npm run purchase -- budget` | Done (live read/write wiring complete) |
 | C3 | Count spending only after a verified capture (§4.10, §5.3) | `spending/ledger.ts` | `spending/ledger.test.ts` | Done |
 | C4 | Duplicate requests/retries/captures don't double-count (§5.3, §11.2) | `spending/ledger.ts` + DB primary key (`persistence/schema.ts`) | `spending/ledger.test.ts`, `persistence.test.ts` | Done |
 | C5 | Concurrency cannot overspend the cap (§5.3, §11.2) | `spending/ledger.ts` (`RESERVED`/`RELEASED` totals) | `spending/ledger.test.ts` | Partial (mechanism present; enforcement deferred to Phase 4 by decision) |
@@ -149,6 +149,27 @@ $100 hard monthly cap), the agent was re-checked: a **$150** request -> **DENY**
 (`PER_PURCHASE_LIMIT_EXCEEDED`); and a **$40 travel** booking -> **ASK**
 (`APPROVAL_REQUIRED`), confirming the newly permitted category is accepted.
 
+## End-to-end flow (propose → approve → pay → count)
+
+| # | Requirement (source) | Implementation | Tests | Status |
+| --- | --- | --- | --- | --- |
+| G1 | One runnable flow ties propose, approve, pay, and count together | `src/services/purchaseService.ts`, `scripts/purchase.ts` (`npm run purchase`) | `purchaseService.test.ts`; live run | Done (live Sandbox PASS) |
+| G2 | Approval is per-request and re-checks current rules; the cap cannot be approved through | `services/purchaseService.ts` (`approve`) + `purchases/lifecycle.ts` | `purchaseService.test.ts` (cap refusal), `lifecycle.test.ts` | Done |
+| G3 | Execution re-runs the deterministic gate immediately before payment | `services/purchaseService.ts` (`pay`) + `execution/execute.ts` | `purchaseService.test.ts`, `execute.test.ts` | Done |
+| G4 | A verified capture is counted exactly once; a repeated pay is blocked | `spending/ledger.ts` + `services/purchaseService.ts` | `purchaseService.test.ts`; live double-pay observed `BLOCKED` | Done |
+| G5 | A pending capture is not counted and can be reconciled | `execution/execute.ts` (`reconcilePendingPurchase`) + `services/purchaseService.ts` (`reconcile`) | `purchaseService.test.ts`, `execute.test.ts` | Done |
+| G6 | One source of truth for the engine's facts (spend + known payees) | `src/services/spendingState.ts`, used by both the agent and the approval/execution paths | `purchaseService.test.ts`, `agent.test.ts` | Done |
+| G7 | The human decision is recorded separately from the payment outcome | `purchases/types.ts` + lifecycle/ledger events (`PROPOSED`, `APPROVED`, `REJECTED`, `SUBMITTED`, `CAPTURE_VERIFIED`) | `purchaseService.test.ts`, `lifecycle.test.ts`, `execute.test.ts` | Done |
+
+**Live verification (observed, durable database).** The agent proposed
+`$1.00` to a first-time payee -> engine **ASK** (`APPROVAL_REQUIRED`,
+`PENDING_APPROVAL`); the owner `approve`d it; `pay` executed through the vaulted
+Sandbox **card** and returned **CAPTURED** (capture `00053762B0399214K`,
+`1.00 USD`); the durable ledger counted it **once**; a second `pay` returned
+**BLOCKED** (`status: EXECUTED`) and did **not** double-count; and a fresh process
+reported `spent this month 1.00 USD / remaining 99.00 USD`. Commands:
+`npm run purchase -- {enroll, pending, show <id>, approve <id>, pay <id>, budget}`.
+
 ## UI
 
 | # | Requirement (source) | Implementation | Tests | Status |
@@ -163,13 +184,14 @@ $100 hard monthly cap), the agent was re-checked: a **$150** request -> **DENY**
 
 - Location: `src/**/*.test.ts`
 - Runner: Vitest (`npm test`)
-- Current: **150 tests passing** — 23 authorization, 19 lifecycle, 19 spending,
+- Current: **161 tests passing** — 23 authorization, 19 lifecycle, 19 spending,
   14 execution (including pending-capture handling and reconciliation),
   15 persistence (against a real in-process PostgreSQL engine, including a
   close-and-reopen durability test and the card payment-source round-trip),
   11 PayPal money conversion, 19 PayPal gateway (fake port, including card
   bodies, `PENDING`, and `checkCapture`), 6 PayPal vault enrollment (fake port),
   6 PayPal error description, 18 AI agent (single-tool guarantee, deterministic
-  decisions, fail-safe config).
+  decisions, fail-safe config), and 11 application service (approval, hard-limit
+  refusal, new-payee approval, pay-once, pending reconciliation).
 
 Update this file whenever a requirement's status changes.

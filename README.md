@@ -26,8 +26,15 @@ a vaulted payment method) are implemented and tested. The PayPal path is
 
 The **AI agent** (Phase 5) is implemented: it can only *propose* purchases,
 through a single tool named `propose_purchase`, and every proposal is decided by
-the existing deterministic engine. The agent has **no payment tool**. The **UI**
-has not been designed or approved, and is intentionally not built yet.
+the existing deterministic engine. The agent has **no payment tool**.
+
+The **full money flow is now runnable end to end** and live-verified against
+PayPal Sandbox: the agent proposes → the deterministic engine decides → the owner
+reviews and approves → the server pays through PayPal only after the final gate →
+a verified capture is counted in the durable ledger exactly once. The operator
+surface is `npm run purchase` (there is no UI yet); see **Run the full flow**
+below. The **UI** has not been designed or approved, and is intentionally not
+built yet.
 
 ## Tech stack
 
@@ -145,6 +152,48 @@ database; otherwise an in-memory store is used. If no spending rules exist yet, 
 clearly-labelled demo rule set (`demo-1`, a hard $200/month cap) is saved so the
 demo runs.
 
+### Run the full flow (propose → approve → pay)
+
+`npm run purchase` is the operator surface for the money flow. It uses the same
+deterministic engine, the same durable stores, and the same authorization-gated
+PayPal path as everything else; it never prints credentials or vault tokens.
+
+```bash
+# 0) once: save a payment method (Sandbox test card, server-side, no browser)
+npm run purchase -- enroll
+#    or, to approve a PayPal wallet in the browser:
+npm run purchase -- enroll --wallet
+
+# 1) the agent proposes (a new payee, so the engine asks for approval)
+npm run agent -- "buy a 1 dollar software license from Acme"
+
+# 2) review the queue and the request
+npm run purchase -- pending
+npm run purchase -- show <id>
+
+# 3) approve, then pay (or combine: approve <id> --pay)
+npm run purchase -- approve <id>
+npm run purchase -- pay <id>
+
+# 4) see the budget: only verified captures are counted
+npm run purchase -- budget
+```
+
+- **`approve`** re-checks the current rules and budget, so a hard constraint (the
+  monthly cap) still cannot be approved through.
+- **`pay`** re-runs the final deterministic gate immediately before contacting
+  PayPal; a request that is not ready is `BLOCKED` and never paid.
+- A verified capture is counted **exactly once**. Running `pay` again is blocked
+  and does not double-count. A capture the provider leaves unsettled is reported
+  as `PENDING`, counted as **nothing**, and can be re-read with
+  `npm run purchase -- reconcile <id>`.
+- Other commands: `list [--status=S] [--limit=N]`, `reject <id> [--reason=...]`,
+  and `payments`.
+
+> With `DATABASE_URL` set, everything is durable: a request approved in one
+> process is payable in the next, and the ledger is shared. Without it, the CLI
+> falls back to in-memory stores (not durable).
+
 ### Spending rules
 
 The rules are stored durably and can be read or changed without touching code:
@@ -213,6 +262,10 @@ src/
     tools.ts           # the ONLY tool: propose_purchase (no payment tool)
     agent.ts           # instructions + generateText composition
     agent.test.ts
+  services/            # application layer: composes core + stores + PayPal
+    purchaseService.ts # budget, approve/reject, pay, reconcile (end-to-end flow)
+    spendingState.ts   # the ONE place that reads spent-this-month + known payees
+    purchaseService.test.ts
   app/                 # Next.js shell (placeholder only)
 scripts/
   sandbox-verify.ts    # one-command live PayPal Sandbox verification (real payments)
@@ -220,6 +273,7 @@ scripts/
   agent-cli.ts         # npm run agent: propose a purchase via the AI agent
   agent-models.ts      # npm run agent:models: list models from the endpoint
   rules.ts             # npm run rules:show / rules:set: read or replace spending rules
+  purchase.ts          # npm run purchase: review, approve/reject, pay, reconcile, enroll
 ```
 
 ## Authorization decisions

@@ -90,6 +90,28 @@ project aims to follow [Semantic Versioning](https://semver.org/).
   durable database when `DATABASE_URL` is set and an in-memory store otherwise.
   The model lister calls the configured endpoint with your local key and prints
   the available model ids, so no key ever needs to be pasted anywhere.
+- **Purchase application service & runnable end-to-end flow (Phase 4
+  completion).** The pieces that existed separately (propose, approve, pay, count)
+  are now wired into one flow:
+  - `src/services/` composes the deterministic core with the durable stores and
+    the payment gateway. `PurchaseService` exposes `budget`, `listPending`,
+    `approve`, `reject`, `pay` (with optional pending reconciliation), and
+    `reconcile`. It contains no policy of its own: every decision is the core's.
+    The gateway is built lazily, so read/approval commands work without PayPal
+    credentials.
+  - `readSpendingState` is the SINGLE place that computes the facts the engine
+    evaluates against (verified spend this UTC month, and the payees the owner has
+    previously approved or paid). It is used by both the agent's proposal path and
+    the approval/execution path, so the two can never disagree.
+  - `npm run purchase` (`scripts/purchase.ts`) is the operator surface: `budget`,
+    `pending`, `list`, `show <id>`, `approve <id>` (optionally `--pay`),
+    `reject <id>`, `pay <id>`, `reconcile <id>`, `enroll` (vault a payment
+    method), and `payments`. It prints the engine's evaluations and the ledger
+    events, and never prints credentials or vault tokens.
+  - `approve` re-checks the current rules/budget (the monthly cap still cannot be
+    overridden), and `pay` re-runs the final deterministic gate before touching
+    PayPal. A verified capture is counted exactly once, so a repeated `pay` is
+    `BLOCKED` and does not double-count.
 - **In-memory rules store** (`InMemorySpendingRulesStore`), matching the existing
   in-memory purchase and spending stores, for tests and local runs.
 - Project scaffold: Next.js + TypeScript, Vitest test runner.
