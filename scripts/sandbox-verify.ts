@@ -34,6 +34,7 @@ import {
 import {
   completeVaultEnrollment,
   createPayPalClient,
+  describePayPalError,
   PayPalPaymentGateway,
   readPayPalConfigFromEnv,
   SdkOrdersPort,
@@ -103,9 +104,12 @@ function printSetupInstructions(): void {
   console.log();
   console.log("  1. Open https://developer.paypal.com/dashboard/applications/sandbox");
   console.log("  2. Create (or open) a Sandbox app.");
-  console.log("  3. Copy its Client ID and Secret.");
-  console.log("  4. In this project, copy `.env.example` to `.env` (if you have not).");
-  console.log("  5. In `.env`, set locally (never in chat or git):");
+  console.log("  3. In the app, under Sandbox App Settings -> App Feature Options,");
+  console.log('     check "Accept payments". Expand "Advanced options" and enable');
+  console.log('     "Vault" (vaulting must be ON, or setup tokens return 403).');
+  console.log("  4. Copy the app's Client ID and Secret.");
+  console.log("  5. In this project, copy `.env.example` to `.env` (if you have not).");
+  console.log("  6. In `.env`, set locally (never in chat or git):");
   console.log('       PAYPAL_ENV="sandbox"');
   console.log('       PAYPAL_CLIENT_ID="<your sandbox client id>"');
   console.log('       PAYPAL_CLIENT_SECRET="<your sandbox secret>"');
@@ -285,8 +289,7 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : String(error);
-  console.error(`\nVerification failed: ${message}`);
+  console.error(`\nVerification failed: ${describePayPalError(error)}`);
   console.error("(No secrets are shown. The failure text is safe to share.)");
   process.exitCode = 1;
 });

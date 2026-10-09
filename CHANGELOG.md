@@ -56,6 +56,15 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 - Engineering standards (`ENGINEERING.md`), requirements traceability
   (`TRACEABILITY.md`), decision register (`OPEN-DECISIONS.md`).
 
+### Fixed
+
+- **PayPal provider errors reported nothing.** The PayPal SDK throws errors whose
+  `message` is often empty, with the real reason in `statusCode` and a structured
+  body — so the first live Sandbox failure printed no explanation. A new
+  `describePayPalError` (`infra/paypal/errors.ts`) surfaces the HTTP status, error
+  code, message, and PayPal `debug_id` (never credentials or request data), and
+  is used by both the gateway and the verification runner.
+
 ### Security
 
 - `.gitignore` excludes environment files and build output; secrets are

@@ -15,6 +15,7 @@ export {
 } from "./config";
 export { buildCreateOrderBody, PayPalPaymentGateway } from "./gateway";
 export type { PayPalPaymentGatewayDeps } from "./gateway";
+export { describePayPalError } from "./errors";
 export {
   completeVaultEnrollment,
   startVaultEnrollment,

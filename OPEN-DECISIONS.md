@@ -25,6 +25,15 @@ A proposal, a recommendation, or generated code is **not** a decision.
   would require reframing the product as a merchant store and would likely not be
   available before the deadline. Decision reversed; see Decisions. We must **not
   claim** to implement ACP/AP2 without evidence.
+- **Vaulting must be enabled on the Sandbox app (observed, first live run).** The
+  first `npm run sandbox:verify` attempt failed at the setup-token step with
+  HTTP 403 `NOT_AUTHORIZED`. This is a PayPal configuration requirement, not a
+  code defect: the app must have **Vault** enabled under **Sandbox App Settings →
+  App Feature Options** (`Accept payments` + `Advanced options` → `Vault`). PayPal
+  lists vaulting as supported in the US, Canada, much of Europe, Australia, and
+  parts of Asia — so the earlier "US-only" note was too narrow. Also found that
+  the SDK throws errors with an **empty `message`** and the real reason in
+  `statusCode`/`result`; error reporting was fixed (`infra/paypal/errors.ts`).
 
 ------------------------------------------------------------------------
 
@@ -310,3 +319,13 @@ _None recorded yet._
   Vitest/Drizzle Kit) and included `scripts/` in the typecheck. Suite remains
   109 passing; typecheck clean. The real Sandbox run is now **blocked only on the
   owner's Sandbox credentials**.
+- **Update (first live run + fix).** The owner supplied Sandbox credentials and
+  ran `npm run sandbox:verify`. The run reached the real API and returned HTTP 403
+  `NOT_AUTHORIZED` at the setup-token step, because **Vault was not enabled** on
+  the Sandbox app (see the finding above). Two fixes: (1) the verification tool
+  and README now instruct enabling **Vault** under App Feature Options, and
+  detect a misnamed env file (`.env.txt`); (2) provider errors now surface the
+  HTTP status and structured reason via `describePayPalError`
+  (`infra/paypal/errors.ts`), since the SDK throws empty-message errors. Added 6
+  tests for the describer. Suite now **115 passing**; typecheck clean. Re-run
+  pending after enabling Vault.

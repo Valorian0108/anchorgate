@@ -67,8 +67,16 @@ test suite is run with `npm test`.
 **Live verification:** `scripts/sandbox-verify.ts` (`npm run sandbox:verify`)
 exercises D1, D2, D3, D5, and D7 against PayPal Sandbox in a single run. It is a
 manual, credential-gated step (it requires a browser approval and real Sandbox
-credentials), so it is not part of `npm test`. Its observed result will be
-recorded here once the owner runs it.
+credentials), so it is not part of `npm test`.
+
+- **Observed (first live attempt):** the setup-token call returned HTTP 403
+  `NOT_AUTHORIZED` ("Authorization failed due to insufficient permissions.")
+  because the Sandbox app did not have the **Vault** feature enabled. Fix:
+  Developer Dashboard → the app → **Sandbox App Settings → App Feature Options**
+  → check **Accept payments** → **Advanced options** → enable **Vault**. Vaulting
+  is supported in a listed set of countries (US, Canada, much of Europe,
+  Australia, parts of Asia). Re-run pending. Provider errors now surface the
+  status code and structured reason (`infra/paypal/errors.ts`).
 
 ## AI agent
 
@@ -92,9 +100,10 @@ recorded here once the owner runs it.
 
 - Location: `src/**/*.test.ts`
 - Runner: Vitest (`npm test`)
-- Current: **109 tests passing** — 23 authorization, 19 lifecycle, 19 spending,
+- Current: **115 tests passing** — 23 authorization, 19 lifecycle, 19 spending,
   8 execution, 14 persistence (against a real in-process PostgreSQL engine,
   including a close-and-reopen durability test), 11 PayPal money conversion,
-  9 PayPal gateway (fake port), 6 PayPal vault enrollment (fake port).
+  9 PayPal gateway (fake port), 6 PayPal vault enrollment (fake port),
+  6 PayPal error description.
 
 Update this file whenever a requirement's status changes.

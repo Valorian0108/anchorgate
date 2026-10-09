@@ -31,6 +31,7 @@ import type {
 import type { PaymentMethodStore } from "../../core/payments";
 import { DEFAULT_OWNER_ID } from "../../core/payments";
 import { fromPayPalAmount, toPayPalAmount } from "./money";
+import { describePayPalError } from "./errors";
 import type { PayPalOrdersPort } from "./ports";
 
 export interface PayPalPaymentGatewayDeps {
@@ -97,8 +98,7 @@ function readCompletedCapture(order: Order | undefined): CaptureFacts | null {
 
 /** A safe, bounded description of a provider error. Never includes credentials. */
 function describeProviderError(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error);
-  return `PayPal request failed: ${message.slice(0, 300)}`;
+  return `PayPal request failed: ${describePayPalError(error)}`;
 }
 
 export class PayPalPaymentGateway implements PaymentGateway {

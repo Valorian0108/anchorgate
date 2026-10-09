@@ -63,6 +63,13 @@ Sandbox), then set `PAYPAL_ENV=sandbox`, `PAYPAL_CLIENT_ID`, and
 present, the user also completes a one-time **vault enrollment** (saving a
 payment method); without it, payments fail safe.
 
+> **Enable Vault on the app:** open the app and go to **Sandbox App Settings →
+> App Feature Options**, check **Accept payments**, expand **Advanced options**,
+> and enable **Vault**. Vaulting must be on, or setup-token calls fail with
+> HTTP 403 `NOT_AUTHORIZED`. (Vaulting is supported in the US, Canada, much of
+> Europe, Australia, and parts of Asia; use a US Sandbox business account if
+> unsure.)
+
 > **Filename matters:** the file must be named exactly `.env`. On Windows,
 > Notepad may silently save it as `.env.txt`, which the app will not read. Turn on
 > "File name extensions" in File Explorer to check.
