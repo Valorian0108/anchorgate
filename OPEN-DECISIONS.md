@@ -128,6 +128,12 @@ A proposal, a recommendation, or generated code is **not** a decision.
   advisories from `drizzle-kit`'s transitive dev tooling (an old `esbuild`). They
   affect only migration generation, not the runtime; the offered fix is a
   breaking downgrade of Drizzle Kit, so it is accepted and recorded.
+- **Sandbox verification uses a one-shot, in-memory vault (tool only).** The
+  `npm run sandbox:verify` runner completes vault enrollment and immediately pays
+  in the same process using an in-memory `PaymentMethodStore`, so the live check
+  needs no database. The running application persists vault tokens durably in
+  PostgreSQL (`saved_payment_methods`). This simplification applies only to the
+  verification tool.
 
 ------------------------------------------------------------------------
 
@@ -295,3 +301,12 @@ _None recorded yet._
   `saved_payment_methods` store (PostgreSQL, UNIQUE provider token). Suite now
   109 passing; typecheck clean. The adapter is unit-tested with fakes; a **real
   Sandbox run is still pending** and is the next Phase 4 step.
+- **Update:** Added the **Sandbox verification runner** (`scripts/sandbox-verify.ts`,
+  `npm run sandbox:verify`) so the real Phase 4 run is one command. It performs
+  vault enrollment (browser approval) and then the real propose → authorize →
+  create + capture → verify → count-once flow against Sandbox, reading secrets
+  only from the local `.env` and never printing them or the vault token. Added
+  `tsx` as an explicit dev dependency (it was previously only transitive, via
+  Vitest/Drizzle Kit) and included `scripts/` in the typecheck. Suite remains
+  109 passing; typecheck clean. The real Sandbox run is now **blocked only on the
+  owner's Sandbox credentials**.

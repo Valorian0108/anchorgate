@@ -116,8 +116,9 @@ automated + end-to-end tests have been run and reported.
 | Purchase lifecycle (approval) | ✅ Implemented & tested |
 | Spending accounting (verified captures only) | ✅ Logic implemented & tested; not yet wired into the engine |
 | Durable storage | ✅ Implemented & tested (PostgreSQL / Supabase, Drizzle) |
-| Payment execution (authorizer-gated) | ✅ Core implemented & tested with a fake gateway; live PayPal adapter next |
-| PayPal integration | 🟡 Adapter + vault enrollment implemented & unit-tested with fakes (server SDK, Sandbox-only); real Sandbox run not yet done |
+| Payment execution (authorizer-gated) | ✅ Core implemented & tested with a fake gateway; live flow wired |
+| PayPal integration | 🟡 Adapter + vault enrollment unit-tested with fakes (server SDK, Sandbox-only); `npm run sandbox:verify` ready; real Sandbox run pending owner's Sandbox credentials |
+| Sandbox verification runner | ✅ Added (`scripts/sandbox-verify.ts`); fails safe with setup instructions until credentials are present |
 | Saved payment method (vault) storage | ✅ Durable (PostgreSQL), token server-side only |
 | AI agent | ⛔ Not built |
 | UI | ⛔ Not built (design not approved) |

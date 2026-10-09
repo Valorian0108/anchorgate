@@ -20,9 +20,10 @@ accounting** (counts only verified captures, exactly once), **durable
 storage** (PostgreSQL, including the persisted spending rules), and the
 **authorization-gated payment execution** plus the **PayPal Sandbox adapter**
 (orders create + capture against a vaulted payment method) are implemented and
-tested. The PayPal adapter is unit-tested with fakes; a real Sandbox run is still
-pending. The AI agent and the UI are not built yet. The UI has not been designed
-or approved.
+tested. The PayPal adapter is unit-tested with fakes and has a one-command live
+Sandbox verification (`npm run sandbox:verify`); a real Sandbox run is still
+pending Sandbox credentials. The AI agent and the UI are not built yet. The UI
+has not been designed or approved.
 
 ## Tech stack
 
@@ -61,6 +62,23 @@ Sandbox), then set `PAYPAL_ENV=sandbox`, `PAYPAL_CLIENT_ID`, and
 `PAYPAL_CLIENT_SECRET` in your local `.env`. To let the agent pay without a human
 present, the user also completes a one-time **vault enrollment** (saving a
 payment method); without it, payments fail safe.
+
+#### Verify the PayPal path against Sandbox
+
+Once the PayPal Sandbox variables are in `.env`, run:
+
+```bash
+npm run sandbox:verify
+```
+
+This drives the real code path once: it starts a **vault enrollment** (you approve
+saving a payment method in the browser with your Sandbox *personal* account),
+then proposes a tiny purchase, runs the deterministic authorization engine, and —
+only if the engine returns `ALLOW` — creates and captures a real Sandbox payment,
+verifies the receipt, and counts it exactly once in the spending ledger. It
+prints the provider capture id and the ledger total. Credentials and the vault
+token are never printed. The script is Sandbox-only and uses an in-memory vault
+for this one-shot check; the app stores vault tokens durably in PostgreSQL.
 
 ## Project layout
 
@@ -107,6 +125,8 @@ src/
       vault.ts         # one-time vault enrollment
       money.ts         # minor units <-> PayPal decimal strings
   app/                 # Next.js shell (placeholder only)
+scripts/
+  sandbox-verify.ts    # one-command live PayPal Sandbox verification (real payments)
 ```
 
 ## Authorization decisions

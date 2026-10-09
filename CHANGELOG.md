@@ -46,6 +46,12 @@ project aims to follow [Semantic Versioning](https://semver.org/).
     strings, including zero- and three-decimal currencies.
   - Configuration refuses `production`, so a stray environment variable cannot
     move real money.
+- **PayPal Sandbox verification runner** (`scripts/sandbox-verify.ts`,
+  `npm run sandbox:verify`). One command that drives the real flow against
+  PayPal Sandbox: vault enrollment (browser approval), propose → deterministic
+  authorization, then authorizer-gated create + capture, receipt verification,
+  and exactly-once ledger counting. Reads credentials only from the local
+  `.env`; never prints secrets or the vault token.
 - Project scaffold: Next.js + TypeScript, Vitest test runner.
 - Engineering standards (`ENGINEERING.md`), requirements traceability
   (`TRACEABILITY.md`), decision register (`OPEN-DECISIONS.md`).

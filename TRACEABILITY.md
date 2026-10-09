@@ -55,14 +55,20 @@ test suite is run with `npm test`.
 
 | # | Requirement (source) | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- |
-| D1 | Sandbox OAuth + Orders API flow (§3.1, §3.2) | `infra/paypal/config.ts` (SDK client), `infra/paypal/gateway.ts` (create + capture), `infra/paypal/ports.ts` | `gateway.test.ts` (fake port) | Partial (adapter implemented; real Sandbox run pending) |
+| D1 | Sandbox OAuth + Orders API flow (§3.1, §3.2) | `infra/paypal/config.ts` (SDK client), `infra/paypal/gateway.ts` (create + capture), `infra/paypal/ports.ts` | `gateway.test.ts` (fake port); live run via `scripts/sandbox-verify.ts` | Partial (adapter implemented; `npm run sandbox:verify` ready; real Sandbox run pending credentials) |
 | D2 | No payment execution for denied requests (§11.3) | `core/execution/execute.ts` (re-check gate before any provider call; agent never gets `pay_order`) | `execute.test.ts` | Done (execution core; live adapter pending) |
 | D3 | Capture verification & status persistence (§11.3) | `core/execution/execute.ts` (receipt amount/currency verified; capture recorded via ledger) + `infra/paypal/gateway.ts` extracts the provider receipt | `execute.test.ts`, `gateway.test.ts` | Done (execution core; live adapter pending) |
 | D4 | Failure/timeout handling without duplicate payment (§10, §11.3) | `core/execution/execute.ts` (FAILED records nothing; idempotent by provider capture id) + `gateway.ts` (idempotent `paypalRequestId`; provider errors fail safe) | `execute.test.ts`, `gateway.test.ts` | Partial (retry/timeout semantics against live provider pending) |
 | D5 | Secrets server-side; never in browser/logs/commits (§6.2, §15) | `infra/paypal/config.ts` refuses non-Sandbox; env read by app layer only; vault token stored server-side; `.gitignore` | `gateway.test.ts`, `vault.test.ts` | Partial (live check pending) |
 | D6 | Integration path chosen (Orders API vs MCP vs Agent Toolkit) (§6.4) | Chosen: **Agent Toolkit (TypeScript) + Vercel AI SDK** (`OPEN-DECISIONS.md`); execution via the underlying server SDK | — | Done (decision; agent wiring pending) |
-| D7 | Allow the agent to pay without a human present (§7, §8) | `infra/paypal/vault.ts` (setup token → approval URL → payment token) | `vault.test.ts` | Partial (implemented & unit-tested; real Sandbox run pending) |
+| D7 | Allow the agent to pay without a human present (§7, §8) | `infra/paypal/vault.ts` (setup token → approval URL → payment token) | `vault.test.ts`; live run via `scripts/sandbox-verify.ts` | Partial (implemented & unit-tested; `npm run sandbox:verify` ready; real Sandbox run pending credentials) |
 | D8 | Vaulted payment method stored durably, server-side only (§2.8, §9) | `core/payments/*`, `infra/persistence/paymentMethodStore.ts` (`DrizzlePaymentMethodStore`), `saved_payment_methods` table (UNIQUE provider token) | `persistence.test.ts` | Done |
+
+**Live verification:** `scripts/sandbox-verify.ts` (`npm run sandbox:verify`)
+exercises D1, D2, D3, D5, and D7 against PayPal Sandbox in a single run. It is a
+manual, credential-gated step (it requires a browser approval and real Sandbox
+credentials), so it is not part of `npm test`. Its observed result will be
+recorded here once the owner runs it.
 
 ## AI agent
 
