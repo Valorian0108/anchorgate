@@ -8,6 +8,7 @@
 import { describe, expect, it } from "vitest";
 
 import { capturedMinorIn, SpendingLedger, summarizeSpending } from "./ledger";
+import { utcMonthPeriod } from "./period";
 import { InMemorySpendingStore } from "./store";
 import type { SpendingEvent, SpendingEventKind } from "./types";
 
@@ -196,6 +197,43 @@ describe("monthly period boundaries (11.2)", () => {
       }),
     ];
     expect(capturedMinorIn(events, OCTOBER)).toBe(700);
+  });
+});
+
+// --- monthly period (decided: UTC calendar month) ---------------------------
+
+describe("utcMonthPeriod", () => {
+  it("returns the UTC calendar month containing the instant", () => {
+    expect(utcMonthPeriod("2026-10-09T12:00:00.000Z")).toEqual({
+      startIso: "2026-10-01T00:00:00.000Z",
+      endIso: "2026-11-01T00:00:00.000Z",
+    });
+  });
+
+  it("rolls December into January of the next year", () => {
+    expect(utcMonthPeriod("2026-12-31T23:59:59.999Z")).toEqual({
+      startIso: "2026-12-01T00:00:00.000Z",
+      endIso: "2027-01-01T00:00:00.000Z",
+    });
+  });
+
+  it("includes the first instant and excludes the first instant of the next month", () => {
+    const october = utcMonthPeriod("2026-10-15T00:00:00.000Z");
+    const atStart = event("CAPTURE_VERIFIED", 100, {
+      id: "s",
+      providerRef: "CAP-S",
+      occurredAt: "2026-10-01T00:00:00.000Z",
+    });
+    const atEnd = event("CAPTURE_VERIFIED", 900, {
+      id: "e",
+      providerRef: "CAP-E",
+      occurredAt: "2026-11-01T00:00:00.000Z",
+    });
+    expect(capturedMinorIn([atStart, atEnd], october)).toBe(100);
+  });
+
+  it("throws on an invalid instant rather than guessing a period", () => {
+    expect(() => utcMonthPeriod("not-a-date")).toThrow();
   });
 });
 

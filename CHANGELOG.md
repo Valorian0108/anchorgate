@@ -19,6 +19,8 @@ project aims to follow [Semantic Versioning](https://semver.org/).
   spending only from a verified capture, is idempotent by provider capture id,
   tracks reservations without counting them as spent, and derives monthly totals
   from persisted events.
+- **Budget period (`utcMonthPeriod`).** The monthly window is the UTC calendar
+  month, per the owner's decision.
 - Project scaffold: Next.js + TypeScript, Vitest test runner.
 - Engineering standards (`ENGINEERING.md`), requirements traceability
   (`TRACEABILITY.md`), decision register (`OPEN-DECISIONS.md`).

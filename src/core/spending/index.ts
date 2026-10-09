@@ -20,5 +20,6 @@ export {
   captureEventId,
   parseSpendingEvent,
 } from "./validation";
+export { utcMonthPeriod } from "./period";
 export { InMemorySpendingStore } from "./store";
 export type { SpendingStore } from "./store";

@@ -45,9 +45,9 @@ test suite is run with `npm test`.
 | C2 | Track spending against the monthly cap (§2.8) | `spending/ledger.ts` (`capturedMinor`) + engine reads `spentThisMonthMinor` | `spending/ledger.test.ts`, `engine.test.ts` | Partial (engine wiring pending) |
 | C3 | Count spending only after a verified capture (§4.10, §5.3) | `spending/ledger.ts` | `spending/ledger.test.ts` | Done |
 | C4 | Duplicate requests/retries/captures don't double-count (§5.3, §11.2) | `spending/ledger.ts`, `spending/validation.ts` (`captureEventId`) | `spending/ledger.test.ts` | Done |
-| C5 | Concurrency cannot overspend the cap (§5.3, §11.2) | `spending/ledger.ts` (`RESERVED`/`RELEASED` totals) | `spending/ledger.test.ts` | Partial (mechanism only; policy + wiring open) |
+| C5 | Concurrency cannot overspend the cap (§5.3, §11.2) | `spending/ledger.ts` (`RESERVED`/`RELEASED` totals) | `spending/ledger.test.ts` | Partial (mechanism present; enforcement deferred to Phase 4 by decision) |
 | C6 | State survives restart (§11.2) | Totals derived from persisted events; in-memory store is not durable | `spending/ledger.test.ts` (reload) | Pending (DB not chosen) |
-| C7 | Monthly period/reset semantics (§5.4) | `spending/ledger.ts` (explicit period; caller sets the boundary) | `spending/ledger.test.ts` | Partial (timezone/reset open) |
+| C7 | Monthly period/reset semantics (§5.4) | `spending/period.ts` (`utcMonthPeriod`) | `spending/ledger.test.ts` | Done (UTC calendar month, per owner decision) |
 | C8 | Audit fields recorded (§9) | `purchases/types.ts`, `spending/types.ts` | `lifecycle.test.ts`, `spending/ledger.test.ts` | Partial (needs durable store) |
 
 ## PayPal integration
@@ -83,6 +83,6 @@ test suite is run with `npm test`.
 
 - Location: `src/**/*.test.ts`
 - Runner: Vitest (`npm test`)
-- Current: **57 tests passing** — 23 authorization, 19 lifecycle, 15 spending.
+- Current: **61 tests passing** — 23 authorization, 19 lifecycle, 19 spending.
 
 Update this file whenever a requirement's status changes.

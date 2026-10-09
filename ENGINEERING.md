@@ -119,5 +119,5 @@ automated + end-to-end tests have been run and reported.
 | PayPal integration | ⛔ Not built |
 | AI agent | ⛔ Not built |
 | UI | ⛔ Not built (design not approved) |
-| Automated tests | ✅ 57 passing |
+| Automated tests | ✅ 61 passing |
 | Typecheck | ✅ Clean |

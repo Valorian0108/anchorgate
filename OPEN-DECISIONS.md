@@ -55,6 +55,14 @@ A proposal, a recommendation, or generated code is **not** a decision.
   - At approval/execution time, the request is **re-checked against the current
     rules and budget**; if a hard constraint (e.g. the monthly cap) is no longer
     satisfied, it cannot be approved or executed.
+- **Spending-accounting decisions (approved).**
+  - **Refunds and reversals are out of scope for the MVP.** A refund may be
+    recorded for audit, but it does not reduce the counted total for now.
+  - **The budget period is the UTC calendar month** (1st 00:00:00Z inclusive →
+    next 1st 00:00:00Z exclusive), implemented as `utcMonthPeriod`.
+  - **Reservations are recorded but not enforced yet.** Budget-reservation
+    enforcement (expiry, release, conversion) is deferred to Phase 4, to be
+    decided before concurrent payment execution is enabled.
 
 ------------------------------------------------------------------------
 
@@ -102,16 +110,20 @@ at useful decision points rather than all at once.
 
 - Exact category taxonomy (the actual list of permitted categories). Category
   violations are decided to `DENY` (see Decisions).
-- Approval expiration; behavior of pending approvals when rules or budget change.
-- Monthly period timezone and reset semantics.
-- Treatment of refunds, reversals, failed captures, reservations, and abandoned
-  orders.
-- Concurrency and budget-reservation policy for simultaneous requests.
+- ~~Approval expiration~~ ✅ resolved: no expiry for the MVP.
+- ~~Pending approvals when rules/budget change~~ ✅ resolved: re-check against
+  current rules; a hard constraint can never be overridden.
+- ~~Monthly period timezone and reset semantics~~ ✅ resolved: UTC calendar month.
+- Treatment of refunds, reversals, failed captures, reservations, abandoned
+  orders — partly resolved: failed/cancelled/abandoned are never counted;
+  refunds/reversals are out of scope for the MVP; reservation **enforcement** is
+  deferred to Phase 4.
+- ~~Concurrency and budget-reservation policy~~ ✅ deferred to Phase 4 by
+  decision.
 
 ### Architecture and operations
 
-- Repository stack; how implementation should fit it (greenfield at time of
-  writing — no code exists yet).
+- ~~Repository stack~~ ✅ resolved: Next.js + TypeScript (full-stack, single repo).
 - PayPal integration path: direct Orders API vs Agent Toolkit vs MCP vs other.
 - AI model/provider and agent framework.
 - Database/persistence technology.
@@ -203,3 +215,7 @@ _None recorded yet._
   the engine yet — the reservation policy is still open. Refunds/reversals,
   monthly reset timezone, and the concurrency/reservation policy remain open
   (see below).
+- **Update:** Owner decided the spending-accounting edge cases: refunds/reversals
+  are out of scope for the MVP; the budget period is the UTC calendar month;
+  reservation enforcement is deferred to Phase 4. Implemented `utcMonthPeriod`
+  with tests (suite now 61 passing). Open decisions updated to show resolutions.
