@@ -19,6 +19,7 @@
  * Run it with:  npm run sandbox:verify
  */
 
+import { existsSync, readdirSync } from "node:fs";
 import { createInterface } from "node:readline/promises";
 import process from "node:process";
 
@@ -58,13 +59,40 @@ function step(title: string): void {
   line();
 }
 
-/** Load `.env` if present. Never throws when the file is absent. */
-function loadLocalEnv(): void {
-  try {
-    process.loadEnvFile(".env");
-  } catch {
-    // No `.env` yet; the config check below prints exactly what to do.
+/**
+ * Load `.env`. Returns a human-readable warning, or `null` when it loaded fine.
+ *
+ * The common failure is a misfiled name (e.g. Windows Notepad saving `.env` as
+ * `.env.txt`), which would otherwise look like "credentials not set" for no
+ * apparent reason. We detect that and say so, without ever printing values.
+ *
+ * Never throws: the caller prints setup instructions if config is still missing.
+ */
+function loadLocalEnv(): string | null {
+  if (existsSync(".env")) {
+    try {
+      process.loadEnvFile(".env");
+      return null;
+    } catch {
+      return "Found `.env` but could not parse it. Check for stray quotes or characters.";
+    }
   }
+
+  let misnamed: string | undefined;
+  try {
+    misnamed = readdirSync(".").find(
+      (name) =>
+        name.startsWith(".env") &&
+        name !== ".env" &&
+        !name.endsWith(".example"),
+    );
+  } catch {
+    // Directory not readable; fall through to the generic guidance.
+  }
+  if (misnamed) {
+    return `Found \`${misnamed}\` but not \`.env\`. Rename it to exactly \`.env\` (no \`.txt\`).`;
+  }
+  return null;
 }
 
 function printSetupInstructions(): void {
@@ -89,11 +117,14 @@ function printSetupInstructions(): void {
 }
 
 async function main(): Promise<void> {
-  loadLocalEnv();
+  const envWarning = loadLocalEnv();
 
   console.log();
   console.log("PayPal Sandbox verification  (Sandbox only - no real money)");
   console.log("This runs the real code path: propose -> authorize -> pay -> count.");
+  if (envWarning) {
+    console.log(`\nNote: ${envWarning}`);
+  }
 
   let config;
   try {

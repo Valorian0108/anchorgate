@@ -63,6 +63,10 @@ Sandbox), then set `PAYPAL_ENV=sandbox`, `PAYPAL_CLIENT_ID`, and
 present, the user also completes a one-time **vault enrollment** (saving a
 payment method); without it, payments fail safe.
 
+> **Filename matters:** the file must be named exactly `.env`. On Windows,
+> Notepad may silently save it as `.env.txt`, which the app will not read. Turn on
+> "File name extensions" in File Explorer to check.
+
 #### Verify the PayPal path against Sandbox
 
 Once the PayPal Sandbox variables are in `.env`, run:
