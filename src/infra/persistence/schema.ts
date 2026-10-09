@@ -15,6 +15,7 @@
 
 import {
   bigint,
+  boolean,
   index,
   pgTable,
   serial,
@@ -86,3 +87,22 @@ export const spendingEvents = pgTable(
   },
   (table) => [index("spending_events_request_id_idx").on(table.requestId)],
 );
+
+/**
+ * The active spending rules.
+ *
+ * Single global rule set for the MVP, stored as one row with the fixed id
+ * "active". The schema can grow a user/tenant id later.
+ */
+export const spendingRules = pgTable("spending_rules", {
+  id: text("id").primaryKey(),
+  ruleVersion: text("rule_version").notNull(),
+  currency: text("currency").notNull(),
+  perPurchaseAutoLimitMinor: bigint("per_purchase_auto_limit_minor", {
+    mode: "number",
+  }).notNull(),
+  monthlyCapMinor: bigint("monthly_cap_minor", { mode: "number" }).notNull(),
+  permittedCategories: text("permitted_categories").array().notNull(),
+  requireApprovalForNewPayee: boolean("require_approval_for_new_payee").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull(),
+});

@@ -17,8 +17,9 @@ allowed.
 Early development. The **authorization core** (deterministic decision engine),
 the **purchase lifecycle** (approval handling and revalidation), **spending
 accounting** (counts only verified captures, exactly once), and **durable
-storage** (PostgreSQL) are implemented and tested. PayPal execution, the AI
-agent, and the UI are not built yet. The UI has not been designed or approved.
+storage** (PostgreSQL, including the persisted spending rules) are implemented
+and tested. PayPal execution, the AI agent, and the UI are not built yet. The UI
+has not been designed or approved.
 
 ## Tech stack
 
@@ -76,6 +77,7 @@ src/
       client.ts        # pooled Postgres client factory
       purchaseStore.ts # PurchaseStore backed by PostgreSQL
       spendingStore.ts # SpendingStore backed by PostgreSQL
+      ruleStore.ts      # SpendingRulesStore backed by PostgreSQL
       persistence.test.ts
   app/                 # Next.js shell (placeholder only)
 ```

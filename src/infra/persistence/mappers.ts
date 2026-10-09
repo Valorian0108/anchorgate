@@ -6,6 +6,8 @@
  * unknown status/kind/context, we fail loudly rather than silently coerce it.
  */
 
+import { parseRules } from "../../core/authorization";
+import type { SpendingRules } from "../../core/authorization";
 import type {
   Evaluation,
   EvaluationContext,
@@ -14,11 +16,20 @@ import type {
 } from "../../core/purchases";
 import type { SpendingEvent, SpendingEventKind } from "../../core/spending";
 import { SPENDING_EVENT_KINDS } from "../../core/spending";
-import type { evaluations, purchaseRequests, spendingEvents } from "./schema";
+import type {
+  evaluations,
+  purchaseRequests,
+  spendingEvents,
+  spendingRules,
+} from "./schema";
 
 type PurchaseRow = typeof purchaseRequests.$inferSelect;
 type EvaluationRow = typeof evaluations.$inferSelect;
 type SpendingRow = typeof spendingEvents.$inferSelect;
+type RulesRow = typeof spendingRules.$inferSelect;
+
+/** The fixed primary key of the single global rules row (MVP). */
+export const ACTIVE_RULES_ID = "active";
 
 const REQUEST_STATUSES: readonly RequestStatus[] = [
   "DENIED",
@@ -151,4 +162,40 @@ export function toSpendingRow(
     providerRef: event.providerRef ?? null,
     note: event.note ?? null,
   };
+}
+
+/** Values to write for the single active rules row. */
+export function toRulesRow(
+  rules: SpendingRules,
+  updatedAt: Date,
+): typeof spendingRules.$inferInsert {
+  return {
+    id: ACTIVE_RULES_ID,
+    ruleVersion: rules.ruleVersion,
+    currency: rules.currency,
+    perPurchaseAutoLimitMinor: rules.perPurchaseAutoLimitMinor,
+    monthlyCapMinor: rules.monthlyCapMinor,
+    permittedCategories: rules.permittedCategories,
+    requireApprovalForNewPayee: rules.requireApprovalForNewPayee,
+    updatedAt,
+  };
+}
+
+/**
+ * Rebuild rules from a row and re-validate them. Stored rules that no longer
+ * parse fail loudly rather than feeding the engine something malformed.
+ */
+export function toSpendingRules(row: RulesRow): SpendingRules {
+  const parsed = parseRules({
+    ruleVersion: row.ruleVersion,
+    currency: row.currency,
+    perPurchaseAutoLimitMinor: row.perPurchaseAutoLimitMinor,
+    monthlyCapMinor: row.monthlyCapMinor,
+    permittedCategories: row.permittedCategories,
+    requireApprovalForNewPayee: row.requireApprovalForNewPayee,
+  });
+  if (!parsed.ok) {
+    throw new Error(`Stored spending rules are invalid: ${parsed.reason}`);
+  }
+  return parsed.value;
 }

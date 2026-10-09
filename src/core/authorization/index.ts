@@ -13,6 +13,7 @@ export type {
   SpendingState,
 } from "./types";
 export { ReasonCode } from "./types";
+export type { SpendingRulesStore } from "./rulesStore";
 export { evaluatePurchase } from "./engine";
 export {
   parseRequest,

@@ -25,7 +25,8 @@ project aims to follow [Semantic Versioning](https://semver.org/).
   migrations and durable implementations of the purchase and spending stores,
   targeting Supabase. Database-level primary keys enforce capture idempotency.
   Persistence is tested against a real in-process PostgreSQL engine, including a
-  close-and-reopen durability test.
+  close-and-reopen durability test. Also includes the **active spending-rules
+  store** (single global rule set), closing the Phase 3 "persistent rules" item.
 - Project scaffold: Next.js + TypeScript, Vitest test runner.
 - Engineering standards (`ENGINEERING.md`), requirements traceability
   (`TRACEABILITY.md`), decision register (`OPEN-DECISIONS.md`).

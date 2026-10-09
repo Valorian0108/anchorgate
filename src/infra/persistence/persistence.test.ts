@@ -24,6 +24,7 @@ import type { PurchaseRequest } from "../../core/authorization";
 import { captureEventId, SpendingLedger } from "../../core/spending";
 import type { AppDatabase } from "./client";
 import { DrizzlePurchaseStore } from "./purchaseStore";
+import { DrizzleSpendingRulesStore } from "./ruleStore";
 import { DrizzleSpendingStore } from "./spendingStore";
 import * as schema from "./schema";
 
@@ -142,6 +143,31 @@ describe("DrizzleSpendingStore", () => {
     const events = await store.listByRequest("p1");
     expect(events.length).toBeGreaterThanOrEqual(1);
     expect(events.every((e) => e.requestId === "p1")).toBe(true);
+  });
+});
+
+// --- spending rules ---------------------------------------------------------
+
+describe("DrizzleSpendingRulesStore", () => {
+  it("returns null when no rules are configured", async () => {
+    await db.delete(schema.spendingRules);
+    const store = new DrizzleSpendingRulesStore(db);
+    expect(await store.getActive()).toBeNull();
+  });
+
+  it("stores and reads back the active rules", async () => {
+    const store = new DrizzleSpendingRulesStore(db);
+    await store.save(RULES);
+    expect(await store.getActive()).toEqual(RULES);
+  });
+
+  it("replaces the active rules on save (single global set)", async () => {
+    const store = new DrizzleSpendingRulesStore(db);
+    const updated: SpendingRules = { ...RULES, ruleVersion: "v2", monthlyCapMinor: 9000 };
+    await store.save(updated);
+    const loaded = await store.getActive();
+    expect(loaded?.ruleVersion).toBe("v2");
+    expect(loaded?.monthlyCapMinor).toBe(9000);
   });
 });
 

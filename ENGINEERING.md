@@ -119,5 +119,5 @@ automated + end-to-end tests have been run and reported.
 | PayPal integration | ⛔ Not built |
 | AI agent | ⛔ Not built |
 | UI | ⛔ Not built (design not approved) |
-| Automated tests | ✅ 68 passing, including real-Postgres persistence |
+| Automated tests | ✅ 71 passing, including real-Postgres persistence |
 | Typecheck | ✅ Clean |

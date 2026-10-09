@@ -49,7 +49,7 @@ test suite is run with `npm test`.
 | C6 | State survives restart (§11.2) | `infra/persistence/schema.ts` (durable Postgres) | `persistence.test.ts` (close & reopen) | Done |
 | C7 | Monthly period/reset semantics (§5.4) | `spending/period.ts` (`utcMonthPeriod`) | `spending/ledger.test.ts` | Done (UTC calendar month, per owner decision) |
 | C8 | Audit fields recorded (§9) | `purchases/types.ts`, `spending/types.ts`, `infra/persistence/*` | `persistence.test.ts` | Done |
-| C9 | Users can define spending rules; rules are persisted (§2.9, §5.1) | Not implemented — rules are passed to the engine, not stored | — | Pending (touches the open identity model) |
+| C9 | Users can define spending rules; rules are persisted (§2.9, §5.1) | `core/authorization/rulesStore.ts`, `infra/persistence/ruleStore.ts` (`DrizzleSpendingRulesStore`) | `persistence.test.ts` | Done (single global rule set, per owner decision) |
 
 ## PayPal integration
 
@@ -84,8 +84,8 @@ test suite is run with `npm test`.
 
 - Location: `src/**/*.test.ts`
 - Runner: Vitest (`npm test`)
-- Current: **68 tests passing** — 23 authorization, 19 lifecycle, 19 spending,
-  7 persistence (against a real in-process PostgreSQL engine, including a
+- Current: **71 tests passing** — 23 authorization, 19 lifecycle, 19 spending,
+  10 persistence (against a real in-process PostgreSQL engine, including a
   close-and-reopen durability test).
 
 Update this file whenever a requirement's status changes.
