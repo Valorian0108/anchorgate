@@ -240,3 +240,7 @@ _None recorded yet._
   PostgreSQL engine), including a close-and-reopen restart test. Suite now 68
   passing; typecheck clean. Recorded an accepted dev-only advisory in
   `drizzle-kit`. Secrets remain server-side and are never requested in chat.
+- **Correction:** Added traceability row **C9** — *persistent, user-definable
+  spending rules* is required by Phase 3 (§2.9) and is **not yet implemented**.
+  Rules are currently passed to the engine but not stored. This is the remaining
+  Phase 3 item and it intersects with the still-open identity/auth decision.

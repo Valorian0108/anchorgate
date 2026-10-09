@@ -49,6 +49,7 @@ test suite is run with `npm test`.
 | C6 | State survives restart (§11.2) | `infra/persistence/schema.ts` (durable Postgres) | `persistence.test.ts` (close & reopen) | Done |
 | C7 | Monthly period/reset semantics (§5.4) | `spending/period.ts` (`utcMonthPeriod`) | `spending/ledger.test.ts` | Done (UTC calendar month, per owner decision) |
 | C8 | Audit fields recorded (§9) | `purchases/types.ts`, `spending/types.ts`, `infra/persistence/*` | `persistence.test.ts` | Done |
+| C9 | Users can define spending rules; rules are persisted (§2.9, §5.1) | Not implemented — rules are passed to the engine, not stored | — | Pending (touches the open identity model) |
 
 ## PayPal integration
 
