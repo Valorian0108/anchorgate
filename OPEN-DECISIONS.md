@@ -37,6 +37,11 @@ A proposal, a recommendation, or generated code is **not** a decision.
 - **Render removed from the working set.** The owner asked to drop Render as a
   candidate. It will not be treated as the default hosting/backbone choice.
   Revisit only if the owner raises it again.
+- **License: MIT.** Chosen so the repository can be public and open source, as
+  the hackathon requires. The copyright holder is a placeholder ("The Project
+  Authors") until the project name and owner details are finalized.
+- **Local git repository initialized.** A repo now exists locally with an initial
+  commit. No public remote/host has been chosen yet.
 
 ------------------------------------------------------------------------
 
@@ -144,3 +149,6 @@ _None recorded yet._
   execution, AI agent, and UI remain unbuilt.
 - **Update:** Phase 2 verified. `npm test` → 23/23 passing; `npm run typecheck`
   clean. Renamed the Vitest config to `.mts` to silence an ESM warning.
+- **Update:** Repo groundwork done. Added an MIT `LICENSE`, a `.gitattributes`
+  for consistent line endings, and initialized a local git repository with an
+  initial commit. License choice recorded under Decisions.
