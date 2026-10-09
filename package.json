@@ -14,6 +14,8 @@
     "sandbox:verify:wallet": "tsx scripts/sandbox-verify.ts --wallet",
     "agent": "tsx scripts/agent-cli.ts",
     "agent:models": "tsx scripts/agent-models.ts",
+    "rules:show": "tsx scripts/rules.ts show",
+    "rules:set": "tsx scripts/rules.ts set",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:check": "tsx scripts/db-check.ts"

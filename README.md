@@ -145,6 +145,21 @@ database; otherwise an in-memory store is used. If no spending rules exist yet, 
 clearly-labelled demo rule set (`demo-1`, a hard $200/month cap) is saved so the
 demo runs.
 
+### Spending rules
+
+The rules are stored durably and can be read or changed without touching code:
+
+```bash
+npm run rules:show
+npm run rules:set -- --currency=USD --per-purchase=50 --monthly-cap=100 \
+  --categories=software,office_supplies,books --new-payee-approval=true
+```
+
+Amounts are given in **major units** (dollars). The **per-purchase limit** is the
+amount above which a proposal needs your approval; the **monthly cap** is the
+hard ceiling that approval can never override. `--new-payee-approval=true` makes
+the first payment to any merchant require your approval.
+
 ## Project layout
 
 ```
@@ -204,6 +219,7 @@ scripts/
   db-check.ts          # connect to the durable DB and confirm the schema
   agent-cli.ts         # npm run agent: propose a purchase via the AI agent
   agent-models.ts      # npm run agent:models: list models from the endpoint
+  rules.ts             # npm run rules:show / rules:set: read or replace spending rules
 ```
 
 ## Authorization decisions

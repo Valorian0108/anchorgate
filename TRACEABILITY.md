@@ -143,6 +143,12 @@ A following `npm run db:check` showed the writes landed durably:
 Twelve budget-class models were additionally checked for tool-calling
 compatibility (see `OPEN-DECISIONS.md`).
 
+After the owner set their real limits (`owner-1`: $50 automatic per purchase,
+$100 hard monthly cap), the agent was re-checked: a **$150** request -> **DENY**
+(`MONTHLY_CAP_EXCEEDED`); a **$75** request -> **ASK**
+(`PER_PURCHASE_LIMIT_EXCEEDED`); and a **$40 travel** booking -> **ASK**
+(`APPROVAL_REQUIRED`), confirming the newly permitted category is accepted.
+
 ## UI
 
 | # | Requirement (source) | Implementation | Tests | Status |

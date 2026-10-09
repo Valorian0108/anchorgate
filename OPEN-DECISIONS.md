@@ -456,3 +456,15 @@ were used).
   the workspace's own provider key (BYOK not connected), and `gpt-oss-20b`'s
   gateway profile does not enable the `tools` capability. **Owner action
   (optional):** the `demo-1` rules can be replaced with real limits at any time.
+- **Update (owner spending rules set).** Added a reusable rules admin CLI
+  (`scripts/rules.ts`, `npm run rules:show` / `npm run rules:set`). Amounts are
+  accepted in major units and converted to integer minor units; input fails
+  closed; the command requires the durable database. Replaced the demo rules
+  with the owner's real limits, stored as **`owner-1`**: currency **USD**,
+  automatic per-purchase limit **$50**, hard monthly cap **$100**, categories
+  `software`, `office_supplies`, `hardware`, `books`, `cloud_services`,
+  `advertising`, `travel`, `meals`, and first-time-payee approval **on**.
+  Live-confirmed with the agent: a **$150** request -> engine **DENY**
+  (`MONTHLY_CAP_EXCEEDED`); a **$75** request -> **ASK**
+  (`PER_PURCHASE_LIMIT_EXCEEDED`); a **$40 travel** booking from a new payee ->
+  **ASK** (`APPROVAL_REQUIRED`), proving the new category is permitted.
