@@ -59,12 +59,22 @@ async function main(): Promise<void> {
     )) as unknown as Array<{ table_name: string }>;
     const names = existing.map((row) => row.table_name);
 
+    // Row Level Security closes Supabase's auto-generated REST API (opened with
+    // the public anon key) while leaving this direct connection untouched.
+    const rlsRows = (await db.execute(
+      sql`select relname as table_name, relrowsecurity as rls
+          from pg_class
+          where relnamespace = 'public'::regnamespace and relkind = 'r'`,
+    )) as unknown as Array<{ table_name: string; rls: boolean }>;
+    const rlsByTable = new Map(rlsRows.map((row) => [row.table_name, row.rls]));
+
     console.log("Tables in this database:");
     for (const table of names) {
       const counted = (await db.execute(
         sql`select count(*)::int as count from ${sql.identifier(table)}`,
       )) as unknown as Array<{ count: number }>;
-      console.log(`  ${table.padEnd(24)} ${counted[0]?.count ?? "?"} row(s)`);
+      const rls = rlsByTable.get(table) ? "on" : "off";
+      console.log(`  ${table.padEnd(24)} ${counted[0]?.count ?? "?"} row(s)  RLS ${rls}`);
     }
 
     const missing = EXPECTED_TABLES.filter((table) => !names.includes(table));

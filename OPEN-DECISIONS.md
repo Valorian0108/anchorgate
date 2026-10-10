@@ -66,8 +66,11 @@ A proposal, a recommendation, or generated code is **not** a decision.
   writes through a direct Postgres connection (Drizzle) that bypasses RLS, so
   enabling RLS is a non-breaking, deny-by-default fix. Leaked-password protection
   is largely moot here because sign-in is magic-link only (no passwords). Owner
-  was told; the RLS fix is **pending owner go** (one statement per table), or keep
-  the Supabase project private until after judging.
+  was told and approved the fix on 10 oct 2026 (✅ resolved): it shipped as
+  migration `0004_enable_row_level_security`, one `ENABLE ROW LEVEL SECURITY`
+  statement per table, and `npm run db:check` now prints the RLS state per table
+  so the lock stays verifiable. Confirmed live: all five tables report RLS on and
+  the app still reads and writes through its direct connection.
 
 ------------------------------------------------------------------------
 
@@ -761,5 +764,5 @@ nothing below is built yet.
   (logged under Open decisions, Product and UI); (2) how judges would exercise a
   single-owner app. The judge-access question is logged as **Hackathon packaging
   and judge access (planned, not started)** above. The Gate-row gap was then
-  fixed (whole-row link); the ask-box check order and the Supabase RLS fix remain
-  pending owner go.
+  fixed (whole-row link); the Supabase RLS fix was then applied as migration
+  0004; the ask-box check order is in design with the owner.
