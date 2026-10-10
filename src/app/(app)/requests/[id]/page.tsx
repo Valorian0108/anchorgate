@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { approveAndPayRequest, declineRequest, payRequest, reconcileRequest } from "./actions";
 import { displayId, fmtClock, money, shortRef } from "@/lib/format";
 import { getService } from "@/lib/service";
+import { verifyOwner } from "@/lib/auth/dal";
 import { chipFor, isReserved, latestEvaluation, reasonSlug } from "@/lib/vocab";
 import type { ReasonCode } from "@/core/authorization";
 import type { PurchaseRecord, RequestStatus } from "@/core/purchases";
@@ -114,6 +115,7 @@ export default async function RequestDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await verifyOwner();
   const { id } = await params;
   const service = getService();
 

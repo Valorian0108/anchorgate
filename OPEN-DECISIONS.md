@@ -595,3 +595,39 @@ were used).
   - Note: the dev server was cycling `500`s from the **known Supabase session-pool
     ceiling** (`EMAXCONNSESSION`, pool_size 15) accumulated by a long-lived HMR
     process — not a page defect; a fresh server cleared it.
+- **Update (Slice 6 — owner sign-in, live).** Wired **Supabase Auth** for the
+  owner-only gate, following the Next.js 16 conventions this repo uses:
+  - **Proxy, not Middleware.** Next 16 renamed `middleware.ts` to `proxy.ts`
+    (Node.js runtime by default). `src/proxy.ts` refreshes the Supabase session
+    on every request and applies the coarse policy (no session → `/signin`;
+    wrong account → refused; idle → refused). It is explicitly **optimistic**.
+  - **Authoritative re-check in a data-access layer.** `src/lib/auth/dal.ts`
+    (`verifyOwner`, resolved via React `cache`) runs on **every page and every
+    Server Action**, so the identity, the owner allowlist, and the 30-minute
+    idle rule are enforced server-side — never trusted from the UI or the proxy.
+  - **Owner-only by allowlist.** `OWNER_EMAIL` (a single address) is checked
+    *before* any link is sent, so the app cannot be used to mail a non-owner. A
+    Supabase account that authenticates but is not the owner is signed out.
+  - **30-minute idle timeout, server-side and non-forgeable.** A signed,
+    HttpOnly cookie (`ag_seen`) carries `userId` + last-active instant, HMAC'd
+    with `SESSION_SECRET`. A missing cookie starts a fresh window; a
+    present-but-forged or stale cookie is **refused** (fail closed). Verified by
+    tests. `IDLE_MS` is the single config value; the refusal rule is not.
+  - **Magic link primary, Google secondary.** `sendMagicLink` (server action)
+    sends the one-time link; `signInWithGoogle` starts OAuth. Both land on
+    `src/app/auth/confirm/route.ts`, which exchanges the `code` (PKCE) or
+    verifies a `token_hash`. Google is **not enabled** in the Supabase project
+    yet, so that button returns a clear "not enabled" notice until it is.
+  - **Decisions now stamped with the real owner.** The request actions
+    (`approve`/`decline`/`pay`/`reconcile`) call `verifyOwner()` and stamp
+    `approvedBy`/`rejectedBy` with the owner's email instead of the literal
+    `"owner"`. The masthead shows who is signed in and offers Sign out.
+  - **Observed live:** unauthenticated `/`, `/record`, `/statute` all `307` to
+    `/signin`; `/signin` renders the approved comp; a **non-owner** address is
+    refused inline ("This gate is owner-only…") with **no mail sent**; an
+    **owner** address returns the "check your inbox" state; `/auth/confirm`
+    without a code redirects to `/signin?reason=link`. Added 16 tests
+    (stamp sign/verify + owner allowlist + action short-circuit). Suite **178
+    passing**; typecheck clean. **Owner action required** to finish the live
+    link: add `http://localhost:3000/auth/confirm` to Supabase → Authentication →
+    URL Configuration → Redirect URLs (see `AUTH.md`).

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { displayId, fmtClock, fmtClockUTC, money } from "@/lib/format";
 import { getService } from "@/lib/service";
+import { verifyOwner } from "@/lib/auth/dal";
 import {
   checkText,
   checkTextForStatus,
@@ -15,6 +16,8 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function GatePage() {
+  await verifyOwner();
+
   const service = getService();
   const budget = await service.budget();
   const records = (await service.list()).sort((a, b) =>

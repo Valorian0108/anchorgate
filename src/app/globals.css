@@ -446,3 +446,120 @@ nav .active::before {
   .clause { grid-template-columns: 70px 1fr; gap: 18px; }
   .clause .op { border-left: none; border-top: 1px solid var(--line); padding-left: 0; padding-top: 14px; grid-column: 1 / -1; }
 }
+
+/* ------------------------------------------------------------------
+   Owner control (masthead, signed in) — a quiet identity + sign-out
+   ------------------------------------------------------------------ */
+.owner { display: flex; align-items: center; gap: 12px; }
+.owner .who {
+  font-family: var(--m); font-size: 10.5px; letter-spacing: 0.02em; color: var(--ink-faint);
+  max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.owner .signout {
+  background: none; border: 1px solid var(--line); border-radius: 2px;
+  font-family: var(--g); font-weight: 500; font-size: 12.5px; color: var(--ink-soft);
+  padding: 6px 12px; cursor: pointer;
+}
+.owner .signout:hover { border-color: var(--ink); color: var(--ink); }
+.owner form { display: flex; }
+
+/* ------------------------------------------------------------------
+   Sign in — port of design-research/signin.comp.html
+   Scoped under .signin; no shared-class collisions with the ledger.
+   ------------------------------------------------------------------ */
+.signin .headline {
+  margin-top: 48px; border-top: 1px solid var(--ink); padding-top: 22px;
+  font-family: var(--m); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.signin .split {
+  display: grid; grid-template-columns: 1fr 380px; gap: 88px; align-items: start;
+  margin-top: 34px;
+}
+.signin .left h1 {
+  font-family: var(--s); font-style: italic; font-weight: 400;
+  font-size: clamp(30px, 4.6vw, 46px); line-height: 1.06; letter-spacing: -0.01em;
+  margin: 0; max-width: 18ch;
+}
+.signin .notice {
+  margin: 22px 0 0; max-width: 44ch; padding: 12px 16px;
+  border: 1px solid var(--ask); background: var(--paper);
+  font-family: var(--m); font-size: 11.5px; line-height: 1.6; color: var(--ask);
+  letter-spacing: 0.02em;
+}
+.signin .trust { margin-top: 36px; max-width: 440px; }
+.signin .trust-line {
+  display: flex; gap: 14px; align-items: baseline;
+  padding: 13px 0; border-top: 1px solid var(--line);
+  font-family: var(--m); font-size: 11.5px; line-height: 1.55; color: var(--ink-soft);
+  letter-spacing: 0.01em;
+}
+.signin .trust-line:last-child { border-bottom: 1px solid var(--line); }
+.signin .trust-line .sq { width: 5px; height: 5px; background: var(--seal); flex: none; transform: translateY(-1px); }
+
+.signin .slip h2 { font-family: var(--g); font-weight: 600; font-size: 16px; letter-spacing: -0.01em; margin: 0; }
+.signin .slip .sub {
+  font-family: var(--m); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ink-faint); margin-top: 4px;
+}
+.signin .field { margin-top: 24px; }
+.signin .field label {
+  display: block; font-family: var(--m); font-size: 10.5px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--ink-soft); margin-bottom: 8px;
+}
+.signin .field input {
+  width: 100%; border: 0; border-bottom: 1px solid var(--ink); background: transparent;
+  font-family: var(--m); font-size: 14px; color: var(--ink); padding: 7px 0;
+  border-radius: 0; -webkit-appearance: none; appearance: none;
+}
+.signin .field input::placeholder { color: var(--ink-faint); }
+.signin .field input:focus { outline: none; border-bottom-color: var(--seal); }
+.signin .btn {
+  width: 100%; margin-top: 20px; border: 0; background: var(--seal); color: #fff;
+  font-family: var(--g); font-weight: 600; font-size: 14px; letter-spacing: 0.01em;
+  padding: 13px 0; cursor: pointer; border-radius: 0;
+}
+.signin .btn:hover { background: var(--seal-bright); }
+.signin .btn:disabled { opacity: 0.7; cursor: default; }
+.signin .or {
+  display: flex; align-items: center; gap: 12px; margin: 20px 0;
+  font-family: var(--m); font-size: 10px; letter-spacing: 0.12em; color: var(--ink-faint);
+  text-transform: uppercase;
+}
+.signin .or::before, .signin .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.signin .btn-ghost {
+  width: 100%; border: 1px solid var(--line); background: transparent; color: var(--ink);
+  font-family: var(--g); font-weight: 500; font-size: 13.5px;
+  padding: 12px 0; cursor: pointer; border-radius: 0;
+}
+.signin .btn-ghost:hover { border-color: var(--ink); }
+.signin .slip-note {
+  margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line);
+  font-family: var(--m); font-size: 10px; line-height: 1.6; letter-spacing: 0.02em; color: var(--ink-faint);
+}
+.signin .err {
+  margin: 14px 0 0; font-family: var(--m); font-size: 11px; line-height: 1.55;
+  color: var(--deny); letter-spacing: 0.02em;
+}
+.signin .sent { margin-top: 22px; }
+.signin .sent .sent-h {
+  font-family: var(--g); font-weight: 600; font-size: 14.5px; color: var(--allow); margin: 0 0 8px;
+}
+.signin .sent p {
+  font-family: var(--g); font-weight: 400; font-size: 13.5px; line-height: 1.6;
+  color: var(--ink-soft); margin: 0 0 8px;
+}
+.signin footer {
+  margin-top: 64px; padding-top: 14px; border-top: 1px solid var(--line);
+  display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap;
+  font-family: var(--m); font-size: 10px; letter-spacing: 0.08em; color: var(--ink-faint);
+  text-transform: uppercase;
+}
+
+@media (max-width: 900px) {
+  .signin .split { grid-template-columns: 1fr; gap: 40px; }
+  .signin .trust { max-width: none; }
+}
+@media (max-width: 760px) {
+  .owner .who { display: none; }
+}

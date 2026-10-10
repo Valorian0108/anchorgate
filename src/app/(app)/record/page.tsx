@@ -8,6 +8,7 @@ import {
   shortRef,
 } from "@/lib/format";
 import { getService } from "@/lib/service";
+import { verifyOwner } from "@/lib/auth/dal";
 import {
   chipFor,
   isReserved,
@@ -114,6 +115,8 @@ function Trail({ record }: { record: PurchaseRecord }) {
 }
 
 export default async function RecordPage() {
+  await verifyOwner();
+
   const service = getService();
   const [budget, records, events] = await Promise.all([
     service.budget(),

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { money } from "@/lib/format";
 import { getService } from "@/lib/service";
+import { verifyOwner } from "@/lib/auth/dal";
 
 // Rules are read fresh on every load — the statute is never cached.
 export const dynamic = "force-dynamic";
@@ -29,6 +30,8 @@ function Clause({
 }
 
 export default async function StatutePage() {
+  await verifyOwner();
+
   const service = getService();
   const budget = await service.budget();
   const rules = budget.rules;

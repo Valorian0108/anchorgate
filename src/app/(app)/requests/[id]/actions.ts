@@ -3,13 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getService } from "@/lib/service";
+import { verifyOwner } from "@/lib/auth/dal";
 
 /**
  * The single-owner gate — decisions and payments, server-side only.
  *
- * Identity: server-side and constant (`owner`) until Supabase Auth lands in the
- * auth slice — every decision is stamped with this id and recorded in
- * `approvedBy` / `rejectedBy`. There is no client-side identity anywhere.
+ * Identity: the signed-in owner, resolved server-side by the DAL on every call.
+ * Each decision is stamped with the owner's email in `approvedBy` /
+ * `rejectedBy`. There is no client-side identity anywhere.
  *
  * SECURITY: Server Functions are reachable by direct POST, NOT only through this
  * UI — so none of these trust the request:
@@ -22,7 +23,6 @@ import { getService } from "@/lib/service";
  *     (PayPal's per-request idempotency key covers a concurrent double-submit).
  *   - `reconcile` is read-only at the provider: it never creates a payment.
  */
-const OWNER_ID = "owner";
 
 function readId(formData: FormData): string | null {
   const id = formData.get("id");
@@ -43,8 +43,9 @@ export async function approveAndPayRequest(formData: FormData): Promise<void> {
   const id = readId(formData);
   if (!id) return;
 
+  const owner = await verifyOwner();
   const service = getService();
-  const approval = await service.approve(id, OWNER_ID);
+  const approval = await service.approve(id, owner.email);
   refresh(id);
 
   if (approval.record.status === "APPROVED") {
@@ -60,7 +61,8 @@ export async function declineRequest(formData: FormData): Promise<void> {
   const id = readId(formData);
   if (!id) return;
 
-  await getService().reject(id, OWNER_ID);
+  const owner = await verifyOwner();
+  await getService().reject(id, owner.email);
   refresh(id);
   redirect(`/requests/${id}`);
 }
@@ -73,6 +75,7 @@ export async function payRequest(formData: FormData): Promise<void> {
   const id = readId(formData);
   if (!id) return;
 
+  await verifyOwner();
   await getService().pay(id, { reconcilePending: true });
   refresh(id);
   redirect(`/requests/${id}`);
@@ -83,6 +86,7 @@ export async function reconcileRequest(formData: FormData): Promise<void> {
   const id = readId(formData);
   if (!id) return;
 
+  await verifyOwner();
   await getService().reconcile(id);
   refresh(id);
   redirect(`/requests/${id}`);
