@@ -3,9 +3,7 @@ import {
   fmtClock,
   fmtClockUTC,
   money,
-  shortFingerprint,
   shortId,
-  shortRef,
 } from "@/lib/format";
 import { getService } from "@/lib/service";
 import { verifyOwner } from "@/lib/auth/dal";
@@ -232,11 +230,11 @@ export default async function RecordPage() {
               <div className="proof num">
                 {capture ? (
                   <>
-                    ref <span className="ref">{shortRef(capture.providerRef ?? capture.id)}</span>
+                    ref <span className="ref full">{capture.providerRef ?? capture.id}</span>
                     <br />
                   </>
                 ) : null}
-                seal {shortFingerprint(record.fingerprint)}
+                seal <span className="full">{record.fingerprint}</span>
               </div>
             </div>
           );

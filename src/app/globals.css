@@ -384,6 +384,7 @@ nav .active::before {
   letter-spacing: 0.02em; line-height: 1.7; min-width: 0;
 }
 .record .proof .ref { color: var(--ink-soft); }
+.record .proof .full { word-break: break-all; }
 
 .totals {
   display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap;
