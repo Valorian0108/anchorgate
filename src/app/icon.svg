@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="64" height="64">
+  <!-- AnchorGate mark: seal-blue field, the owned anchor stroke in paper. -->
+  <rect width="24" height="24" rx="5" fill="#1C3A66"/>
+  <g fill="none" stroke="#FBF9F4" stroke-width="1.6" stroke-linecap="square">
+    <path d="M12 4.5v15"/>
+    <path d="M6 10.5h12"/>
+    <path d="M6 10.5 4 17c1.6.8 4.3.8 5.8 0L6 10.5Z"/>
+    <path d="M18 10.5 16 17c-1.5-.8-4.2-.8-5.8 0L18 10.5Z"/>
+  </g>
+</svg>
