@@ -93,6 +93,15 @@ export async function getActiveRules(): Promise<SpendingRules | null> {
 }
 
 /**
+ * Persist a new active rule set. Only the Rules editor calls this, and only
+ * after the owner is verified. Recorded decisions keep the rule version they
+ * were judged under, so replacing the active set never rewrites history.
+ */
+export async function saveRules(rules: SpendingRules): Promise<void> {
+  return getStores().rules.save(rules);
+}
+
+/**
  * The proposal-only AI agent, wired to the same durable stores as the service.
  * Server-side only. It can propose a purchase; it can never approve or pay.
  * Built fresh per call so the model always sees the currently active rules.

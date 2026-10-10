@@ -590,7 +590,8 @@ nav .active::before {
 @keyframes ag-reveal { to { opacity: 1; transform: none; } }
 
 /* Interactive feedback: hover + press on every control. */
-.btn, .row .act, .owner .signout, .signin .btn, .signin .btn-ghost, .askbox button {
+.btn, .row .act, .owner .signout, .signin .btn, .signin .btn-ghost, .askbox button,
+.rules-edit button {
   transition:
     background-color var(--dur-short) var(--ease-out),
     border-color var(--dur-short) var(--ease-out),
@@ -598,12 +599,14 @@ nav .active::before {
     transform var(--dur-micro) var(--ease-out);
 }
 .btn:active, .row .act:active, .owner .signout:active,
-.signin .btn:active, .signin .btn-ghost:active, .askbox button:active {
+.signin .btn:active, .signin .btn-ghost:active, .askbox button:active,
+.rules-edit button:active {
   transform: translateY(1px);
 }
 .btn:focus-visible, .row .act:focus-visible, .owner .signout:focus-visible,
 .signin .btn:focus-visible, .signin .btn-ghost:focus-visible,
-.askbox button:focus-visible, .askbox input:focus-visible {
+.askbox button:focus-visible, .askbox input:focus-visible,
+.rules-edit button:focus-visible, .rules-edit input:focus-visible {
   outline: 2px solid var(--seal); outline-offset: 3px;
 }
 
@@ -652,6 +655,32 @@ nav .active::before {
 .askbox .checks a:hover { color: var(--seal-bright); }
 .askbox .msg { margin-top: 10px; font-family: var(--m); font-size: 11px; color: var(--seal); }
 .askbox .msg.err { color: var(--deny); }
+
+/* Rules editor: the owner's two numbers (monthly limit, auto-approve line). */
+.rules-edit { margin: 30px 0 0; padding: 20px 22px; border: 1px solid var(--line); background: var(--surface); }
+.rules-edit .label {
+  font-family: var(--m); font-size: 10.5px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--ink-soft); margin-bottom: 14px;
+}
+.rules-edit .line { display: flex; gap: 22px; align-items: flex-end; flex-wrap: wrap; }
+.rules-edit .field { display: flex; flex-direction: column; gap: 6px; }
+.rules-edit .field label { font-family: var(--m); font-size: 11px; letter-spacing: 0.02em; color: var(--ink-soft); }
+.rules-edit .in { display: flex; align-items: baseline; gap: 4px; border-bottom: 1px solid var(--ink); }
+.rules-edit .in:focus-within { border-bottom-color: var(--seal); }
+.rules-edit .cur { font-family: var(--m); font-size: 12px; color: var(--ink-faint); }
+.rules-edit input {
+  border: 0; background: transparent; font-family: var(--m); font-size: 15px; color: var(--ink);
+  padding: 4px 0; width: 110px; border-radius: 0; appearance: none; -webkit-appearance: none;
+}
+.rules-edit input:focus { outline: none; }
+.rules-edit button {
+  border: 0; background: var(--seal); color: #fff; font-family: var(--g); font-weight: 600;
+  font-size: 13.5px; padding: 11px 18px; cursor: pointer; border-radius: 0; white-space: nowrap;
+}
+.rules-edit button:hover { background: var(--seal-bright); }
+.rules-edit .hint { margin-top: 12px; font-family: var(--m); font-size: 10.5px; letter-spacing: 0.02em; color: var(--ink-faint); }
+.rules-edit .msg { margin-top: 10px; font-family: var(--m); font-size: 11px; color: var(--seal); }
+.rules-edit .msg.err { color: var(--deny); }
 
 /* Empty state: what is empty, why it matters, one next action. */
 .empty { margin-top: 18px; padding: 26px 24px; border: 1px dashed var(--line); background: var(--paper); }

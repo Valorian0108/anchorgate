@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { money } from "@/lib/format";
 import { getService } from "@/lib/service";
 import { verifyOwner } from "@/lib/auth/dal";
+import { updateRules } from "@/app/(app)/actions";
 
 // Rules are read fresh on every load; the statute is never cached.
 export const dynamic = "force-dynamic";
@@ -29,8 +30,47 @@ function Clause({
   );
 }
 
-export default async function StatutePage() {
+/**
+ * The honest one-line outcome of a save attempt, traveling as a short URL code.
+ * On success the page has already re-read the fresh rules, so the sentence
+ * quotes the numbers now in force.
+ */
+function savedMessageFor(
+  saved: string | undefined,
+  cap: number,
+  auto: number,
+): { text: string; error: boolean } | null {
+  switch (saved) {
+    case "ok":
+      return {
+        text: `Saved. Your monthly limit is now ${money(cap)} and your auto-approve line is now ${money(auto)}.`,
+        error: false,
+      };
+    case "bad-money":
+      return {
+        text: "Those amounts do not look right. Use a number above zero, like 150 or 150.00. Nothing was saved.",
+        error: true,
+      };
+    case "auto-above-cap":
+      return {
+        text: "Your auto-approve line cannot sit above your monthly limit. Nothing was saved.",
+        error: true,
+      };
+    case "no-rules":
+      return { text: "There are no rules to edit yet.", error: true };
+    default:
+      return null;
+  }
+}
+
+export default async function StatutePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ saved?: string }>;
+}) {
   await verifyOwner();
+
+  const { saved } = await searchParams;
 
   const service = getService();
   const budget = await service.budget();
@@ -66,6 +106,8 @@ export default async function StatutePage() {
   const cap = rules.monthlyCapMinor;
   const categories = rules.permittedCategories;
   const newPayee = rules.requireApprovalForNewPayee;
+  const symbol = currency === "USD" ? "$" : currency;
+  const message = savedMessageFor(saved, cap, auto);
 
   return (
     <>
@@ -86,7 +128,54 @@ export default async function StatutePage() {
         override them.
       </p>
 
-      <section className="clauses reveal" style={{ "--i": 2 } as React.CSSProperties}>
+      <section className="rules-edit reveal" style={{ "--i": 2 } as React.CSSProperties}>
+        <div className="label">Your two numbers</div>
+        <form action={updateRules} className="line">
+          <div className="field">
+            <label htmlFor="cap">Monthly limit</label>
+            <div className="in">
+              <span className="cur">{symbol}</span>
+              <input
+                id="cap"
+                name="cap"
+                defaultValue={money(cap)}
+                inputMode="decimal"
+                autoComplete="off"
+                required
+              />
+            </div>
+          </div>
+          <div className="field">
+            <label htmlFor="auto">Auto-approve line</label>
+            <div className="in">
+              <span className="cur">{symbol}</span>
+              <input
+                id="auto"
+                name="auto"
+                defaultValue={money(auto)}
+                inputMode="decimal"
+                autoComplete="off"
+                required
+              />
+            </div>
+          </div>
+          <button type="submit">Save</button>
+        </form>
+        <p className="hint">
+          Changes apply to the next ask. Past decisions keep the rules they were judged
+          under.
+        </p>
+        {message ? (
+          <p
+            className={message.error ? "msg err" : "msg"}
+            role={message.error ? "alert" : "status"}
+          >
+            {message.text}
+          </p>
+        ) : null}
+      </section>
+
+      <section className="clauses reveal" style={{ "--i": 3 } as React.CSSProperties}>
         <Clause
           n="1"
           title="Checked three times"
@@ -168,7 +257,7 @@ export default async function StatutePage() {
         </Clause>
       </section>
 
-      <div className="order num reveal" style={{ "--i": 3 } as React.CSSProperties}>
+      <div className="order num reveal" style={{ "--i": 4 } as React.CSSProperties}>
         <span className="seq">
           <b>The order it checks:</b>
         </span>{" "}
@@ -183,7 +272,7 @@ export default async function StatutePage() {
         <span className="strict">a refusal beats &ldquo;needs you&rdquo;, which beats allow</span>
       </div>
 
-      <div className="note reveal" style={{ "--i": 4 } as React.CSSProperties}>
+      <div className="note reveal" style={{ "--i": 5 } as React.CSSProperties}>
         Your live rules {rules.ruleVersion} · read fresh every time · changes apply to the
         next decision and never rewrite what is already recorded
       </div>

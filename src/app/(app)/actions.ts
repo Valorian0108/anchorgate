@@ -1,13 +1,17 @@
 "use server";
 
 /**
- * Gate actions (server-side only).
+ * Gate actions and the Rules editor (server-side only).
  *
  * The "Ask the assistant" box. The owner types what they want looked at; we run
  * the proposal-only agent and return to the Gate with an honest outcome code:
  * what was filed, what was blocked, and what could not be filed at all. The
  * agent can only PROPOSE; the deterministic engine still decides, and nothing
  * is paid here.
+ *
+ * The Rules editor. The owner edits the two money amounts on the Rules page.
+ * Guardrails mirror the command-line rule setter, a save advances the rule
+ * version, and the outcome travels back as an honest one-line code.
  */
 
 import { InvalidToolInputError } from "ai";
@@ -21,7 +25,8 @@ import {
 } from "@/core/authorization";
 import { verifyOwner } from "@/lib/auth/dal";
 import { askPathFor, frontDoorReason, type AskOutcome } from "@/lib/askOutcome";
-import { getAgent, getActiveRules } from "@/lib/service";
+import { nextRuleVersion, parseMoneyToMinor, ruleEditProblem } from "@/lib/rulesEdit";
+import { getAgent, getActiveRules, saveRules } from "@/lib/service";
 
 /** The verdict payload the propose tool returns (to the model, and to us). */
 interface ProposeToolOutput {
@@ -88,4 +93,37 @@ export async function proposeFromGate(formData: FormData): Promise<void> {
   }
 
   redirect(askPathFor(outcome));
+}
+
+/**
+ * Save the owner's two numbers. Every failure path is a plain sentence on the
+ * Rules page; nothing is saved unless both amounts parse and the pair makes
+ * sense together.
+ */
+export async function updateRules(formData: FormData): Promise<void> {
+  await verifyOwner();
+
+  const capMinor = parseMoneyToMinor(String(formData.get("cap") ?? ""));
+  const autoMinor = parseMoneyToMinor(String(formData.get("auto") ?? ""));
+  if (capMinor === null || autoMinor === null) {
+    redirect("/statute?saved=bad-money");
+  }
+
+  if (ruleEditProblem(autoMinor, capMinor)) {
+    redirect("/statute?saved=auto-above-cap");
+  }
+
+  const current = await getActiveRules();
+  if (!current) {
+    redirect("/statute?saved=no-rules");
+  }
+
+  await saveRules({
+    ...current,
+    monthlyCapMinor: capMinor,
+    perPurchaseAutoLimitMinor: autoMinor,
+    ruleVersion: nextRuleVersion(current.ruleVersion),
+  });
+
+  redirect("/statute?saved=ok");
 }
