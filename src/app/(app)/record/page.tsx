@@ -26,19 +26,19 @@ export const dynamic = "force-dynamic";
 function outcomeText(record: PurchaseRecord): string {
   switch (record.status) {
     case "PENDING_APPROVAL":
-      return `awaiting · since ${fmtClock(record.createdAt)}`;
+      return `waiting on you · since ${fmtClock(record.createdAt)}`;
     case "APPROVED":
-      return "executing";
+      return "paying";
     case "AUTHORIZED":
       return "ready · automatic";
     case "PENDING_SETTLEMENT":
-      return "settling";
+      return "confirming";
     case "EXECUTED":
-      return "captured · verified once";
+      return "paid · confirmed";
     case "REJECTED":
-      return "rejected · by owner";
+      return "you said no";
     case "DENIED":
-      return "closed";
+      return "refused";
   }
 }
 
@@ -55,8 +55,8 @@ function Trail({ record }: { record: PurchaseRecord }) {
   if (record.status === "DENIED") {
     return (
       <>
-        <span className="d">deny</span> · {reasonCode ? reasonPhrase(reasonCode) : "denied"} ·
-        engine, hard
+        <span className="d">refused</span> · {reasonCode ? reasonPhrase(reasonCode) : "refused"} ·
+        by your rules
       </>
     );
   }
@@ -65,12 +65,12 @@ function Trail({ record }: { record: PurchaseRecord }) {
     return (
       <>
         {firstDecision === "ASK" ? (
-          <span className="a">ask</span>
+          <span className="a">needs you</span>
         ) : (
-          <span className="g">allow</span>
+          <span className="g">allowed</span>
         )}{" "}
-        {first ? fmtClock(first.evaluatedAt) : ""} → reject · owner{" "}
-        {record.rejection ? fmtClock(record.rejection.rejectedAt) : "—"}
+        {first ? fmtClock(first.evaluatedAt) : ""} → you said no{" "}
+        {record.rejection ? fmtClock(record.rejection.rejectedAt) : ""}
       </>
     );
   }
@@ -78,8 +78,8 @@ function Trail({ record }: { record: PurchaseRecord }) {
   if (record.status === "PENDING_APPROVAL") {
     return (
       <>
-        <span className="a">ask</span> · {reasonCode ? reasonPhrase(reasonCode) : "approval"} ·
-        awaiting you
+        <span className="a">needs you</span> · {reasonCode ? reasonPhrase(reasonCode) : "your okay"} ·
+        waiting on you
       </>
     );
   }
@@ -87,26 +87,26 @@ function Trail({ record }: { record: PurchaseRecord }) {
   if (firstDecision === "ASK" && record.approval) {
     return (
       <>
-        <span className="a">ask</span> {first ? fmtClock(first.evaluatedAt) : ""} →{" "}
-        <span className="g">allow</span> owner {fmtClock(record.approval.approvedAt)}
+        <span className="a">needs you</span> {first ? fmtClock(first.evaluatedAt) : ""} →{" "}
+        <span className="g">you approved</span> {fmtClock(record.approval.approvedAt)}
         {record.status === "EXECUTED"
-          ? " · captured"
+          ? " · paid"
           : record.status === "PENDING_SETTLEMENT"
-            ? " · capture pending"
-            : " · rechecks pass"}
+            ? " · confirming"
+            : " · checked again"}
       </>
     );
   }
 
-  // The engine allowed it at proposal (no human involved) — or an approval is
-  // still pending execution.
+  // The rules allowed it at proposal (no human involved), or an approval is
+  // still on its way to being paid.
   return (
     <>
-      <span className="g">allow</span> · within limits ·{" "}
+      <span className="g">allowed</span> · within your limits ·{" "}
       {record.status === "EXECUTED"
-        ? "captured"
+        ? "paid"
         : record.status === "PENDING_SETTLEMENT"
-          ? "capture pending"
+          ? "confirming"
           : record.status === "AUTHORIZED" || record.status === "APPROVED"
             ? "automatic"
             : stateWord(record.status)}
@@ -156,41 +156,43 @@ export default async function RecordPage() {
 
   return (
     <>
-      <section className="page-head">
+      <section className="page-head reveal" style={{ "--i": 0 } as React.CSSProperties}>
         <div>
-          <div className="ref">Record · audit register · {day}</div>
-          <h1>Everything the gate decided, in order.</h1>
+          <div className="ref">Your record · every decision · {day}</div>
+          <h1>Every purchase, and how it turned out.</h1>
         </div>
         <span className="count num">
-          {records.length} requests · all verdicts · snapshot {snapshot}
+          {records.length} purchases · every decision · as of {snapshot}
         </span>
       </section>
 
-      <div className="integrity">
+      <div className="integrity reveal" style={{ "--i": 1 } as React.CSSProperties}>
         <span className="it num">
-          <em>hard cap</em>
-          {cap === null ? "no rules — nothing can be authorized" : `${money(cap)} · no override`}
+          <em>your limit</em>
+          {cap === null ? "no rules yet, so nothing can be approved" : `${money(cap)} · can't be raised`}
         </span>
         <span className="it num">
-          <em>counting</em>verified captures only
+          <em>counting</em>confirmed payments only
         </span>
         <span className="it num">
-          <em>engine</em>deterministic · no approvals from the model
+          <em>decisions</em>by your rules, never by the app
         </span>
         <span className="it num">
-          <em>record</em>written once · approved once · re-read only
+          <em>record</em>saved once · never edited
         </span>
       </div>
 
-      <section className="record">
-        <div className="colhead">
-          <span>Request</span>
-          <span>Payee / purpose</span>
-          <span>Decision trail</span>
-          <span className="amt">Amount</span>
-          <span>Outcome</span>
-          <span>Proof</span>
-        </div>
+      <section className="record reveal" style={{ "--i": 2 } as React.CSSProperties}>
+        {ordered.length > 0 ? (
+          <div className="colhead">
+            <span>When</span>
+            <span>Who it&apos;s for</span>
+            <span>What happened</span>
+            <span className="amt">Amount</span>
+            <span>Where it stands</span>
+            <span>Proof</span>
+          </div>
+        ) : null}
 
         {ordered.map((record) => {
           const ruling = latestEvaluation(record.evaluations);
@@ -234,41 +236,46 @@ export default async function RecordPage() {
                     <br />
                   </>
                 ) : null}
-                fp {shortFingerprint(record.fingerprint)}
+                seal {shortFingerprint(record.fingerprint)}
               </div>
             </div>
           );
         })}
 
         {ordered.length === 0 ? (
-          <div className="row">
-            <div className="who">
-              <div className="payee">No requests yet</div>
-              <div className="purpose">
-                the register is empty — the agent has proposed nothing
-              </div>
-            </div>
+          <div className="empty">
+            <h2>Nothing recorded yet.</h2>
+            <p>
+              Once the assistant suggests a purchase and it is decided, the full
+              history lands here. This page is your paper trail: every decision, who
+              made it, and when.
+            </p>
+            <Link href="/" className="next">
+              Go to your purchases to ask the assistant about one.
+            </Link>
           </div>
         ) : null}
 
-        <div className="totals num">
-          <span>
-            {records.length} requests · {outstanding} outstanding{" "}
-            <b>
-              ({awaiting} awaiting · {executing} executing)
-            </b>
-          </span>
-          <span>
-            captured <b>{money(captured)}</b> · reserved <b>{money(reserved)}</b> · cap{" "}
-            <b>{cap === null ? "—" : money(cap)}</b> · headroom{" "}
-            <b className="hl">{headroom === null ? "—" : money(headroom)}</b>
-          </span>
-        </div>
+        {ordered.length > 0 ? (
+          <div className="totals num">
+            <span>
+              {records.length} purchases · {outstanding} still in progress{" "}
+              <b>
+                ({awaiting} waiting on you · {executing} paying)
+              </b>
+            </span>
+            <span>
+              spent <b>{money(captured)}</b> · set aside <b>{money(reserved)}</b> · limit{" "}
+              <b>{cap === null ? "none" : money(cap)}</b> · left{" "}
+              <b className="hl">{headroom === null ? "none" : money(headroom)}</b>
+            </span>
+          </div>
+        ) : null}
       </section>
 
-      <div className="note">
-        Live sandbox data · rule set {budget.rules?.ruleVersion ?? "none"} · every row is immutable
-        once written · the register re-reads the ledger on every load
+      <div className="note reveal" style={{ "--i": 3 } as React.CSSProperties}>
+        Live sandbox data · your rules {budget.rules?.ruleVersion ?? "none"} · every row is
+        saved once and never edited · this page reads the record fresh each time
       </div>
     </>
   );

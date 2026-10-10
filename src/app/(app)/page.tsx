@@ -8,21 +8,14 @@ import {
   checkText,
   checkTextForStatus,
   chipFor,
+  decisionWord,
   isReserved,
   latestEvaluation,
   stateWord,
 } from "@/lib/vocab";
-import type { AuthorizationDecision } from "@/core/authorization";
 
 // Live data on every load — this screen IS the current state of the gate.
 export const dynamic = "force-dynamic";
-
-/** Plain standing word for a decision, for the quiet footer strip. */
-function decisionWord(decision: AuthorizationDecision): string {
-  if (decision === "ALLOW") return "allowed";
-  if (decision === "ASK") return "needs you";
-  return "blocked";
-}
 
 function askMessage(ask: string | undefined): { text: string; error: boolean } | null {
   switch (ask) {

@@ -150,6 +150,13 @@ export function reasonSlug(reasonCode: ReasonCode): string {
   return reasonCode.toLowerCase().replace(/_/g, "-");
 }
 
+/** The engine's verdict word in plain everyday language. */
+export function decisionWord(decision: AuthorizationDecision): string {
+  if (decision === "ALLOW") return "allowed";
+  if (decision === "ASK") return "needs you";
+  return "blocked";
+}
+
 /** Statuses whose amount still counts against the month (not yet captured or closed). */
 export function isReserved(status: RequestStatus): boolean {
   return (

@@ -606,6 +606,21 @@ nav .active::before {
 .row { transition: background-color var(--dur-short) var(--ease-out); }
 .row:focus-within { background: var(--surface); }
 
+/* Case-file controls: press, hover and a clear focus ring. */
+.back, .slip .prime, .slip .decline, .stampbox .prime, .stampbox .rec, .record a {
+  transition:
+    background-color var(--dur-short) var(--ease-out),
+    border-color var(--dur-short) var(--ease-out),
+    color var(--dur-short) var(--ease-out),
+    transform var(--dur-micro) var(--ease-out);
+}
+.slip .prime:active, .slip .decline:active, .stampbox .prime:active { transform: translateY(1px); }
+.slip .prime:disabled, .slip .decline:disabled, .stampbox .prime:disabled { opacity: 0.7; cursor: default; }
+.back:focus-visible, .slip .prime:focus-visible, .slip .decline:focus-visible,
+.stampbox .prime:focus-visible, .stampbox .rec:focus-visible, .record a:focus-visible {
+  outline: 2px solid var(--seal); outline-offset: 3px;
+}
+
 /* Ask the assistant (manual-only proposals). */
 .askbox { margin: 34px 0 0; padding: 20px 22px; border: 1px solid var(--line); background: var(--surface); }
 .askbox label {

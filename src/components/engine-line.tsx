@@ -21,16 +21,16 @@ export async function EngineLine() {
       }
     }
 
-    const ruleSet = budget.rules?.ruleVersion ?? "none — nothing can be authorized";
+    const ruleSet = budget.rules?.ruleVersion ?? "none set, so nothing can be approved";
 
     return (
       <div className="engine">
         <span className="dot" />
         <span>
-          <span className="tag">engine</span>
-          deterministic authorizer · rules read fresh, never cached
-          {evaluated ? <> · evaluated {fmtClockUTC(evaluated)}</> : null}
-          {" · "}rule set <span className="tag">{ruleSet}</span>
+          <span className="tag">rules</span>
+          checked fresh every time, never from memory
+          {evaluated ? <> · last decision {fmtClockUTC(evaluated)}</> : null}
+          {" · "}your rules <span className="tag">{ruleSet}</span>
         </span>
       </div>
     );
@@ -39,7 +39,7 @@ export async function EngineLine() {
       <div className="engine">
         <span className="dot" />
         <span>
-          <span className="tag">engine</span> offline · database unreachable
+          <span className="tag">rules</span> offline · can&apos;t reach your records right now
         </span>
       </div>
     );

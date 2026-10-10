@@ -23,9 +23,9 @@ const m = IBM_Plex_Mono({
 });
 
 export const metadata = {
-  title: "AnchorGate — authorization for AI spending",
+  title: "AnchorGate · AI spending, under your rules",
   description:
-    "The AI proposes, the gate decides. A hard monthly cap and per-purchase limits no model can move.",
+    "The assistant suggests purchases, your rules decide. A hard monthly limit and per-purchase lines no app can move.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

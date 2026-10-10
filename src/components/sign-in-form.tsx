@@ -23,14 +23,14 @@ export function SignInForm() {
   return (
     <div className="slip">
       <h2>Sign in</h2>
-      <div className="sub">single-owner gate</div>
+      <div className="sub">Owner only</div>
 
       {state.status === "sent" ? (
         <div className="sent" role="status">
           <p className="sent-h">Check your inbox</p>
           <p>
-            A one-time sign-in link is on its way. Open it on this device — it
-            expires shortly and can be used once.
+            A one-time sign-in link is on its way. Open it on this device. It
+            expires soon and works only once.
           </p>
         </div>
       ) : (
@@ -68,9 +68,8 @@ export function SignInForm() {
       </form>
 
       <div className="slip-note">
-        Owner-only. A one-time link lands in your inbox; no password is stored
-        here. Sessions expire after 30 minutes idle — the gate never approves
-        itself.
+        Owner only. We email you a one-time link and never store a password. For
+        your safety, you are signed out after 30 minutes of no activity.
       </div>
     </div>
   );

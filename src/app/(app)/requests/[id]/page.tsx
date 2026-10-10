@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { approveAndPayRequest, declineRequest, payRequest, reconcileRequest } from "./actions";
+import { approveAndPayRequest, payRequest, reconcileRequest } from "./actions";
 import { displayId, fmtClock, money, shortRef } from "@/lib/format";
 import { getService } from "@/lib/service";
 import { verifyOwner } from "@/lib/auth/dal";
-import { chipFor, isReserved, latestEvaluation, reasonSlug } from "@/lib/vocab";
+import { chipFor, decisionWord, isReserved, latestEvaluation, reasonPhrase } from "@/lib/vocab";
+import { DecisionButtons, PendingButton } from "@/components/decision-buttons";
 import type { ReasonCode } from "@/core/authorization";
 import type { PurchaseRecord, RequestStatus } from "@/core/purchases";
 import type { SpendingEvent } from "@/core/spending";
@@ -50,8 +51,8 @@ async function buildRows(args: {
   if (rulesCapture === null) {
     return {
       rows: [{
-        rule: "Rule set",
-        det: "no active rule set — the gate cannot authorize anything",
+        rule: "Your rules",
+        det: "no rules are set yet, so nothing can be approved",
         verdict: "deny",
       }],
       failing: 0,
@@ -68,31 +69,31 @@ async function buildRows(args: {
 
   const rows: Row[] = [
     {
-      rule: "Currency matches the statute",
-      det: `${currency} → ${rulesCurrency ?? "—"}`,
+      rule: "The currency matches your rules",
+      det: `${currency} · your rules allow ${rulesCurrency ?? "nothing"}`,
       verdict: bench(3),
     },
     {
-      rule: "Category is permitted",
-      det: `${record.request.category} ∈ ${rulesCategories.join(", ") || "— (empty list permits nothing)"}`,
+      rule: "It is an allowed category",
+      det: `${record.request.category} · your list: ${rulesCategories.join(", ") || "empty, so nothing is allowed"}`,
       verdict: bench(4),
     },
     {
-      rule: "Monthly cap still holds after capture",
+      rule: "There is room under your monthly limit",
       det:
         record.status === "EXECUTED"
-          ? `${money(spentMinor)} ≤ ${money(rulesCapture)} · already counted`
-          : `${money(spentMinor + amount)} ≤ ${money(rulesCapture)} · counted only from a verified capture`,
+          ? `${money(spentMinor)} of ${money(rulesCapture)} used · already counted`
+          : `${money(spentMinor + amount)} of ${money(rulesCapture)} would be used · counts once confirmed`,
       verdict: bench(5),
     },
     {
-      rule: "Under the per-purchase auto limit",
-      det: `${money(amount)} ≤ ${money(perPurchaseLimit ?? 0)}`,
+      rule: "It is under your auto-approve amount",
+      det: `${money(amount)} · your auto line is ${money(perPurchaseLimit ?? 0)}`,
       verdict: bench(6),
     },
     {
-      rule: "Payee is known",
-      det: `${record.request.payee} ${knownPayees.has(record.request.payee) ? "∈" : "∉"} known payees · rule: new payee needs a human`,
+      rule: "You have paid this seller before",
+      det: `${record.request.payee} is ${knownPayees.has(record.request.payee) ? "a seller you know" : "a new seller, so it needs your okay"}`,
       verdict: bench(7),
     },
   ];
@@ -101,13 +102,13 @@ async function buildRows(args: {
 }
 
 const H = {
-  PENDING_APPROVAL: "A purchase <pay>waiting on your word.</pay>",
-  APPROVED: "Approved — <pay>your word, on the record.</pay>",
-  AUTHORIZED: "Authorized — <pay>within limits, ready to move.</pay>",
-  PENDING_SETTLEMENT: "Capturing — <pay>settling with the provider.</pay>",
-  EXECUTED: "<pay>Allowed, paid, on the record.</pay>",
-  REJECTED: "Closed — <pay>on your word.</pay>",
-  DENIED: "Refused — <pay>by the rule, not the model.</pay>",
+  PENDING_APPROVAL: "This purchase is <pay>waiting on you.</pay>",
+  APPROVED: "You approved this. <pay>It is on the record.</pay>",
+  AUTHORIZED: "Ready to pay. <pay>It is within your limits.</pay>",
+  PENDING_SETTLEMENT: "Paying now. <pay>Confirming with PayPal.</pay>",
+  EXECUTED: "<pay>Paid, and on the record.</pay>",
+  REJECTED: "You declined this. <pay>Nothing was paid.</pay>",
+  DENIED: "Your rules said no. <pay>Not the app, your rules.</pay>",
 } as const;
 
 export default async function RequestDetailPage({
@@ -185,14 +186,14 @@ export default async function RequestDetailPage({
 
   return (
     <>
-      <Link href="/" className="back">
-        ← Today&apos;s register
+      <Link href="/" className="back reveal" style={{ "--i": 0 } as React.CSSProperties}>
+        ← Back to your purchases
       </Link>
 
       {/* case header */}
-      <section className="case-head">
+      <section className="case-head reveal" style={{ "--i": 1 } as React.CSSProperties}>
         <div>
-          <div className="ref num">Request · {displayId(id)} · {day}</div>
+          <div className="ref num">Purchase · {displayId(id)} · {day}</div>
           <h1
             dangerouslySetInnerHTML={{
               __html: headline.replace(
@@ -211,51 +212,51 @@ export default async function RequestDetailPage({
               {chipFor(decision, status)!.label}
             </span>
           ) : (
-            <span className="waiting">rejected · not a verdict chip</span>
+            <span className="waiting">you said no</span>
           )}
           {status === "PENDING_APPROVAL" ? (
             <>
-              <span className="waiting num">awaiting you · since <span className="open-ask">{fmtClock(record.createdAt)}</span></span>
-              <span className="waiting num">proposed by <span className="open-ask">{record.request.agentId}</span></span>
+              <span className="waiting num">waiting on you · since <span className="open-ask">{fmtClock(record.createdAt)}</span></span>
+              <span className="waiting num">suggested by <span className="open-ask">the assistant</span></span>
             </>
           ) : status === "EXECUTED" ? (
             <>
-              <span className="waiting num">decided <span className="open-allow">{approval ? fmtClock(approval.approvedAt) : "—"}</span> · by {approval?.approvedBy ?? "owner"}</span>
-              <span className="waiting num">captured {fmtClock(captureEvent?.occurredAt ?? record.createdAt)} · verified once</span>
+              <span className="waiting num">you approved <span className="open-allow">{approval ? fmtClock(approval.approvedAt) : ""}</span> · by {approval?.approvedBy ?? "owner"}</span>
+              <span className="waiting num">paid {fmtClock(captureEvent?.occurredAt ?? record.createdAt)} · confirmed</span>
             </>
           ) : (
             <>
               <span className="waiting num">{stateWordLine(status)}</span>
-              <span className="waiting num">proposed by {record.request.agentId}</span>
+              <span className="waiting num">suggested by the assistant</span>
             </>
           )}
         </div>
       </section>
 
       {/* file + rail */}
-      <div className="body">
+      <div className="body reveal" style={{ "--i": 2 } as React.CSSProperties}>
         <div>
           {/* the facts */}
           <section className="facts">
-            <div className="label">The file</div>
-            <div className="frow"><span className="k">payee</span><span className="v num">{record.request.payee}</span></div>
-            <div className="frow"><span className="k">purpose</span><span className="v">{record.request.category.toLowerCase()} · {record.request.purpose}</span></div>
+            <div className="label">The details</div>
+            <div className="frow"><span className="k">seller</span><span className="v num">{record.request.payee}</span></div>
+            <div className="frow"><span className="k">what it&apos;s for</span><span className="v">{record.request.category.toLowerCase()} · {record.request.purpose}</span></div>
             <div className="frow"><span className="k">category</span><span className="v">{record.request.category}</span></div>
             <div className="frow"><span className="k">amount</span><span className="v num">{record.request.currency} {money(record.request.amountMinor)}</span></div>
             <div className="frow"><span className="k">currency</span><span className="v">{record.request.currency}</span></div>
-            <div className="frow"><span className="k">agent</span><span className="v">{record.request.agentId}</span></div>
+            <div className="frow"><span className="k">assistant</span><span className="v">{record.request.agentId}</span></div>
             {approval ? (
               <div className="frow"><span className="k">approved by</span><span className="v num">{approval.approvedBy} · {fmtClock(approval.approvedAt)}</span></div>
             ) : null}
             {rejection ? (
-              <div className="frow"><span className="k">rejected by</span><span className="v num">{rejection.rejectedBy} · {fmtClock(rejection.rejectedAt)}</span></div>
+              <div className="frow"><span className="k">declined by</span><span className="v num">{rejection.rejectedBy} · {fmtClock(rejection.rejectedAt)}</span></div>
             ) : null}
             {captureRefEvent ? (
               <div className="frow">
-                <span className="k">capture ref</span>
+                <span className="k">payment ref</span>
                 <span className="v num">
                   <span className="fp">{shortRef(captureRefEvent.providerRef ?? captureRefEvent.id)}</span>{" "}
-                  <span className="fp">(PayPal{captureEvent ? "" : " · pending"} · full in the Record)</span>
+                  <span className="fp">(PayPal{captureEvent ? "" : " · pending"} · full copy in the record)</span>
                 </span>
               </div>
             ) : null}
@@ -263,7 +264,7 @@ export default async function RequestDetailPage({
               <span className="k">fingerprint</span>
               <span className="v num">
                 <span className="fp">{record.fingerprint.slice(0, 8)}…{record.fingerprint.slice(-4)}</span>{" "}
-                <span className="fp">(full in the Record)</span>
+                <span className="fp">(full copy in the record)</span>
               </span>
             </div>
           </section>
@@ -271,7 +272,7 @@ export default async function RequestDetailPage({
           {/* the check */}
           <section className="check">
             <div className="label">
-              The check · re-run at approval, and again at execution
+              The checks · run again when you approve, and again before it pays
             </div>
 
             {rows.map((row) => (
@@ -281,23 +282,24 @@ export default async function RequestDetailPage({
                   <div className="det num">{row.det}</div>
                 </div>
                 <span className={`result num ${row.verdict === "pass" ? "pass" : row.verdict === "ask" ? "ask-x" : row.verdict === "deny" ? "deny" : "nr"}`}>
-                  {row.verdict === "nr" ? "—" : row.verdict === "ask" ? "ask" : row.verdict === "deny" ? "deny" : "pass"}
+                  {row.verdict === "nr" ? "not reached" : row.verdict === "ask" ? "needs you" : row.verdict === "deny" ? "no" : "yes"}
                 </span>
               </div>
             ))}
 
             <div className="verdict">
-              <span className="label">Verdict</span>
+              <span className="label">The decision</span>
               <span className="vd num">
-                <b>{ruling?.decision.decision ?? "—"}</b> · {ruling?.decision.reasonCode ?? "—"} · rule set {ruling?.decision.ruleVersion ?? rules?.ruleVersion ?? "—"}
+                <b>{ruling ? decisionWord(ruling.decision.decision) : "none yet"}</b>
+                {ruling ? ` · ${reasonPhrase(ruling.decision.reasonCode)}` : ""} · your rules {ruling?.decision.ruleVersion ?? rules?.ruleVersion ?? "none"}
               </span>
             </div>
             <div className="story num">
-              Re-run just now, at {fmtClock(new Date().toISOString())} → <b>{now.decision}</b> · {now.reasonCode} (the gate evaluates fresh, every time)
+              Checked again just now at {fmtClock(new Date().toISOString())}: <b>{decisionWord(now.decision)}</b> · {reasonPhrase(now.reasonCode)}. Your rules are checked fresh every time.
             </div>
             {approval && firstEval && ruling && firstEval.decision.decision !== ruling.decision.decision ? (
               <div className="story num">
-                Proposal was {firstEval.decision.decision} · {firstEval.decision.reasonCode}; the gate now reads {ruling.decision.decision} · {ruling.decision.reasonCode} — the facts moved and a human cleared the ASK. No rule was bent.
+                When first suggested it read {decisionWord(firstEval.decision.decision)} · {reasonPhrase(firstEval.decision.reasonCode)}. Now it reads {decisionWord(ruling.decision.decision)} · {reasonPhrase(ruling.decision.reasonCode)}. The situation changed and you approved it. No rule was bypassed.
               </div>
             ) : null}
           </section>
@@ -309,24 +311,22 @@ export default async function RequestDetailPage({
             <form action={approveAndPayRequest} className="slip">
               <input type="hidden" name="id" value={id} />
               <h2 className="slip-title">Your decision</h2>
-              <p className="slip-sub">Only you can move this one. The engine never decides, and it never approves itself.</p>
-              <button className="prime" type="submit">
-                Approve &amp; pay<span className="amt num">{record.request.currency} {money(record.request.amountMinor)} →</span>
-              </button>
-              <button className="decline" type="submit" formAction={declineRequest}>
-                Decline
-              </button>
+              <p className="slip-sub">Only you can decide this one. The app never approves on its own.</p>
+              <DecisionButtons
+                currency={record.request.currency}
+                amount={money(record.request.amountMinor)}
+              />
               <div className="note">
-                <span className="k">Recheck:</span> the gate re-runs the whole file before anything sticks.<br />
-                <span className="k">Cap:</span> {rules ? money(cap ?? 0) : "—"} is a hard limit — no approval can override it.<br />
-                <span className="k">Pay:</span> charged to your saved card over PayPal Sandbox.<br />
-                <span className="k">Counting:</span> nothing counts until the provider verifies the capture.
+                <span className="k">Double-check:</span> everything is checked again before it becomes final.<br />
+                <span className="k">Your limit:</span> {rules ? money(cap ?? 0) : "none"} is a hard ceiling. No approval can go over it.<br />
+                <span className="k">Payment:</span> charged to your saved card through PayPal Sandbox.<br />
+                <span className="k">Counting:</span> it only counts against your limit once PayPal confirms it.
               </div>
               <div className="posture">
-                <div className="pro">Current posture</div>
-                <div className="pl num"><span>captured</span><b>{money(captured)}</b></div>
-                <div className="pl num"><span>reserved</span><b>{money(reserved)}</b></div>
-                <div className="pl num"><span>headroom</span><b className="hl">{money(headroom ?? 0)}</b></div>
+                <div className="pro">Where you stand</div>
+                <div className="pl num"><span>spent</span><b>{money(captured)}</b></div>
+                <div className="pl num"><span>set aside</span><b>{money(reserved)}</b></div>
+                <div className="pl num"><span>left</span><b className="hl">{money(headroom ?? 0)}</b></div>
               </div>
             </form>
           ) : status === "EXECUTED" ? (
@@ -337,84 +337,90 @@ export default async function RequestDetailPage({
                   <span className="sd">AnchorGate · {day} · No. {displayId(id)}</span>
                 </span>
               </div>
-              <div className="what">Nothing further needed.</div>
+              <div className="what">Nothing else to do.</div>
               <div className="rows allowrows">
-                <div className="pl num"><span>approved by</span><b>{approval?.approvedBy ?? "owner"} · {approval ? fmtClock(approval.approvedAt) : "—"}</b></div>
-                <div className="pl num"><span>recheck at approval</span><b>pass</b></div>
-                <div className="pl num"><span>recheck at execution</span><b>{preExecEval ? "pass" : "—"}</b></div>
-                <div className="pl num"><span>captured &amp; verified</span><b>{captureEvent ? fmtClock(captureEvent.occurredAt) : "—"}</b></div>
+                <div className="pl num"><span>approved by</span><b>{approval?.approvedBy ?? "owner"} · {approval ? fmtClock(approval.approvedAt) : ""}</b></div>
+                <div className="pl num"><span>checked when you approved</span><b>yes</b></div>
+                <div className="pl num"><span>checked before paying</span><b>{preExecEval ? "yes" : "not needed"}</b></div>
+                <div className="pl num"><span>paid and confirmed</span><b>{captureEvent ? fmtClock(captureEvent.occurredAt) : "pending"}</b></div>
                 <div className="pl num"><span>counted once</span><b>yes</b></div>
               </div>
-              <Link href="/record" className="rec">Row in the Record →</Link>
+              <Link href="/record" className="rec">See it in the record →</Link>
             </div>
           ) : status === "APPROVED" || status === "AUTHORIZED" ? (
             <div className="stampbox">
-              <div className="what">Approved — ready to pay.</div>
+              <div className="what">Approved. Ready to pay.</div>
               <div className="rows">
-                <div className="pl num"><span>approved by</span><b>{approval?.approvedBy ?? "owner"} · {approval ? fmtClock(approval.approvedAt) : "—"}</b></div>
-                <div className="pl num"><span>recheck at approval</span><b>{record.evaluations.some((e) => e.context === "APPROVAL") ? "pass" : "—"}</b></div>
-                <div className="pl num"><span>counted</span><b>not yet — counting starts at the capture</b></div>
+                <div className="pl num"><span>approved by</span><b>{approval?.approvedBy ?? "owner"} · {approval ? fmtClock(approval.approvedAt) : ""}</b></div>
+                <div className="pl num"><span>checked when you approved</span><b>{record.evaluations.some((e) => e.context === "APPROVAL") ? "yes" : "not yet"}</b></div>
+                <div className="pl num"><span>counted</span><b>not yet · it counts once PayPal confirms</b></div>
                 {captureFailedEvent ? (
-                  <div className="pl num"><span>last attempt</span><b>{captureFailedEvent.note ?? "the provider declined it"}</b></div>
+                  <div className="pl num"><span>last try</span><b>{captureFailedEvent.note ?? "PayPal declined it"}</b></div>
                 ) : null}
               </div>
               <form action={payRequest}>
                 <input type="hidden" name="id" value={id} />
-                <button className="prime" type="submit">
-                  {captureFailedEvent ? "Try payment again" : "Pay"}<span className="amt num">{record.request.currency} {money(record.request.amountMinor)} →</span>
-                </button>
+                <PendingButton
+                  className="prime"
+                  busy="Paying…"
+                  idle={
+                    <>
+                      {captureFailedEvent ? "Try payment again" : "Pay"}
+                      <span className="amt num">{record.request.currency} {money(record.request.amountMinor)}</span>
+                    </>
+                  }
+                />
               </form>
-              <Link href="/" className="rec">Back to the register →</Link>
+              <Link href="/" className="rec">Back to your purchases →</Link>
             </div>
           ) : status === "PENDING_SETTLEMENT" ? (
             <div className="stampbox">
-              <div className="what">Capturing — settling with the provider.</div>
+              <div className="what">Paying now. Confirming with PayPal.</div>
               <div className="rows">
-                <div className="pl num"><span>initiated</span><b>{pendingEvent ? fmtClock(pendingEvent.occurredAt) : "—"}</b></div>
-                <div className="pl num"><span>capture ref</span><b className="hl">{pendingEvent?.providerRef ? shortRef(pendingEvent.providerRef) : "—"}</b></div>
-                <div className="pl num"><span>counted</span><b>nothing yet — not until it settles</b></div>
+                <div className="pl num"><span>started</span><b>{pendingEvent ? fmtClock(pendingEvent.occurredAt) : ""}</b></div>
+                <div className="pl num"><span>payment ref</span><b className="hl">{pendingEvent?.providerRef ? shortRef(pendingEvent.providerRef) : "pending"}</b></div>
+                <div className="pl num"><span>counted</span><b>nothing yet · not until it confirms</b></div>
               </div>
               <form action={reconcileRequest}>
                 <input type="hidden" name="id" value={id} />
-                <button className="prime" type="submit">Re-check with PayPal</button>
+                <PendingButton className="prime" busy="Checking…" idle="Check with PayPal again" />
               </form>
-              <Link href="/" className="rec">Back to the register →</Link>
+              <Link href="/" className="rec">Back to your purchases →</Link>
             </div>
           ) : status === "REJECTED" ? (
             <div className="stampbox">
-              <div className="what">Closed on your word.</div>
+              <div className="what">You declined this.</div>
               <div className="rows">
-                <div className="pl num"><span>rejected by</span><b>{rejection?.rejectedBy ?? "owner"}</b></div>
-                <div className="pl num"><span>at</span><b>{rejection ? fmtClock(rejection.rejectedAt) : "—"}</b></div>
+                <div className="pl num"><span>declined by</span><b>{rejection?.rejectedBy ?? "owner"}</b></div>
+                <div className="pl num"><span>when</span><b>{rejection ? fmtClock(rejection.rejectedAt) : ""}</b></div>
                 {rejection?.reason ? (
                   <div className="pl num"><span>reason</span><b>{rejection.reason}</b></div>
                 ) : null}
               </div>
-              <Link href="/" className="rec">Back to the register →</Link>
+              <Link href="/" className="rec">Back to your purchases →</Link>
             </div>
           ) : (
             <div className="stampbox">
-              <div className="what">Refused by the rule.</div>
+              <div className="what">Your rules said no.</div>
               <div className="rows">
-                <div className="pl num"><span>reason</span><b>{ruling?.decision.reasonCode ?? "—"}</b></div>
-                <div className="pl num"><span>why</span><b>{ruling?.decision.reason ?? "—"}</b></div>
-                <div className="pl num"><span>rule set</span><b>{ruling?.decision.ruleVersion ?? rules?.ruleVersion ?? "—"}</b></div>
-                <div className="pl num"><span>headroom then</span><b>{money(Math.max((cap ?? 0) - captured, 0))}</b></div>
+                <div className="pl num"><span>why</span><b>{ruling ? reasonPhrase(ruling.decision.reasonCode) : "your rules said no"}</b></div>
+                <div className="pl num"><span>your rules</span><b>{ruling?.decision.ruleVersion ?? rules?.ruleVersion ?? "none"}</b></div>
+                <div className="pl num"><span>room left then</span><b>{money(Math.max((cap ?? 0) - captured, 0))}</b></div>
               </div>
-              <Link href="/" className="rec">Back to the register →</Link>
+              <Link href="/" className="rec">Back to your purchases →</Link>
             </div>
           )}
         </aside>
       </div>
 
       {/* receipt strip — the print moment */}
-      <section className="receipt">
-        <div className="rh">Receipt strip · request {displayId(id)} · {stateWordLine(status)}</div>
+      <section className="receipt reveal" style={{ "--i": 3 } as React.CSSProperties}>
+        <div className="rh">Your receipt · purchase {displayId(id)} · {stateWordLine(status)}</div>
 
         <div className="st">
-          <div className="sn">01 · Proposed</div>
+          <div className="sn">01 · Suggested</div>
           <div className="sv">
-            {record.request.agentId} filed the request
+            The assistant suggested it
             <time>{fmtClock(record.createdAt)}</time>
           </div>
         </div>
@@ -422,14 +428,14 @@ export default async function RequestDetailPage({
         <div className="st">
           <div className="sn">02 · Decided</div>
           <div className="sv">
-            engine {firstEval?.decision.decision === "ALLOW" ? "allowed it" : firstEval?.decision.decision === "DENY" ? "refused it" : "asked, kept its hands off"}
-            <time>{firstEval ? `${fmtClock(firstEval.evaluatedAt)} · ${reasonSlug(firstEval.decision.reasonCode)}` : "—"}</time>
+            {firstEval?.decision.decision === "ALLOW" ? "Your rules allowed it" : firstEval?.decision.decision === "DENY" ? "Your rules refused it" : "Your rules asked you first"}
+            <time>{firstEval ? fmtClock(firstEval.evaluatedAt) : ""}</time>
           </div>
         </div>
 
         {status === "PENDING_APPROVAL" ? (
           <div className="st">
-            <div className="sn">03 · Submitted — awaiting you</div>
+            <div className="sn">03 · Waiting on you</div>
             <div className="sv askb">
               no money has moved
               <time>open since {fmtClock(record.createdAt)}</time>
@@ -439,31 +445,31 @@ export default async function RequestDetailPage({
           <div className="st">
             <div className="sn">03 · Approved</div>
             <div className="sv">
-              your word, on the record
-              <time>{approval ? fmtClock(approval.approvedAt) : "—"} · by {approval?.approvedBy ?? "owner"}</time>
+              you approved it
+              <time>{approval ? fmtClock(approval.approvedAt) : ""} · by {approval?.approvedBy ?? "owner"}</time>
             </div>
           </div>
         ) : status === "EXECUTED" ? (
           <div className="st">
-            <div className="sn">03 · Submitted</div>
+            <div className="sn">03 · Sent to pay</div>
             <div className="sv">
-              recheck passed · sent to provider
-              <time>{preExecEval ? fmtClock(preExecEval.evaluatedAt) : "—"}</time>
+              checked again · sent to PayPal
+              <time>{preExecEval ? fmtClock(preExecEval.evaluatedAt) : ""}</time>
             </div>
           </div>
         ) : status === "DENIED" ? (
           <div className="st">
-            <div className="sn">03 · Refused — hard rule</div>
+            <div className="sn">03 · Refused by your rules</div>
             <div className="sv askb">
               nothing moved, nothing counted
-              <time>{ruling ? fmtClock(ruling.evaluatedAt) : "—"} · {ruling?.decision.reasonCode ?? ""}</time>
+              <time>{ruling ? fmtClock(ruling.evaluatedAt) : ""}</time>
             </div>
           </div>
         ) : (
           <div className="st">
             <div className="sn">03 · {stateWordLine(status)}</div>
             <div className="sv">
-              {rejection ? `closed on ${rejection.rejectedBy}’s word` : "status recorded"}
+              {rejection ? "you declined it" : "status recorded"}
               <time>{approval ? fmtClock(approval.approvedAt) : rejection ? fmtClock(rejection.rejectedAt) : fmtClock(record.createdAt)}</time>
             </div>
           </div>
@@ -471,7 +477,7 @@ export default async function RequestDetailPage({
 
         {status === "EXECUTED" && captureEvent ? (
           <div className="st">
-            <div className="sn">04 · Captured · verified</div>
+            <div className="sn">04 · Paid · confirmed</div>
             <div className="sv cap">
               counted exactly once
               <time>
@@ -481,25 +487,25 @@ export default async function RequestDetailPage({
           </div>
         ) : status === "PENDING_SETTLEMENT" ? (
           <div className="st">
-            <div className="sn">04 · Capturing — pending</div>
+            <div className="sn">04 · Paying · not confirmed</div>
             <div className="sv askb">
-              initiated, not yet counted
-              <time>never counted until it settles</time>
+              started, not counted yet
+              <time>not counted until it confirms</time>
             </div>
           </div>
         ) : status === "APPROVED" && captureFailedEvent ? (
           <div className="st">
-            <div className="sn">04 · Capture failed</div>
+            <div className="sn">04 · Payment failed</div>
             <div className="sv denyb">
               nothing counted
-              <time>{captureFailedEvent.note ?? "the provider declined it"}</time>
+              <time>{captureFailedEvent.note ?? "PayPal declined it"}</time>
             </div>
           </div>
         ) : (
           <div className="st">
-            <div className="sn">04 · Captured</div>
+            <div className="sn">04 · Payment</div>
             <div className="sv" style={{ color: "var(--dark-soft)" }}>
-              — once verified, counted
+              counted once PayPal confirms
               <time>not yet</time>
             </div>
           </div>
@@ -507,21 +513,21 @@ export default async function RequestDetailPage({
 
         <div className="stamp-line">
           {status === "PENDING_APPROVAL" ? (
-            <><span className="in">The stamp</span> is earned here the moment you decide — your word is the seal, the engine&apos;s check is the ink.</>
+            <><span className="in">The stamp</span> is earned the moment you decide. Your word is the seal, and your rules are the ink.</>
           ) : status === "EXECUTED" ? (
-            <>Receipt closed · nothing outstanding. The record keeps the full evaluation history — this row is immutable from here.</>
+            <>Receipt closed · nothing left to do. The record keeps the full history, and this row can never be changed.</>
           ) : status === "REJECTED" ? (
-            <>Closed on your word. Nothing moved, nothing counted.</>
+            <>You declined it. Nothing moved, nothing counted.</>
           ) : status === "DENIED" ? (
-            <>Closed by the rule — no human and no model moved it.</>
+            <>Your rules refused it. No person and no app moved it.</>
           ) : (
-            <>Approved — your word is on it. The stamp is earned when the capture verifies.</>
+            <>You approved it, and your word is on it. The stamp is earned once PayPal confirms the payment.</>
           )}
         </div>
       </section>
 
-      <div className="note">
-        Live sandbox data · decision server-side only · this screen proposes nothing
+      <div className="note reveal" style={{ "--i": 4 } as React.CSSProperties}>
+        Live sandbox data · decisions happen on the server · this screen never spends on its own
       </div>
     </>
   );
@@ -529,12 +535,12 @@ export default async function RequestDetailPage({
 
 function stateWordLine(status: RequestStatus): string {
   switch (status) {
-    case "PENDING_APPROVAL": return "awaiting";
-    case "APPROVED": return "executing";
+    case "PENDING_APPROVAL": return "waiting on you";
+    case "APPROVED": return "paying";
     case "AUTHORIZED": return "ready";
-    case "PENDING_SETTLEMENT": return "settling";
-    case "EXECUTED": return "closed";
-    case "REJECTED": return "rejected";
-    case "DENIED": return "closed";
+    case "PENDING_SETTLEMENT": return "confirming";
+    case "EXECUTED": return "paid";
+    case "REJECTED": return "you said no";
+    case "DENIED": return "blocked";
   }
 }
