@@ -55,6 +55,19 @@ A proposal, a recommendation, or generated code is **not** a decision.
   **not** a defect in our code. The correct behavior is to treat it as a real
   "initiated but not settled" state: record it, do **not** count it, and
   reconcile later (see Decisions).
+- **Supabase security advisor warnings (observed, 10 oct 2026).** The project's
+  advisor flags **RLS disabled** on the five public tables (`spending_events`,
+  `purchase_requests`, `evaluations`, `spending_rules`, `saved_payment_methods`)
+  and **leaked-password protection disabled** on Auth. Reading: RLS is the lock on
+  Supabase's auto-generated REST API, which is opened with the **anon key** (a
+  public key that ships in the client and will sit in the public repo). With RLS
+  off, that API could read or, depending on the table, write those tables for
+  anyone holding the key. It does **not** affect the running app, which reads and
+  writes through a direct Postgres connection (Drizzle) that bypasses RLS, so
+  enabling RLS is a non-breaking, deny-by-default fix. Leaked-password protection
+  is largely moot here because sign-in is magic-link only (no passwords). Owner
+  was told; the RLS fix is **pending owner go** (one statement per table), or keep
+  the Supabase project private until after judging.
 
 ------------------------------------------------------------------------
 
@@ -259,6 +272,25 @@ at useful decision points rather than all at once.
 - First-time user journey and the essential screens for the MVP.
 - Whether initial agent behavior is a narrowly scripted demo or a more
   open-ended purchase-proposal flow.
+- **Gate rows are not all clickable (owner-flagged, 10 oct 2026; ✅ resolved).**
+  On the Gate ledger only a `PENDING_APPROVAL` row rendered a **Decide** link, so
+  blocked, paid, approved, and declined rows could not be opened on click (the
+  Record page already linked its rows). Fixed: the whole Gate row is now a link
+  to its case file (a stretched link over the row, `aria-label`ed), pending rows
+  keep the prominent **Decide** action above it, and other rows show a quiet
+  **Open** affordance. Verified live: clicking the Figma row opened
+  `/requests/16dfea0d-…`.
+- **Ask box should show the check order and never fail silently (owner
+  suggestion, 10 oct 2026).** The owner asked the assistant for "$100 BTC" and
+  nothing was filed or shown, because a request must first pass a valid request,
+  a positive amount, an allowed currency, and an allowed category; a crypto/BTC
+  ask fails at the front door, so no row is created. The owner proposed showing
+  the check order near the ask box, with the word **rules** linking to the Rules
+  page, plus a plain reason when a request is refused. The Rules page already
+  states the order ("1 valid request · 2 positive amount · 3 right currency · 4
+  allowed category · 5 monthly limit · 6 auto-approve line · 7 known seller · 8
+  allow"). Proposed fix (not built): a compact version under the ask box and a
+  visible refusal message. Awaiting owner go.
 
 ### Authorization and accounting
 
@@ -346,6 +378,45 @@ were used).
   decided. The framework half of the decision (Vercel AI SDK) is unchanged. The
   Agent Toolkit can be revisited if the agent later needs read-only merchant/
   product context; it must never include `pay_order`.
+
+------------------------------------------------------------------------
+
+## Hackathon packaging and judge access (planned, not started)
+
+Submission requirements for the **PayPal AI Hackathon** (deadline **Nov 12
+2026, 12:00pm PST**; judging Dec 1 to Dec 15; winners on or around Dec 21): a
+working project that uses the PayPal developer platform (sandbox) and AI, a text
+description, a **functional demo** judges can run or interact with, a **public
+open-source repository with a license file visible in the About section**, a
+list of tools used, and a **demo video under 3 minutes on YouTube**. Judging
+criteria (equally weighted): Technological Implementation, Design, Potential
+Impact, Innovation/Idea, and Presentation. Recorded here as the packaging plan;
+nothing below is built yet.
+
+- **Judge access (parked, 10 oct 2026).** The app is single-owner by design (one
+  allowlist address, one global rule set, one shared ledger), so a judge cannot
+  sign in with the owner's magic link. The Official Rules say judges **may judge
+  solely on the video, text, and images**, and the functional-demo requirement is
+  met by **either** complete setup and run instructions in the repo **or** a
+  hosted demo URL; a gated site must supply login credentials in its testing
+  instructions. Planned: a hosted (Vercel) build **plus** a dedicated judge
+  sign-in. Candidate signing routes, in order of preference: **Google OAuth**
+  (already half-configured in Supabase; blocked on the owner's Console steps),
+  then **email + password** for one seeded demo user, then a **pre-minted demo
+  session link**. Sandbox only, so a judge pressing Pay moves fake money.
+- **Multi-user is deferred, not denied.** Per-person rule sets, per-person
+  records, and per-person cards are a post-hackathon step; the identity decision
+  stays **owner-only** for the Nov 12 demo (see Decisions). The saved-payment
+  table already carries an owner id, so it is the first piece already shaped for
+  it.
+- **Repo packaging.** Add a public GitHub remote, ensure the license file is
+  visible in the About section (MIT already exists), write a README with setup and
+  run steps plus a `.env.example`, and remove any local-only helper scripts
+  before publishing.
+- **Prize to name on purpose.** There is an Honorable Mention, **"Best Use of
+  Agentic Commerce" ($5,000)**, that matches this product exactly, and a **"Best
+  Use of PayPal + AI"** mention. The description and the video should speak to
+  those phrases deliberately.
 
 ------------------------------------------------------------------------
 
@@ -677,3 +748,18 @@ were used).
   `brand/lockup.png` (800×200 horizontal lockup), `brand/og.png` (1200×630 social
   card), with the HTML sources kept in `brand/`. All in the owned language: seal
   blue on paper, one stroke set, no gradients, no emoji.
+- **Update (owner review of the signed-in screens; packaging plan logged).**
+  Visual verification of the live signed-in screens caught and fixed three
+  defects (committed `8a78fb5`): the budget gauge drew its set-aside segment past
+  the limit tick and collided its labels (now clamped, label drops below the bar);
+  the Gate and Record tables crushed the seller column at tablet widths (both now
+  stack into cards at 980px / 1000px); and the case-file checks panel mixed
+  today's facts with the decision-time verdicts (it now reconstructs spent and
+  known sellers as of the ruling evaluation, and the header/stamp show the
+  purchase's own day). The owner then reviewed the product and raised two items:
+  (1) on the Gate, blocked and paid rows cannot be clicked to open their case file
+  (logged under Open decisions, Product and UI); (2) how judges would exercise a
+  single-owner app. The judge-access question is logged as **Hackathon packaging
+  and judge access (planned, not started)** above. The Gate-row gap was then
+  fixed (whole-row link); the ask-box check order and the Supabase RLS fix remain
+  pending owner go.

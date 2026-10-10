@@ -11,7 +11,6 @@ import {
   decisionWord,
   isReserved,
   latestEvaluation,
-  stateWord,
 } from "@/lib/vocab";
 
 // Live data on every load — this screen IS the current state of the gate.
@@ -181,6 +180,11 @@ export default async function GatePage({
 
               return (
                 <div className="row" key={record.id}>
+                  <Link
+                    className="row-hit"
+                    href={`/requests/${record.id}`}
+                    aria-label={`Open this purchase: ${record.request.payee}`}
+                  />
                   <div className="t num">
                     <span className="id">{displayId(record.id)}</span>
                     <time>{fmtClock(record.createdAt)}</time>
@@ -214,7 +218,7 @@ export default async function GatePage({
                       Decide
                     </Link>
                   ) : (
-                    <div className="muted">{stateWord(record.status)}</div>
+                    <span className="open-link">Open</span>
                   )}
                 </div>
               );

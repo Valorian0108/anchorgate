@@ -134,8 +134,10 @@ nav .active::before {
 .row {
   display: grid; grid-template-columns: 150px 1fr 200px 130px 96px 110px; gap: 20px;
   align-items: center; padding: 18px 2px; border-bottom: 1px solid var(--line);
+  position: relative;
 }
 .row:hover { background: var(--surface); }
+.row-hit { position: absolute; inset: 0; z-index: 1; }
 
 .row .t { font-family: var(--m); font-size: 11px; color: var(--ink-soft); line-height: 1.6; }
 .row .t .id { color: var(--ink-faint); }
@@ -143,6 +145,7 @@ nav .active::before {
 
 .row .who { min-width: 0; }
 .row .who .payee { display: block; font-family: var(--g); font-weight: 600; font-size: 15px; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row:hover .who .payee { color: var(--seal-bright); }
 .row .who .purpose { font-family: var(--m); font-size: 11px; color: var(--ink-soft); margin-top: 3px; letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .row .check { font-family: var(--m); font-size: 11px; color: var(--ink-soft); letter-spacing: 0.02em; }
@@ -160,8 +163,9 @@ nav .active::before {
 .chip-deny { color: var(--deny); border-color: var(--deny); }
 .row .muted { font-family: var(--m); font-size: 10.5px; color: var(--ink-faint); letter-spacing: 0.06em; }
 
-.row .act { font-family: var(--g); font-weight: 600; font-size: 13px; color: var(--seal); white-space: nowrap; }
+.row .act { font-family: var(--g); font-weight: 600; font-size: 13px; color: var(--seal); white-space: nowrap; position: relative; z-index: 2; }
 .row .act:hover { color: var(--seal-bright); }
+.row .open-link { position: relative; z-index: 2; font-family: var(--m); font-size: 11.5px; color: var(--ink-soft); white-space: nowrap; }
 
 /* ---------------- footer record strip ---------------- */
 .record-foot {
