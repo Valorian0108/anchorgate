@@ -1,70 +1,69 @@
 /**
- * Display vocabulary: statuses, decisions, and reason codes from the core
- * rendered in the ledger language used by the approved comps.
+ * Display vocabulary: statuses, decisions, and reason codes from the core,
+ * rendered in plain, everyday language an owner can read cold.
+ *
+ * Voice rules (owner-approved): second person, active, one idea per line,
+ * no raw reason-codes on screen, no em dashes, no jargon, no fake enthusiasm.
  */
 
-import type {
-  AuthorizationDecision,
-  DecisionResult,
-  ReasonCode,
-} from "@/core/authorization";
+import type { AuthorizationDecision, ReasonCode } from "@/core/authorization";
 import type { Evaluation, RequestStatus } from "@/core/purchases";
 
-/** The one-line "what happened" for a decision — mirrors the comps exactly. */
+/** The one-line "what happened and why" for a decision, in plain words. */
 export function checkText(decision: AuthorizationDecision, reasonCode: ReasonCode): string {
-  if (decision === "ALLOW") return "within limits → allow";
+  if (decision === "ALLOW") return "Within your limits, so it can go ahead.";
   if (decision === "ASK") {
     switch (reasonCode) {
       case "APPROVAL_REQUIRED":
-        return "new payee → human";
+        return "A payee you have not paid before, so it needs your okay.";
       case "PER_PURCHASE_LIMIT_EXCEEDED":
-        return "above the line → human";
+        return "Over your auto-approve line, so it needs your okay.";
       default:
-        return "approval required → human";
+        return "It needs your okay before anything happens.";
     }
   }
   // DENY
   switch (reasonCode) {
     case "MONTHLY_CAP_EXCEEDED":
-      return "monthly cap → deny";
+      return "Over your monthly limit, so it is a no.";
     case "CATEGORY_NOT_PERMITTED":
-      return "category not permitted → deny";
+      return "Not one of your allowed categories, so it is a no.";
     case "CURRENCY_MISMATCH":
-      return "currency mismatch → deny";
+      return "Not in your currency, so it is a no.";
     case "INVALID_AMOUNT":
-      return "invalid amount → deny";
+      return "The amount does not look right, so it is a no.";
     case "INVALID_REQUEST":
-      return "invalid request → deny";
+      return "The request is missing something, so it is a no.";
     case "INVALID_RULES":
-      return "rules unreadable → deny";
+      return "Your rules could not be read, so nothing is approved.";
     case "INVALID_STATE":
-      return "state unreadable → deny";
+      return "The spending record could not be read, so nothing is approved.";
     default:
-      return "denied";
+      return "It is a no.";
   }
 }
 
-/** Short noun phrase for a reason code — for dense registers (the Record). */
+/** Short noun phrase for a reason code, for dense registers (the Record). */
 export function reasonPhrase(reasonCode: ReasonCode): string {
   switch (reasonCode) {
     case "APPROVAL_REQUIRED":
       return "new payee";
     case "PER_PURCHASE_LIMIT_EXCEEDED":
-      return "above the line";
+      return "over your auto line";
     case "MONTHLY_CAP_EXCEEDED":
-      return "monthly cap";
+      return "over monthly limit";
     case "CATEGORY_NOT_PERMITTED":
-      return "category not permitted";
+      return "category not allowed";
     case "CURRENCY_MISMATCH":
-      return "currency mismatch";
+      return "wrong currency";
     case "INVALID_AMOUNT":
-      return "invalid amount";
+      return "bad amount";
     case "INVALID_REQUEST":
-      return "invalid request";
+      return "incomplete request";
     case "INVALID_RULES":
       return "rules unreadable";
     case "INVALID_STATE":
-      return "state unreadable";
+      return "record unreadable";
     case "WITHIN_LIMITS":
       return "within limits";
     default:
@@ -76,18 +75,18 @@ export function reasonPhrase(reasonCode: ReasonCode): string {
 export function checkTextForStatus(status: RequestStatus): string {
   switch (status) {
     case "PENDING_APPROVAL":
-      return "awaiting a human";
+      return "Waiting on you.";
     case "APPROVED":
     case "AUTHORIZED":
-      return "within limits → allow";
+      return "You said yes. Getting ready to pay.";
     case "PENDING_SETTLEMENT":
-      return "capture settling";
+      return "Paid, waiting for it to settle.";
     case "EXECUTED":
-      return "verified capture";
+      return "Paid and confirmed.";
     case "REJECTED":
-      return "rejected by owner";
+      return "You said no.";
     case "DENIED":
-      return "denied";
+      return "The rules said no.";
   }
 }
 
@@ -95,28 +94,28 @@ export function checkTextForStatus(status: RequestStatus): string {
 export function stateWord(status: RequestStatus): string {
   switch (status) {
     case "PENDING_APPROVAL":
-      return "awaiting";
+      return "waiting on you";
     case "AUTHORIZED":
       return "ready";
     case "APPROVED":
-      return "executing";
+      return "paying";
     case "PENDING_SETTLEMENT":
       return "settling";
     case "EXECUTED":
-      return "verified";
+      return "paid";
     case "REJECTED":
-      return "rejected";
+      return "you said no";
     case "DENIED":
-      return "closed";
+      return "not allowed";
   }
 }
 
 /**
- * REJECTED is shown as plain text — never a verdict chip (per the constraints).
+ * REJECTED is shown as plain text, never a verdict chip (per the constraints).
  *
  * The chip shows the CURRENT standing, not the engine's recorded word: a
- * resolved request (approved / executed / settling) reads ALLOW even when the
- * recorded evaluation was ASK — the ask is exactly why the owner decided.
+ * resolved request (approved / executed / settling) reads Allowed even when the
+ * recorded evaluation was ASK, because the ask is exactly why the owner decided.
  * Pending and denied keep the recorded engine word.
  */
 export function chipFor(
@@ -130,8 +129,10 @@ export function chipFor(
       : status === "DENIED"
         ? decision ?? "DENY"
         : "ALLOW";
+  const label =
+    standing === "ALLOW" ? "Allowed" : standing === "ASK" ? "Needs you" : "Blocked";
   return {
-    label: standing,
+    label,
     className: standing === "ALLOW" ? "chip-allow" : standing === "ASK" ? "chip-ask" : "chip-deny",
   };
 }

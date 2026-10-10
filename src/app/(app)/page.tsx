@@ -2,21 +2,50 @@ import Link from "next/link";
 import { displayId, fmtClock, fmtClockUTC, money } from "@/lib/format";
 import { getService } from "@/lib/service";
 import { verifyOwner } from "@/lib/auth/dal";
+import { CountUp } from "@/components/count-up";
+import { AskBox } from "@/components/ask-box";
 import {
   checkText,
   checkTextForStatus,
   chipFor,
   isReserved,
   latestEvaluation,
-  reasonSlug,
   stateWord,
 } from "@/lib/vocab";
+import type { AuthorizationDecision } from "@/core/authorization";
 
 // Live data on every load — this screen IS the current state of the gate.
 export const dynamic = "force-dynamic";
 
-export default async function GatePage() {
+/** Plain standing word for a decision, for the quiet footer strip. */
+function decisionWord(decision: AuthorizationDecision): string {
+  if (decision === "ALLOW") return "allowed";
+  if (decision === "ASK") return "needs you";
+  return "blocked";
+}
+
+function askMessage(ask: string | undefined): { text: string; error: boolean } | null {
+  switch (ask) {
+    case "done":
+      return { text: "The assistant added it below. Review it whenever you're ready.", error: false };
+    case "empty":
+      return { text: "Type what you want looked at first, then ask.", error: false };
+    case "error":
+      return { text: "The assistant could not reach the model right now. Try again in a moment.", error: true };
+    default:
+      return null;
+  }
+}
+
+export default async function GatePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ask?: string }>;
+}) {
   await verifyOwner();
+
+  const { ask } = await searchParams;
+  const message = askMessage(ask);
 
   const service = getService();
   const budget = await service.budget();
@@ -34,6 +63,8 @@ export default async function GatePage() {
 
   const spentPct = cap === null || cap === 0 ? 0 : (captured / cap) * 100;
   const reservedPct = cap === null || cap === 0 ? 0 : (reserved / cap) * 100;
+  const cur = budget.currency ?? "USD";
+  const sym = cur === "USD" ? "$" : `${cur} `;
 
   const day = new Date()
     .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
@@ -41,26 +72,25 @@ export default async function GatePage() {
 
   const latest = records[0];
   const latestDecision = latest ? latestEvaluation(latest.evaluations) : null;
-  const firstRecord = records.find((r) => r.evaluations.length > 0);
 
   return (
     <>
       {/* budget rule */}
-      <section className="budget" aria-label="Monthly budget posture">
+      <section className="budget reveal" style={{ "--i": 0 } as React.CSSProperties} aria-label="Your money this month">
         <div className="top">
-          <span>Budget · {new Date().toLocaleDateString("en-GB", { month: "long" })}</span>
+          <span>Your money this month</span>
           {cap !== null ? (
             <span className="fig num">
-              captured <b>{money(captured)}</b>
+              spent <b>{sym}<CountUp value={captured / 100} /></b>
               <span className="sep">/</span>
-              reserved <b>{money(reserved)}</b>
+              set aside <b>{sym}<CountUp value={reserved / 100} /></b>
               <span className="sep">/</span>
-              headroom <b className="hl">{money(headroom ?? 0)}</b>
+              left <b className="hl">{sym}<CountUp value={(headroom ?? 0) / 100} /></b>
               <span className="sep">/</span>
-              cap <b>{money(cap)}</b>
+              limit <b>{sym}<CountUp value={cap / 100} /></b>
             </span>
           ) : (
-            <span className="fig num">no rules configured — nothing can be authorized</span>
+            <span className="fig num">no rules set yet, so nothing can be approved</span>
           )}
         </div>
         {cap !== null && cap > 0 ? (
@@ -77,123 +107,135 @@ export default async function GatePage() {
             <div className="spent" style={{ left: 0 }} />
             <div className="reserved" style={{ left: `${spentPct}%`, width: `${reservedPct}%` }} />
             <div className="cap" style={{ left: "100%" }} />
-            <span className="lbl sp-ent">captured</span>
+            <span className="lbl sp-ent">spent</span>
             <span className="lbl rs-ent" style={{ left: `${spentPct}%` }}>
-              reserved
+              set aside
             </span>
             <span className="lbl cp-ent" style={{ left: "100%" }}>
-              cap
+              limit
             </span>
           </div>
         ) : null}
       </section>
 
+      {/* ask the assistant (manual-only proposals) */}
+      <div className="reveal" style={{ "--i": 1 } as React.CSSProperties}>
+        <AskBox message={message} />
+      </div>
+
       {/* the register — one dominant element */}
-      <section className="register" aria-label="Today's decision register">
+      <section className="register reveal" style={{ "--i": 2 } as React.CSSProperties} aria-label="Your purchases">
         <div className="reg-head">
-          <h1>Today's register</h1>
+          <h1>Your purchases</h1>
           <span className="count num">
-            {day} · {records.length} records · {pending.length} need you
+            {day} · {records.length} total · {pending.length} waiting on you
           </span>
         </div>
 
-        <div className="ledger">
-          <div className="colhead">
-            <span>Request</span>
-            <span>Payee / purpose</span>
-            <span>Check</span>
-            <span className="amt">Amount</span>
-            <span>Status</span>
-            <span />
+        {records.length === 0 ? (
+          <div className="empty">
+            <h2>No purchases yet.</h2>
+            <p>
+              When the assistant proposes something, it lands here so you can see
+              what it wants to spend and why, before any money moves.
+            </p>
+            <span className="next">
+              Ask the assistant about your first purchase in the box above.
+            </span>
           </div>
+        ) : pending.length === 0 ? (
+          <div className="empty">
+            <h2>Nothing needs you right now.</h2>
+            <p>
+              These are your recent purchases and how each one ended. When something
+              needs your okay, it shows up here with a Decide button.
+            </p>
+            <span className="next">
+              Use the box above to ask the assistant to look at something.
+            </span>
+          </div>
+        ) : null}
 
-          {records.map((record) => {
-            const latest = latestEvaluation(record.evaluations);
-            const decision = latest?.decision.decision ?? null;
-            const reasonCode = latest?.decision.reasonCode ?? null;
-            const chip = chipFor(decision, record.status);
-            const pendingRow = record.status === "PENDING_APPROVAL";
+        {records.length > 0 ? (
+          <div className="ledger">
+            <div className="colhead">
+              <span>When</span>
+              <span>Who it's for</span>
+              <span>Why</span>
+              <span className="amt">Amount</span>
+              <span>Where it stands</span>
+              <span />
+            </div>
 
-            return (
-              <div className="row" key={record.id}>
-                <div className="t num">
-                  <span className="id">{displayId(record.id)}</span>
-                  <time>{fmtClock(record.createdAt)}</time>
-                </div>
-                <div className="who">
-                  <div className="payee">{record.request.payee}</div>
-                  <div className="purpose">
-                    {record.request.category.toLowerCase()} · {record.request.purpose}
+            {records.map((record) => {
+              const latest = latestEvaluation(record.evaluations);
+              const decision = latest?.decision.decision ?? null;
+              const chip = chipFor(decision, record.status);
+              const pendingRow = record.status === "PENDING_APPROVAL";
+
+              return (
+                <div className="row" key={record.id}>
+                  <div className="t num">
+                    <span className="id">{displayId(record.id)}</span>
+                    <time>{fmtClock(record.createdAt)}</time>
                   </div>
-                </div>
-                <div className="check">
-                  {record.status === "PENDING_APPROVAL" || record.status === "DENIED"
-                    ? (
-                        latest
-                          ? checkText(latest.decision.decision, latest.decision.reasonCode)
-                          : checkTextForStatus(record.status)
-                      )
-                    : checkTextForStatus(record.status)}
-                  {record.status === "PENDING_APPROVAL" || record.status === "DENIED"
-                    ? latest
-                      ? <span className="rc">{latest.decision.reasonCode}</span>
-                      : null
-                    : null}
-                </div>
-                <div className="amt num">
-                  <span className="cur">{record.request.currency}</span>
-                  {money(record.request.amountMinor)}
-                </div>
-                <div className="status">
-                  {chip ? (
-                    <span className={`chip ${chip.className}`}>{chip.label}</span>
+                  <div className="who">
+                    <div className="payee">{record.request.payee}</div>
+                    <div className="purpose">
+                      {record.request.category.toLowerCase()} · {record.request.purpose}
+                    </div>
+                  </div>
+                  <div className="check">
+                    {record.status === "PENDING_APPROVAL" || record.status === "DENIED"
+                      ? latest
+                        ? checkText(latest.decision.decision, latest.decision.reasonCode)
+                        : checkTextForStatus(record.status)
+                      : checkTextForStatus(record.status)}
+                  </div>
+                  <div className="amt num">
+                    <span className="cur">{record.request.currency}</span>
+                    {money(record.request.amountMinor)}
+                  </div>
+                  <div className="status">
+                    {chip ? (
+                      <span className={`chip ${chip.className}`}>{chip.label}</span>
+                    ) : (
+                      <span className="muted">you said no</span>
+                    )}
+                  </div>
+                  {pendingRow ? (
+                    <Link className="act" href={`/requests/${record.id}`}>
+                      Decide
+                    </Link>
                   ) : (
-                    <span className="muted">rejected</span>
+                    <div className="muted">{stateWord(record.status)}</div>
                   )}
                 </div>
-                {pendingRow ? (
-                  <Link className="act" href={`/requests/${record.id}`}>
-                    Decide →
-                  </Link>
-                ) : (
-                  <div className="muted">{stateWord(record.status)}</div>
-                )}
-              </div>
-            );
-          })}
-
-          {records.length === 0 ? (
-            <div className="row">
-              <div className="who">
-                <div className="payee">No requests yet</div>
-                <div className="purpose">the register is empty — the agent has proposed nothing</div>
-              </div>
-            </div>
-          ) : null}
-        </div>
+              );
+            })}
+          </div>
+        ) : null}
       </section>
 
       {/* footer record strip */}
-      <footer className="record-foot">
+      <footer className="record-foot reveal" style={{ "--i": 3 } as React.CSSProperties}>
         <span>
-          record · latest decision{" "}
+          latest decision{" "}
           <span className="rv">
             {latest && latestDecision
-              ? `${displayId(latest.id)} ${latestDecision.decision.decision} · ${reasonSlug(latestDecision.decision.reasonCode)} · ${fmtClockUTC(latestDecision.evaluatedAt)}`
-              : firstRecord && latestDecision
-                ? `${displayId(firstRecord.id)} ${latestDecision.decision.decision} · ${reasonSlug(latestDecision.decision.reasonCode)}`
-                : "none yet"}
+              ? `${displayId(latest.id)} ${decisionWord(latestDecision.decision.decision)} · ${fmtClockUTC(latestDecision.evaluatedAt)}`
+              : "none yet"}
           </span>
         </span>
         <span>
-          rules{" "}
+          your rules{" "}
           <span className="rv">
-            {budget.rules ? `${budget.rules.ruleVersion} · ${budget.rules.currency}` : "none"}
+            {budget.rules ? `${budget.rules.ruleVersion} · ${budget.rules.currency}` : "none set"}
           </span>
         </span>
       </footer>
       <div className="note">
-        Live sandbox data · demo purchases · the model proposes, the gate decides
+        Live sandbox data · demo purchases · the assistant proposes, your rules decide, you approve
       </div>
     </>
   );

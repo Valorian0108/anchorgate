@@ -24,11 +24,26 @@ import {
   SdkPaymentsPort,
 } from "@/infra/paypal";
 import { PurchaseService } from "@/services";
+import {
+  createAgentModel,
+  createPurchaseAgent,
+  ProposalService,
+  readAgentConfig,
+  type PurchaseAgent,
+} from "@/agent";
 
+interface Stores {
+  purchases: DrizzlePurchaseStore;
+  spending: DrizzleSpendingStore;
+  rules: DrizzleSpendingRulesStore;
+  paymentMethods: DrizzlePaymentMethodStore;
+}
+
+let stores: Stores | null = null;
 let cached: PurchaseService | null = null;
 
-export function getService(): PurchaseService {
-  if (cached) return cached;
+function getStores(): Stores {
+  if (stores) return stores;
 
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
@@ -36,25 +51,56 @@ export function getService(): PurchaseService {
   }
 
   const { db } = createDatabase(connectionString);
-  const purchases = new DrizzlePurchaseStore(db);
-  const spending = new DrizzleSpendingStore(db);
-  const rules = new DrizzleSpendingRulesStore(db);
-  const paymentMethods = new DrizzlePaymentMethodStore(db);
+  stores = {
+    purchases: new DrizzlePurchaseStore(db),
+    spending: new DrizzleSpendingStore(db),
+    rules: new DrizzleSpendingRulesStore(db),
+    paymentMethods: new DrizzlePaymentMethodStore(db),
+  };
+  return stores;
+}
+
+export function getService(): PurchaseService {
+  if (cached) return cached;
+
+  const s = getStores();
 
   cached = new PurchaseService({
-    purchases,
-    spending,
-    rules,
+    purchases: s.purchases,
+    spending: s.spending,
+    rules: s.rules,
     paymentGateway: () => {
       const config = readPayPalConfigFromEnv(process.env);
       const client = createPayPalClient(config);
       return new PayPalPaymentGateway({
         orders: new SdkOrdersPort(client),
         payments: new SdkPaymentsPort(client),
-        paymentMethods,
+        paymentMethods: s.paymentMethods,
       });
     },
   });
 
   return cached;
+}
+
+/**
+ * The proposal-only AI agent, wired to the same durable stores as the service.
+ * Server-side only. It can propose a purchase; it can never approve or pay.
+ * Built fresh per call so the model always sees the currently active rules.
+ */
+export async function getAgent(): Promise<PurchaseAgent> {
+  const s = getStores();
+  const config = readAgentConfig();
+  const rules = await s.rules.getActive();
+  const proposals = new ProposalService({
+    rules: s.rules,
+    purchases: s.purchases,
+    spending: s.spending,
+    agentId: config.agentId,
+  });
+  return createPurchaseAgent({
+    model: createAgentModel(config),
+    proposals,
+    rules,
+  });
 }

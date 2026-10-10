@@ -163,6 +163,30 @@ A proposal, a recommendation, or generated code is **not** a decision.
 
 ------------------------------------------------------------------------
 
+- **Everyday-voice + motion pass (approved).** The owner found the UI "dead" (no
+  feedback or motion) and the copy "AI-wordy," not readable by an everyday
+  person, and called out em dashes as an AI tell. Approved a full pass grounded
+  in the Hallmark design skill's motion / microinteractions / copy references
+  (themselves drawn from Anthropic's frontend guidance, Refactoring UI, Material
+  and Apple motion conventions, and Saffer's *Microinteractions*):
+  (a) rewrite every user-facing string into plain, warm, second-person language
+  with no raw reason-codes on screen and no em dashes;
+  (b) add restrained, purposeful motion only, at most three primitives per
+  screen (number tick on budget figures, button and row press/hover feedback,
+  one orchestrated page-load reveal), honoring `prefers-reduced-motion` and the
+  guidebook's bans (no `transition-all`, no universal hover-scale, no
+  celebratory toasts, silent success);
+  (c) give every empty screen the three-beat empty state (what is empty, why it
+  matters, one next action);
+  (d) add an "Ask the assistant" box on the Gate so proposals can be triggered
+  from the UI. Deliberate deviation: em dashes are removed from product copy
+  even though the guidebook's typography section permits them, because the
+  owner's everyday-human voice takes precedence.
+- **Proposals are manual-only (approved).** The AI proposes a purchase only when
+  the owner asks it (via the new Gate box or the CLI). It never proposes on its
+  own. Auto-suggestion is recorded as a future idea, not built now. This keeps
+  the owner in control, which is the product's core promise.
+
 ## Assumptions (made to keep moving; safe to correct)
 
 - **Money is integer minor units; no currency exchange.** Amounts are integers

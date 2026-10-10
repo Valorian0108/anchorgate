@@ -33,6 +33,13 @@
   --g: var(--font-grotesk), sans-serif;
   --s: var(--font-newsreader), serif;
   --m: var(--font-plexmono), monospace;
+  /* motion (Hallmark canon: three durations, three easings) */
+  --dur-micro: 120ms;
+  --dur-short: 220ms;
+  --dur-long: 420ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 * { box-sizing: border-box; }
@@ -124,7 +131,6 @@ nav .active::before {
 .row {
   display: grid; grid-template-columns: 150px 1fr 200px 130px 96px 110px; gap: 20px;
   align-items: center; padding: 18px 2px; border-bottom: 1px solid var(--line);
-  transition: background-color 0.12s ease;
 }
 .row:hover { background: var(--surface); }
 
@@ -562,4 +568,81 @@ nav .active::before {
 }
 @media (max-width: 760px) {
   .owner .who { display: none; }
+}
+
+/* ------------------------------------------------------------------
+   Motion + feedback (Hallmark canon: transform/opacity only, three
+   durations, three easings, reduced-motion first-class). At most a few
+   purposeful primitives per screen; no decoration.
+   ------------------------------------------------------------------ */
+
+/* One orchestrated page-load reveal. Stagger via inline --i. */
+.reveal {
+  opacity: 0; transform: translateY(8px);
+  animation: ag-reveal var(--dur-long) var(--ease-out) forwards;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+@keyframes ag-reveal { to { opacity: 1; transform: none; } }
+
+/* Interactive feedback: hover + press on every control. */
+.btn, .row .act, .owner .signout, .signin .btn, .signin .btn-ghost, .askbox button {
+  transition:
+    background-color var(--dur-short) var(--ease-out),
+    border-color var(--dur-short) var(--ease-out),
+    color var(--dur-short) var(--ease-out),
+    transform var(--dur-micro) var(--ease-out);
+}
+.btn:active, .row .act:active, .owner .signout:active,
+.signin .btn:active, .signin .btn-ghost:active, .askbox button:active {
+  transform: translateY(1px);
+}
+.btn:focus-visible, .row .act:focus-visible, .owner .signout:focus-visible,
+.signin .btn:focus-visible, .signin .btn-ghost:focus-visible,
+.askbox button:focus-visible, .askbox input:focus-visible {
+  outline: 2px solid var(--seal); outline-offset: 3px;
+}
+
+/* Rows respond to hover and to keyboard focus inside them. */
+.row { transition: background-color var(--dur-short) var(--ease-out); }
+.row:focus-within { background: var(--surface); }
+
+/* Ask the assistant (manual-only proposals). */
+.askbox { margin: 34px 0 0; padding: 20px 22px; border: 1px solid var(--line); background: var(--surface); }
+.askbox label {
+  display: block; font-family: var(--m); font-size: 10.5px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--ink-soft); margin-bottom: 10px;
+}
+.askbox .line { display: flex; gap: 12px; }
+.askbox input {
+  flex: 1; min-width: 0; border: 0; border-bottom: 1px solid var(--ink); background: transparent;
+  font-family: var(--m); font-size: 14px; color: var(--ink); padding: 8px 0;
+  border-radius: 0; appearance: none; -webkit-appearance: none;
+}
+.askbox input::placeholder { color: var(--ink-faint); }
+.askbox input:focus { outline: none; border-bottom-color: var(--seal); }
+.askbox button {
+  border: 0; background: var(--seal); color: #fff; font-family: var(--g); font-weight: 600;
+  font-size: 13.5px; padding: 11px 18px; cursor: pointer; border-radius: 0; white-space: nowrap;
+}
+.askbox button:hover { background: var(--seal-bright); }
+.askbox button:disabled { opacity: 0.7; cursor: default; }
+.askbox .hint { margin-top: 10px; font-family: var(--m); font-size: 10.5px; letter-spacing: 0.02em; color: var(--ink-faint); }
+.askbox .msg { margin-top: 10px; font-family: var(--m); font-size: 11px; color: var(--seal); }
+.askbox .msg.err { color: var(--deny); }
+
+/* Empty state: what is empty, why it matters, one next action. */
+.empty { margin-top: 18px; padding: 26px 24px; border: 1px dashed var(--line); background: var(--paper); }
+.empty h2 { font-family: var(--g); font-weight: 600; font-size: 16px; margin: 0 0 6px; }
+.empty p { font-family: var(--g); font-size: 13.5px; line-height: 1.6; color: var(--ink-soft); margin: 0 0 14px; max-width: 52ch; }
+.empty .next { font-family: var(--g); font-weight: 600; font-size: 13px; color: var(--seal); }
+
+/* Reduced motion: collapse spatial motion to a quick fade; keep state changes. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 150ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 150ms !important;
+  }
+  .reveal { animation: ag-reveal-reduced 150ms linear forwards; }
+  @keyframes ag-reveal-reduced { to { opacity: 1; transform: none; } }
 }
