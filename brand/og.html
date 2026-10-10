@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400..900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0}
+  html,body{width:1200px;height:630px;overflow:hidden;background:#FBF9F4}
+  #og{
+    width:1200px;height:630px;background:#FBF9F4;position:relative;
+    display:flex;flex-direction:column;justify-content:center;
+    padding:0 96px;font-family:"Schibsted Grotesk",sans-serif;color:#1C1917;
+  }
+  #og .rule{position:absolute;left:96px;right:96px;top:64px;height:2px;background:#1C1917}
+  #og .rule.bottom{top:auto;bottom:64px;height:1px;background:#E4DED3}
+  #og .row{display:flex;align-items:center;gap:44px}
+  #og svg{width:188px;height:188px;flex:none;color:#1C3A66}
+  #og .word{font-weight:800;font-size:96px;letter-spacing:-0.025em;line-height:1}
+  #og .tag{margin-top:34px;font-size:30px;font-weight:400;line-height:1.45;color:#57534E;max-width:880px}
+  #og .meta{
+    position:absolute;left:96px;bottom:88px;
+    font-family:"IBM Plex Mono",monospace;font-size:15px;letter-spacing:0.14em;
+    text-transform:uppercase;color:#6F675C;
+  }
+  #og .meta b{color:#1C3A66;font-weight:500}
+</style>
+</head>
+<body>
+  <div id="og" role="img" aria-label="AnchorGate social card">
+    <div class="rule"></div>
+    <div class="row">
+      <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="32" cy="17" r="6"/>
+        <path d="M32 23 V53"/>
+        <path d="M20 31 H44"/>
+        <path d="M14 37 Q21 51 32 53 Q43 51 50 37"/>
+        <path d="M14 37 l-4 8 l9 -3"/>
+        <path d="M50 37 l4 8 l-9 -3"/>
+      </svg>
+      <span class="word">AnchorGate</span>
+    </div>
+    <p class="tag">An authorization gate for AI spending. The AI proposes — a deterministic gate decides, and the monthly cap never moves.</p>
+    <div class="meta"><b>Allow · Ask · Deny</b> &nbsp;—&nbsp; fingerprint-bound approvals, counted once</div>
+    <div class="rule bottom"></div>
+  </div>
+</body>
+</html>

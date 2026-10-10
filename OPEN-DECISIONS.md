@@ -222,7 +222,12 @@ at useful decision points rather than all at once.
 
 ### Product and UI
 
-- Final product name/branding.
+- ~~Final product name/branding~~ ✅ resolved: **AnchorGate** kept after a
+  collision scan (no trademark on the exact mark; one same-name UK lettings
+  company and an obscure web3 project exist; `anchorgate.com` is parked; npm is
+  free). Usable for the hackathon; revisit only if commercializing. Logo: the
+  **"Holdfast"** anchor mark (option 1 of the logo comp), rolled out as favicon,
+  header mark, horizontal lockup, and OG/social card (`brand/`).
 - Visual direction, colors, typography, density, navigation, page structure,
   component style.
 - The core design concept for communicating the product's distinctive idea
@@ -631,3 +636,20 @@ were used).
     passing**; typecheck clean. **Owner action required** to finish the live
     link: add `http://localhost:3000/auth/confirm` to Supabase → Authentication →
     URL Configuration → Redirect URLs (see `AUTH.md`).
+- **Update (name collision check + logo finalized).** Ran the owed
+  trademark/collision scan for **AnchorGate**: no registration on the exact
+  mark; no software product in our lane; one same-name company (**Anchorgate
+  Lettings Ltd**, UK property lettings — different industry); one obscure
+  same-name web3 project (**Norbitlabs "Anchorgate"**, 0 stars); `anchorgate.com`
+  is **parked** (resolves to AWS Global Accelerator); npm `anchorgate` is free.
+  Verdict: **caution — usable for the hackathon, not clean for
+  commercialization**. Owner chose to keep the name. The owner also challenged
+  the original inline anchor mark as not looking professionally designed — a
+  fair read (generic glyph, no ring, no concept). Produced a three-concept logo
+  comp (`design-research/logo-options.comp.html`): **Holdfast** (a proper
+  anchor), **The Gate** (anchor × latch — rejected, read as a stick figure), and
+  **The Anchored A** (monogram). Owner picked **Holdfast**. Rolled out:
+  `src/components/anchor-mark.tsx` (header mark), `src/app/icon.svg` (favicon),
+  `brand/lockup.png` (800×200 horizontal lockup), `brand/og.png` (1200×630 social
+  card), with the HTML sources kept in `brand/`. All in the owned language: seal
+  blue on paper, one stroke set, no gradients, no emoji.
