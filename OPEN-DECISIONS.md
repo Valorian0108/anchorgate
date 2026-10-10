@@ -153,8 +153,10 @@ A proposal, a recommendation, or generated code is **not** a decision.
   (no browser). This is a **Sandbox/test** convenience; in production, card data
   would be collected with PayPal hosted fields so raw card data never reaches our
   server. Recorded as a deviation-safe MVP choice, not a production payment path.
-- **Identity scope: owner-only (approved, 09 oct 2026).** One human identity
-  owns the gate; no read-only teammate accounts for the Nov 12 demo. The
+- **Identity scope: owner-only (approved, 09 oct 2026; overridden 10 oct 2026).**
+  One human identity owns the gate; no read-only teammate accounts. Overridden
+  the next day: the owner approved **multi-user before submission** (see Open
+  decisions), so per-user accounts replace owner-only for the Nov 12 demo. The
   architecture stays multi-user-ready on purpose: decision records already carry
   `approvedBy` / `rejectedBy`, so adding viewer accounts later is additive, not a
   redesign.
@@ -202,6 +204,16 @@ A proposal, a recommendation, or generated code is **not** a decision.
   the owner asks it (via the new Gate box or the CLI). It never proposes on its
   own. Auto-suggestion is recorded as a future idea, not built now. This keeps
   the owner in control, which is the product's core promise.
+- **Owner-editable money limits (approved and built, 10 oct 2026).** The two
+  money numbers — the monthly limit and the auto-approve line — are editable by
+  the owner on the Rules page ("Your two numbers" panel). Categories and the
+  first-time-seller toggle stay code-managed (CLI) for now. Guardrails mirror
+  the CLI rule setter: both amounts must be clean positive money, and the
+  auto-approve line cannot sit above the monthly limit; on any failure nothing
+  is saved and the page says so in one plain sentence. Every save bumps the rule
+  version (owner-1 → owner-2), so recorded decisions keep the version they were
+  judged under, and a save returns one honest confirmation line quoting the new
+  numbers.
 
 ## Assumptions (made to keep moving; safe to correct)
 
@@ -408,14 +420,22 @@ nothing below is built yet.
   solely on the video, text, and images**, and the functional-demo requirement is
   met by **either** complete setup and run instructions in the repo **or** a
   hosted demo URL; a gated site must supply login credentials in its testing
-  instructions. Planned: a hosted (Vercel) build **plus** a dedicated judge
-  sign-in. Candidate signing routes, in order of preference: **Google OAuth**
-  (already half-configured in Supabase; blocked on the owner's Console steps),
-  then **email + password** for one seeded demo user, then a **pre-minted demo
-  session link**. Sandbox only, so a judge pressing Pay moves fake money.
-- **Multi-user is deferred, not denied.** Per-person rule sets, per-person
-  records, and per-person cards are a post-hackathon step; the identity decision
-  stays **owner-only** for the Nov 12 demo (see Decisions). The saved-payment
+  instructions. Planned: a hosted (Vercel) build. With multi-user pulled forward
+  (below), judges sign in through the product's own sign-in instead of a
+  dedicated workaround; a seeded demo account or a pre-minted link remains the
+  fallback if the multi-user build slips. Sandbox only, so a judge pressing Pay
+  moves fake money. The Google Console walkthrough was cancelled 10 oct 2026 and
+  folded into the multi-user build: none of that setup needs redoing later,
+  because the OAuth client, the redirect URIs, and the provider enablement do
+  not depend on how many users exist.
+- **Multi-user approved and pulled forward (owner, 10 oct 2026).** Per-person
+  rule sets, per-person records, per-person cards, and open sign-in will be
+  built **before submission**, replacing the owner-only identity for the Nov 12
+  demo. The sign-in method is still open: Google OAuth (the Console and Supabase
+  setup carries over unchanged; the only multi-user tweak is publishing the
+  consent screen instead of adding test users) or email + password (Supabase
+  built-in, zero external config) or both. This is the largest remaining build
+  and it compresses packaging time, so it must be scoped tightly. The saved-payment
   table already carries an owner id, so it is the first piece already shaped for
   it.
 - **Repo packaging.** Add a public GitHub remote, ensure the license file is
@@ -773,3 +793,28 @@ nothing below is built yet.
   fixed (whole-row link); the Supabase RLS fix was then applied as migration
   0004; the ask-box check order and honest refusals were then built
   (`src/lib/askOutcome.ts`), which closes the last owner-raised product gap.
+  The same day, per owner decisions: the ask-box check line adopted the owner's
+  own wording (`2000010`), and the Record began carrying the **full** capture
+  ref and **full 64-char fingerprint** (`829ec27`), keeping the case file's
+  "full copy in the record" promise true.
+- **Update (Rules editor — the owner's two numbers, live).** Built the in-app
+  Rules editor (owner request; it also unblocks the live demo whenever the month
+  sits at its cap). A "Your two numbers" panel on `/statute` prefills the
+  monthly limit and auto-approve line from the stored rules; a server action
+  (`updateRules`) validates and saves. Parsing, the version bump, and the
+  auto-line-at-or-under-cap guardrail live in pure, unit-tested helpers
+  (`src/lib/rulesEdit.ts`): "150", "150.00", "1,500.25", and "$150" are read;
+  zero, negative, and malformed amounts are refused; owner-N becomes owner-N+1
+  on every save, so recorded decisions keep the version they were judged under.
+  Outcomes travel as short URL codes (`?saved=ok|bad-money|auto-above-cap|
+  no-rules`) and render as one plain sentence each — the same honest-outcome
+  pattern as the ask box; on success the sentence quotes the numbers now in
+  force. **Observed live through the real form:** a same-values save →
+  `?saved=ok`, "Saved. Your monthly limit is now 100.00 and your auto-approve
+  line is now 50.00.", version owner-1 → owner-2 in both masthead and footer
+  note; an auto line of 200 above the cap of 100 → `?saved=auto-above-cap`, the
+  refusal sentence, nothing saved, no version bump, inputs re-rendered from the
+  database values. Suite **197 passing** (7 new); typecheck and build clean.
+  During verification the known `EMAXCONNSESSION` session-pool ceiling
+  resurfaced (accumulated by the long-lived HMR dev server); a dev-server
+  restart cleared it — environment, not a page defect.
