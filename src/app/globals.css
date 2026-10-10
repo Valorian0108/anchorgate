@@ -106,10 +106,13 @@ nav .active::before {
   position: absolute; bottom: 0; width: 2px; height: 14px;
   background: var(--seal); transform: translateX(-1px);
 }
-.gauge .lbl { position: absolute; bottom: 20px; font-family: var(--m); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); }
+.gauge .lbl { position: absolute; bottom: 20px; font-family: var(--m); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); white-space: nowrap; }
 .gauge .lbl.sp-ent { left: 0; }
 .gauge .lbl.rs-ent { color: var(--ink-soft); }
-.gauge .lbl.cp-ent { color: var(--seal); transform: translateX(-14px); }
+.gauge .lbl.cp-ent { color: var(--seal); transform: translateX(-100%); }
+/* When the spent bar reaches the right edge, the set-aside label drops below
+   the bar so it never collides with the limit label. */
+.gauge .lbl.below { bottom: -16px; transform: translateX(-100%); }
 
 /* ---------------- register (the dominant element) ---------------- */
 .register { margin: 56px 0 0; }
@@ -306,9 +309,6 @@ nav .active::before {
 
 @media (max-width: 980px) {
   .wrap { padding: 0 24px 56px; }
-  .ledger .colhead, .row { grid-template-columns: 120px 1fr 150px 110px 84px 92px; gap: 14px; }
-}
-@media (max-width: 760px) {
   .ledger .colhead { display: none; }
   .row { grid-template-columns: 1fr auto; grid-template-areas: "who amt" "t check" "st act"; row-gap: 6px; }
   .row .t { grid-area: t; }
@@ -389,10 +389,10 @@ nav .active::before {
 .totals b { color: var(--ink); font-weight: 500; }
 .totals .hl { color: var(--seal); }
 
-@media (max-width: 1000px) {
-  .record .colhead, .record .row { grid-template-columns: 120px 1fr 200px 100px 130px 150px; gap: 12px; }
+@media (max-width: 1250px) {
+  .record .colhead, .record .row { grid-template-columns: 120px 1fr 220px 100px 140px 160px; gap: 14px; }
 }
-@media (max-width: 780px) {
+@media (max-width: 1000px) {
   .record .colhead { display: none; }
   .record .row {
     grid-template-columns: 1fr auto;

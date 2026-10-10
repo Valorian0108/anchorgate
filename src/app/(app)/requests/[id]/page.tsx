@@ -123,10 +123,11 @@ export default async function RequestDetailPage({
   const record = await service.get(id);
   if (!record) notFound();
 
-  const [budget, records, events] = await Promise.all([
+  const [budget, records, events, allEvents] = await Promise.all([
     service.budget(),
     service.list(),
     service.eventsByRequest(id),
+    service.allEvents(),
   ]);
 
   const rules = budget.rules;
@@ -137,16 +138,43 @@ export default async function RequestDetailPage({
     .reduce((sum, r) => sum + r.request.amountMinor, 0);
   const headroom = cap === null ? null : Math.max(cap - captured - reserved, 0);
 
-  const knownPayees = new Set(
-    records
-      .filter((r) => r.status === "APPROVED" || r.status === "EXECUTED")
-      .map((r) => r.request.payee),
-  );
-
   const ruling = latestEvaluation(record.evaluations);
   const decision = ruling?.decision.decision ?? null;
   const reasonCode = ruling?.decision.reasonCode ?? null;
   const firstEval = record.evaluations[0];
+
+  /* The check panel must show the facts as they stood when the engine made the
+     decision on screen, not today's facts. Otherwise a row can contradict its
+     own verdict (for example "146.00 of 100.00 would be used" next to a "yes").
+     The reconstruction mirrors spendingState.ts, time-shifted to the ruling
+     evaluation:
+       - spent: verified captures in that moment's UTC month, at or before it;
+       - known payees: payees whose request was approved strictly before that
+         moment. Strictly, because the approval evaluation runs before this
+         record's own approval is written down. */
+  const asOf = Date.parse(ruling?.evaluatedAt ?? record.createdAt);
+  const asOfDate = new Date(asOf);
+
+  let spentAsOf = 0;
+  for (const e of allEvents) {
+    if (e.kind !== "CAPTURE_VERIFIED") continue;
+    const t = new Date(e.occurredAt);
+    if (t.getTime() > asOf) continue;
+    if (
+      t.getUTCMonth() !== asOfDate.getUTCMonth() ||
+      t.getUTCFullYear() !== asOfDate.getUTCFullYear()
+    ) {
+      continue;
+    }
+    spentAsOf += e.amountMinor;
+  }
+
+  const knownPayees = new Set<string>();
+  for (const r of records) {
+    if (r.status !== "APPROVED" && r.status !== "EXECUTED") continue;
+    if (!r.approval) continue;
+    if (Date.parse(r.approval.approvedAt) < asOf) knownPayees.add(r.request.payee);
+  }
 
   const now = await service.evaluateNow(record.request);
 
@@ -156,7 +184,9 @@ export default async function RequestDetailPage({
     rulesCurrency: rules?.currency ?? null,
     rulesCategories: rules?.permittedCategories ?? [],
     perPurchaseLimit: rules?.perPurchaseAutoLimitMinor ?? null,
-    spentMinor: captured,
+    // A paid purchase shows the live total ("already counted"); every other
+    // state shows what the engine saw at the moment it ruled.
+    spentMinor: record.status === "EXECUTED" ? captured : spentAsOf,
     knownPayees,
   });
 
@@ -177,7 +207,9 @@ export default async function RequestDetailPage({
     .reverse()
     .find((e) => e.context === "PRE_EXECUTION");
 
-  const day = new Date()
+  // The purchase's own filing day, not today: a case file is a historical
+  // document and must not re-date itself every time it is opened.
+  const day = new Date(record.createdAt)
     .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
     .replace(" ", " ");
 
@@ -405,7 +437,7 @@ export default async function RequestDetailPage({
               <div className="rows">
                 <div className="pl num"><span>why</span><b>{ruling ? reasonPhrase(ruling.decision.reasonCode) : "your rules said no"}</b></div>
                 <div className="pl num"><span>your rules</span><b>{ruling?.decision.ruleVersion ?? rules?.ruleVersion ?? "none"}</b></div>
-                <div className="pl num"><span>room left then</span><b>{money(Math.max((cap ?? 0) - captured, 0))}</b></div>
+                <div className="pl num"><span>room left then</span><b>{money(Math.max((cap ?? 0) - spentAsOf, 0))}</b></div>
               </div>
               <Link href="/" className="rec">Back to your purchases →</Link>
             </div>

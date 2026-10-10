@@ -56,6 +56,11 @@ export default async function GatePage({
 
   const spentPct = cap === null || cap === 0 ? 0 : (captured / cap) * 100;
   const reservedPct = cap === null || cap === 0 ? 0 : (reserved / cap) * 100;
+  // The gauge is one bar of 100%. When captures alone fill it, the set-aside
+  // segment is clamped to the room that is left (possibly none) so the bar
+  // never draws past the limit tick.
+  const spentShownPct = Math.min(spentPct, 100);
+  const reservedShownPct = Math.max(0, Math.min(reservedPct, 100 - spentShownPct));
   const cur = budget.currency ?? "USD";
   const sym = cur === "USD" ? "$" : `${cur} `;
 
@@ -91,19 +96,27 @@ export default async function GatePage({
             className="gauge num"
             style={
               {
-                "--spent": `${spentPct}%`,
-                "--reserved": `${reservedPct}%`,
+                "--spent": `${spentShownPct}%`,
+                "--reserved": `${reservedShownPct}%`,
               } as React.CSSProperties
             }
           >
             <div className="base" />
             <div className="spent" style={{ left: 0 }} />
-            <div className="reserved" style={{ left: `${spentPct}%`, width: `${reservedPct}%` }} />
+            <div
+              className="reserved"
+              style={{ left: `${spentShownPct}%`, width: `${reservedShownPct}%` }}
+            />
             <div className="cap" style={{ left: "100%" }} />
             <span className="lbl sp-ent">spent</span>
-            <span className="lbl rs-ent" style={{ left: `${spentPct}%` }}>
-              set aside
-            </span>
+            {reservedShownPct > 0 ? (
+              <span
+                className={`lbl rs-ent${spentShownPct > 78 ? " below" : ""}`}
+                style={{ left: `${spentShownPct}%` }}
+              >
+                set aside
+              </span>
+            ) : null}
             <span className="lbl cp-ent" style={{ left: "100%" }}>
               limit
             </span>
