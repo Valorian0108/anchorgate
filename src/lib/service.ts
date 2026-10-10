@@ -9,6 +9,7 @@
  * and never leave the server. Nothing here is imported by client components.
  */
 
+import type { SpendingRules } from "@/core/authorization";
 import { createDatabase } from "@/infra/persistence";
 import {
   DrizzlePaymentMethodStore,
@@ -81,6 +82,14 @@ export function getService(): PurchaseService {
   });
 
   return cached;
+}
+
+/**
+ * The active spending rules, for server-side callers that need policy facts
+ * (e.g. explaining a front-door refusal). Never exposed to the client.
+ */
+export async function getActiveRules(): Promise<SpendingRules | null> {
+  return getStores().rules.getActive();
 }
 
 /**

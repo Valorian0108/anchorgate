@@ -4,6 +4,7 @@ import { getService } from "@/lib/service";
 import { verifyOwner } from "@/lib/auth/dal";
 import { CountUp } from "@/components/count-up";
 import { AskBox } from "@/components/ask-box";
+import { askMessageFor } from "@/lib/askOutcome";
 import {
   checkText,
   checkTextForStatus,
@@ -16,28 +17,15 @@ import {
 // Live data on every load — this screen IS the current state of the gate.
 export const dynamic = "force-dynamic";
 
-function askMessage(ask: string | undefined): { text: string; error: boolean } | null {
-  switch (ask) {
-    case "done":
-      return { text: "The assistant added it below. Review it whenever you're ready.", error: false };
-    case "empty":
-      return { text: "Type what you want looked at first, then ask.", error: false };
-    case "error":
-      return { text: "The assistant could not reach the model right now. Try again in a moment.", error: true };
-    default:
-      return null;
-  }
-}
-
 export default async function GatePage({
   searchParams,
 }: {
-  searchParams: Promise<{ ask?: string }>;
+  searchParams: Promise<{ ask?: string; why?: string }>;
 }) {
   await verifyOwner();
 
-  const { ask } = await searchParams;
-  const message = askMessage(ask);
+  const { ask, why } = await searchParams;
+  const message = askMessageFor(ask, why);
 
   const service = getService();
   const budget = await service.budget();

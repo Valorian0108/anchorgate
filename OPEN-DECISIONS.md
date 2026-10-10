@@ -292,8 +292,14 @@ at useful decision points rather than all at once.
   page, plus a plain reason when a request is refused. The Rules page already
   states the order ("1 valid request · 2 positive amount · 3 right currency · 4
   allowed category · 5 monthly limit · 6 auto-approve line · 7 known seller · 8
-  allow"). Proposed fix (not built): a compact version under the ask box and a
-  visible refusal message. Awaiting owner go.
+  allow"). Built and verified 10 oct 2026 (✅ resolved): the ask box now carries
+  a quiet, always-visible check-order line (with **your rules** linking to the
+  Rules page), and every ask ends in one honest sentence: filed and allowed,
+  filed and needs you, filed and blocked (with the plain reason), not filed at
+  all (with the plain reason), the assistant asked for more detail, or the model
+  was unreachable. Outcomes travel back as two short URL codes and are rendered
+  by `src/lib/askOutcome.ts` (unit-tested), so the box can neither lie ("added
+  below" with nothing added) nor stay silent.
 
 ### Authorization and accounting
 
@@ -765,4 +771,5 @@ nothing below is built yet.
   single-owner app. The judge-access question is logged as **Hackathon packaging
   and judge access (planned, not started)** above. The Gate-row gap was then
   fixed (whole-row link); the Supabase RLS fix was then applied as migration
-  0004; the ask-box check order is in design with the owner.
+  0004; the ask-box check order and honest refusals were then built
+  (`src/lib/askOutcome.ts`), which closes the last owner-raised product gap.
