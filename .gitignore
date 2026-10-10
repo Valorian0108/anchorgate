@@ -24,3 +24,6 @@
 # typescript
 next-env.d.ts
 *.tsbuildinfo
+
+# external design critique dropped into the repo — not part of the project
+gpt powerful model design of ancorgate.txt

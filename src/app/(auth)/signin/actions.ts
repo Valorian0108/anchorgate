@@ -21,6 +21,23 @@ export type SignInState =
 
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
+/**
+ * Supabase's *built-in* email sender allows only **2 auth emails per hour,
+ * project-wide** (plus a 60s gap between sends to the same address). That cap
+ * is not configurable without a custom SMTP provider, so a couple of test
+ * clicks exhausts it. Say so plainly instead of surfacing the raw 429 string.
+ */
+function friendlyError(message: string): string {
+  if (/rate limit/i.test(message)) {
+    return (
+      "The built-in email sender allows only 2 sign-in emails per hour. " +
+      "Wait for the window to reset, or connect a custom SMTP provider " +
+      "(see AUTH.md §5)."
+    );
+  }
+  return message;
+}
+
 /** Prefer the browser's Origin; fall back to forwarded host headers. */
 async function requestOrigin(): Promise<string> {
   const h = await headers();
@@ -60,7 +77,7 @@ export async function sendMagicLink(
   });
 
   if (error) {
-    return { status: "error", message: error.message };
+    return { status: "error", message: friendlyError(error.message) };
   }
   return { status: "sent" };
 }

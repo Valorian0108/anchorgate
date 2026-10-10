@@ -75,11 +75,25 @@ describe("sendMagicLink", () => {
   });
 
   it("surfaces a provider error as an inline message", async () => {
-    signInWithOtp.mockResolvedValue({ error: { message: "rate limited" } });
+    signInWithOtp.mockResolvedValue({ error: { message: "some other failure" } });
     const result = await actions.sendMagicLink(
       { status: "idle" },
       form("owner@example.com"),
     );
-    expect(result).toEqual({ status: "error", message: "rate limited" });
+    expect(result).toEqual({ status: "error", message: "some other failure" });
+  });
+
+  it("explains the built-in 2-per-hour email cap instead of a raw 429", async () => {
+    signInWithOtp.mockResolvedValue({
+      error: { message: "email rate limit exceeded" },
+    });
+    const result = await actions.sendMagicLink(
+      { status: "idle" },
+      form("owner@example.com"),
+    );
+    expect(result.status).toBe("error");
+    if (result.status === "error") {
+      expect(result.message).toMatch(/2 sign-in emails per hour/);
+    }
   });
 });
