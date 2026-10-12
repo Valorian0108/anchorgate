@@ -78,6 +78,20 @@ All three are free/open (Google Fonts), so no licence risk for the demo.
     Emojis are an LLM tell; status is carried by type, colour and the stamp.
 11. Celebration toasts only for real, invisible successes.
 
+**New-generation "alive dashboard" tells (added 12 oct 2026).** Chasing
+*liveness* must not trade the old slop for the new slop. These are banned with
+the same force as the list above:
+
+12. No animated gradient or aurora backgrounds.
+13. No glassmorphism or frosted translucent cards.
+14. No glow, bloom, or neon accents.
+15. No bouncy spring physics on everything.
+16. No particle or confetti celebration.
+17. No floating 3D orbs or blobs.
+18. No gradient borders on cards.
+19. No animated counter that spins when nothing actually changed. A number
+    counts only when a real value changes.
+
 ---
 
 ## 4. Structure (app-level)
@@ -125,3 +139,68 @@ the *only* icon source in the build; nothing from external icon packages
 - (b) This document approved — **pending**.
 - No comp is produced until (b). After approval, the first comp is **The Gate**
   (home), built strictly to these constraints — one screen, then stop for review.
+- (c) **Owner approved the Live Instrument layer and the first specimen
+  (12 oct 2026).** A standalone living specimen
+  (`design-research/live-instrument.specimen.html`) was built to §7 and audited
+  against §3 so the owner could *feel* the direction before any app screen is
+  rebuilt. App comps still follow one-screen-at-a-time review.
+
+---
+
+## 7. The Live Instrument layer (positive spec, owner-approved 12 oct 2026)
+
+The anti-slop bans (§3) are the floor. This is the positive half: how the app
+feels alive without tripping the new tells. It is written as specifically as the
+bans so there is no gap for defaults to fill.
+
+**The split — printed where permanent, alive where responsive.**
+- The **Record** and the **case file** are *Print*: receipt strip, stamp,
+  immutability, hairline rules. Settled and permanent. The paper metaphor is
+  exactly right here.
+- The **Gate** (home), the **budget**, and the **decisions** are a *Live
+  Instrument*: a control surface that responds to reality. It breathes.
+
+**Motion is information, never decoration.** A movement that communicates
+nothing is banned.
+
+| Primitive | Duration | What it communicates |
+| --- | --- | --- |
+| micro (hover, press, focus) | 120 ms | the surface is responsive |
+| state change (decide, row → paid) | 220 ms | the state changed |
+| value change (gauge fill, number count) | 420 ms | the number changed |
+
+- Easing: `--ease-out: cubic-bezier(0.16, 1, 0.3, 1)` for entrances;
+  `--ease-inout: cubic-bezier(0.65, 0, 0.35, 1)` for value changes.
+- Animate **transform** and **opacity** only (plus SVG `stroke-dashoffset` for
+  the budget gauge, which *is* the value).
+- `prefers-reduced-motion: reduce` → no pulse, no count-up, no slide; snap to the
+  final state. The value still changes; it simply does not animate.
+- No `transition-all`. Name every property that moves.
+
+**The budget is a live instrument.**
+- A gauge that fills as spending accrues, in the accent. It shifts to the caution
+  colour as it nears the cap, and to the refusal colour near or over the cap.
+  Colour is a live signal, not decoration.
+- The spent figure is a hero (mono, tabular, large) and counts only when the
+  value changes.
+- "Approval cannot move this line" stays.
+
+**Attention is designed.**
+- The item that needs a human is foregrounded, with a slow, low-amplitude opacity
+  pulse on one small status mark while it waits. The pulse means "this is waiting
+  on you." It stops the instant it is decided.
+- The rest of the page steps back.
+
+**Consequence is visible.**
+- Approving produces visible consequence: a short, honest "authorizing" beat, then
+  the row transitions to paid, the stamp settles, the gauge ticks, the figure
+  counts. Declining produces the refusal mark and **no** gauge movement, because
+  money did not move.
+- The queue is live: when one is decided, the next can arrive with an entrance.
+
+**Every component has states.**
+- Empty, loading, partial, needs-you, done, error. The calm finished state is one
+  of six, not the only one. The needs-you state is the priority.
+
+**The tell audit still runs.**
+- Every living comp is checked against §3 bans 1–19. Any trip is rejected.

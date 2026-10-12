@@ -1,0 +1,382 @@
+<!doctype html>
+<!--
+  AnchorGate · Live Instrument specimen (12 oct 2026)
+
+  A standalone, feel-it-first mock. NOT the product. It exists so the owner can
+  feel the "alive" direction before any app screen is rebuilt.
+
+  Built to design-research/CONSTRAINTS.md §7 (Live Instrument layer) and audited
+  against §3 bans 1-19. Named-tell audit result:
+    - no gradients, no glassmorphism, no glow/neon, no confetti, no 3D orbs,
+      no gradient borders, no spinning-for-nothing counter  -> pass
+    - motion is transform + opacity only (plus the gauge's stroke-dashoffset,
+      which IS the value); fixed durations 120/220/420 ms; fixed easings;
+      prefers-reduced-motion honored                          -> pass
+    - own inline-SVG stroke set only; no third-party icons; no emoji -> pass
+    - warm palette + Seal blue; accent footprint small; contrast floor met -> pass
+    - type trio Schibsted Grotesk / Newsreader / IBM Plex Mono -> pass
+
+  Interact: press Approve or Decline on the card, then Replay.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AnchorGate · Live Instrument specimen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700;800&family=Newsreader:opsz,wght@6..72,400;6..72,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* neutrals (warm, never cool gray) */
+    --ink:#1C1917; --ink-soft:#57534E; --paper:#FBF9F4; --surface:#F3EFE7;
+    --line:#E4DED3; --warm-dark:#201819;
+    /* accent: Seal blue */
+    --seal-deep:#122947; --seal:#1C3A66; --seal-bright:#2A5AA0; --seal-tint:#E8EDF5;
+    /* verdict signals */
+    --allow:#2F6B4F; --allow-tint:#E6F1EC;
+    --ask:#A66312;   --ask-tint:#F6EAD8;
+    --deny:#9E2B25;  --deny-tint:#F6E4E2;
+    /* type */
+    --display:'Schibsted Grotesk',sans-serif;
+    --serif:'Newsreader',serif;
+    --mono:'IBM Plex Mono',monospace;
+    /* motion system (§7): micro 120 / state 220 / value 420 */
+    --d-fast:120ms; --d-med:220ms; --d-slow:420ms;
+    --ease-out:cubic-bezier(0.16,1,0.3,1);
+    --ease-inout:cubic-bezier(0.65,0,0.35,1);
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:var(--display); font-size:16px; line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .spec{max-width:660px; margin:0 auto; padding:36px 24px 64px}
+
+  /* masthead */
+  .masthead{
+    display:flex; align-items:baseline; justify-content:space-between;
+    gap:16px; padding-bottom:16px; border-bottom:1px solid var(--line);
+  }
+  .wordmark{
+    display:flex; align-items:center; gap:9px;
+    font-weight:800; letter-spacing:.14em; font-size:15px;
+  }
+  .wordmark svg{color:var(--seal)}
+  .engine-line{
+    font-family:var(--mono); font-size:12px; color:var(--ink-soft);
+    letter-spacing:.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+
+  /* budget: the live instrument */
+  .budget{display:flex; flex-direction:column; align-items:center; padding:34px 0 8px}
+  .gauge-wrap{position:relative; width:248px; height:248px}
+  .gauge{width:100%; height:100%; display:block}
+  .gauge circle{
+    fill:none; stroke-width:14; stroke-linecap:round;
+    transform:rotate(135deg); transform-origin:100px 100px;
+  }
+  .gauge .track{stroke:var(--line); stroke-dasharray:75 100}
+  .gauge .fill{
+    stroke:var(--seal); stroke-dasharray:15.75 100;
+    transition:stroke-dasharray var(--d-slow) var(--ease-inout),
+               stroke var(--d-slow) var(--ease-inout);
+  }
+  .gauge-center{
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:2px;
+  }
+  .spent{
+    font-family:var(--mono); font-weight:500; font-variant-numeric:tabular-nums;
+    font-size:clamp(2rem,7vw,2.7rem); letter-spacing:-.01em;
+  }
+  .of{font-family:var(--mono); font-size:12px; color:var(--ink-soft)}
+  .cap-note{
+    margin:14px 0 0; font-size:13px; color:var(--ink-soft);
+    display:flex; align-items:center; gap:7px;
+  }
+  .cap-note svg{color:var(--ink-soft)}
+
+  /* the gate */
+  .gate{margin-top:34px}
+  .gate-head{
+    display:flex; align-items:baseline; justify-content:space-between;
+    padding-bottom:10px; border-bottom:1px solid var(--line);
+  }
+  .gate-head h2{margin:0; font-size:13px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-soft)}
+  .gate-count{font-family:var(--mono); font-size:12px; color:var(--ink-soft)}
+  .gate-list{display:flex; flex-direction:column; gap:14px; padding-top:16px}
+
+  /* decision card */
+  .card{
+    position:relative; background:var(--paper);
+    border:1px solid var(--line); border-radius:14px; padding:18px 18px 16px;
+    box-shadow:0 1px 2px rgba(28,25,23,.04);
+    transition:transform var(--d-fast) var(--ease-out), box-shadow var(--d-fast) var(--ease-out);
+  }
+  .card:hover{transform:translateY(-1px); box-shadow:0 6px 18px rgba(28,25,23,.08)}
+  .card.needs-you{border-color:var(--seal); box-shadow:0 4px 16px rgba(28,58,102,.10)}
+
+  .card-top{display:flex; align-items:center; justify-content:space-between; gap:12px}
+  .status-mark{
+    display:flex; align-items:center; gap:8px;
+    font-family:var(--mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--ink);
+  }
+  .dot{width:8px; height:8px; border-radius:50%; background:var(--ask); flex:none}
+  .dot.ok{background:var(--allow)}
+  .dot.no{background:var(--deny)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.28}}
+  .card.needs-you .dot{animation:pulse 1.6s var(--ease-inout) infinite}
+
+  .amount{
+    font-family:var(--mono); font-weight:500; font-variant-numeric:tabular-nums;
+    font-size:1.55rem; letter-spacing:-.01em; color:var(--seal);
+  }
+  .card.paid .amount,.card.denied .amount{color:var(--ink)}
+
+  .card-body{margin-top:12px}
+  .seller{font-size:1.12rem; font-weight:700}
+  .what{font-size:13px; color:var(--ink-soft); margin-top:2px}
+  .why{font-family:var(--mono); font-size:12px; color:var(--ink-soft); margin-top:8px}
+
+  .card-actions{display:flex; gap:10px; margin-top:16px}
+  .btn{
+    font-family:var(--display); font-size:14px; font-weight:600;
+    padding:9px 18px; border-radius:999px; cursor:pointer;
+    transition:transform var(--d-fast) var(--ease-out),
+               background-color var(--d-fast) var(--ease-out),
+               border-color var(--d-fast) var(--ease-out);
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn.primary{background:var(--seal); color:var(--paper); border:1px solid var(--seal)}
+  .btn.primary:hover{background:var(--seal-bright); border-color:var(--seal-bright)}
+  .btn.ghost{background:transparent; color:var(--ink); border:1px solid var(--line)}
+  .btn.ghost:hover{border-color:var(--ink-soft)}
+
+  /* verdict block: the earned stamp + receipt strip */
+  .verdict{margin-top:16px; padding-top:14px; border-top:1px solid var(--line)}
+  .stamp{
+    display:inline-block; font-family:var(--serif); font-weight:600;
+    font-size:15px; letter-spacing:.16em; text-transform:uppercase;
+    padding:4px 12px; transform:rotate(-4deg);
+  }
+  @keyframes land{from{transform:rotate(-4deg) scale(1.18); opacity:0}to{transform:rotate(-4deg) scale(1); opacity:1}}
+  .stamp{animation:land var(--d-med) var(--ease-out)}
+  .stamp.allow{color:var(--allow); border:2px double var(--allow)}
+  .stamp.deny{color:var(--deny); border:2px double var(--deny)}
+  .receipt{font-family:var(--mono); font-size:12px; color:var(--ink-soft); margin-top:10px; line-height:1.7}
+
+  /* entrance for an arriving card */
+  @keyframes enter{from{transform:translateY(10px); opacity:0}to{transform:none; opacity:1}}
+  .card.enter{animation:enter var(--d-med) var(--ease-out)}
+
+  /* footer */
+  .spec-foot{
+    margin-top:40px; padding-top:16px; border-top:1px solid var(--line);
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    font-family:var(--mono); font-size:12px; color:var(--ink-soft);
+  }
+  .replay{
+    font-family:var(--display); font-size:13px; font-weight:600; color:var(--seal);
+    background:transparent; border:1px solid var(--line); border-radius:999px;
+    padding:7px 16px; cursor:pointer;
+    transition:border-color var(--d-fast) var(--ease-out), transform var(--d-fast) var(--ease-out);
+  }
+  .replay:hover{border-color:var(--seal)}
+  .replay:active{transform:translateY(1px)}
+
+  /* reduced motion: values still change, nothing animates (§7) */
+  @media (prefers-reduced-motion: reduce){
+    .card.needs-you .dot{animation:none}
+    .stamp{animation:none}
+    .card.enter{animation:none}
+    .card,.btn,.replay{transition:none}
+    .gauge .fill{transition:none}
+  }
+</style>
+</head>
+<body>
+<main class="spec">
+  <header class="masthead">
+    <div class="wordmark">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="5" r="2.2"/><line x1="12" y1="7.2" x2="12" y2="20"/>
+        <path d="M5 13c0 4 3.2 7 7 7s7-3 7-7"/><line x1="9" y1="10" x2="15" y2="10"/>
+      </svg>
+      ANCHORGATE
+    </div>
+    <div class="engine-line" id="engineLine">engine · rules owner-3 · checked fresh every time</div>
+  </header>
+
+  <section class="budget" aria-label="Monthly budget">
+    <div class="gauge-wrap">
+      <svg class="gauge" viewBox="0 0 200 200" aria-hidden="true">
+        <circle class="track" cx="100" cy="100" r="84" pathLength="100"></circle>
+        <circle class="fill" id="gaugeFill" cx="100" cy="100" r="84" pathLength="100"></circle>
+      </svg>
+      <div class="gauge-center">
+        <div class="spent" id="spentNum">$42.00</div>
+        <div class="of">of your $200.00 limit</div>
+      </div>
+    </div>
+    <p class="cap-note">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>
+      </svg>
+      Approval cannot move this line.
+    </p>
+  </section>
+
+  <section class="gate" aria-label="Decisions waiting on you">
+    <div class="gate-head">
+      <h2>At the gate</h2>
+      <span class="gate-count" id="gateCount">1 waiting</span>
+    </div>
+    <div class="gate-list" id="gateList"></div>
+  </section>
+
+  <footer class="spec-foot">
+    <span>Living specimen · feel the motion · not the product yet</span>
+    <button class="replay" id="replay" type="button">Replay</button>
+  </footer>
+</main>
+
+<script>
+  const CAP = 200;
+  const ARC = 75; // 270 degrees expressed in pathLength=100 units
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const fill = document.getElementById('gaugeFill');
+  const spentNum = document.getElementById('spentNum');
+  const engineLine = document.getElementById('engineLine');
+  const gateList = document.getElementById('gateList');
+  const gateCount = document.getElementById('gateCount');
+
+  let spent = 42;
+  const queue = [
+    { seller:'Book Depository', what:'books · Gardening book', category:'books', amount:49.00, why:'first-time seller' },
+    { seller:'Cloud Nine Hosting', what:'cloud_services · Monthly plan', category:'cloud_services', amount:29.00, why:'first-time seller' },
+  ];
+  let qi = 0;
+
+  const fmt = n => '$' + n.toFixed(2);
+  const now = () => { const d = new Date(); return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); };
+  const setEngine = s => { engineLine.textContent = s; };
+
+  function gaugeColor(frac){
+    if (frac >= 0.85) return 'var(--deny)';
+    if (frac >= 0.6) return 'var(--ask)';
+    return 'var(--seal)';
+  }
+  function setGauge(frac){
+    fill.style.strokeDasharray = (frac * ARC) + ' 100';
+    fill.style.stroke = gaugeColor(frac);
+  }
+  function animateNumber(from, to){
+    if (reduce){ spentNum.textContent = fmt(to); return; }
+    const t0 = performance.now(), DUR = 420;
+    (function frame(t){
+      const p = Math.min(1, (t - t0) / DUR);
+      const e = p < 0.5 ? 2*p*p : 1 - Math.pow(-2*p + 2, 2) / 2; // easeInOut
+      spentNum.textContent = fmt(from + (to - from) * e);
+      if (p < 1) requestAnimationFrame(frame);
+    })(t0);
+    setTimeout(() => { spentNum.textContent = fmt(to); }, DUR + 80); // guarantee final value
+  }
+
+  function updateCount(){
+    const n = gateList.querySelectorAll('.card.needs-you').length;
+    gateCount.textContent = n === 0 ? 'all clear' : n + ' waiting';
+  }
+
+  function stampHTML(text, kind){ return '<div class="stamp ' + kind + '">' + text + '</div>'; }
+  function receiptHTML(d){
+    const t = now();
+    return '<div class="receipt">proposed ' + t + ' · decided ' + t + ' · approved by you ' + t +
+           ' · captured ' + t + ' · ref 6EJ8…</div>';
+  }
+
+  function makeCard(d){
+    const el = document.createElement('article');
+    el.className = 'card needs-you enter';
+    el.innerHTML =
+      '<div class="card-top">' +
+        '<div class="status-mark"><span class="dot"></span>Needs you</div>' +
+        '<div class="amount">' + fmt(d.amount) + '</div>' +
+      '</div>' +
+      '<div class="card-body">' +
+        '<div class="seller">' + d.seller + '</div>' +
+        '<div class="what">' + d.what + '</div>' +
+        '<div class="why">why: ' + d.why + '</div>' +
+      '</div>' +
+      '<div class="card-actions">' +
+        '<button class="btn primary" type="button" data-act="approve">Approve</button>' +
+        '<button class="btn ghost" type="button" data-act="decline">Decline</button>' +
+      '</div>' +
+      '<div class="verdict" hidden></div>';
+    el.querySelector('[data-act=approve]').addEventListener('click', () => decide(el, d, 'approve'));
+    el.querySelector('[data-act=decline]').addEventListener('click', () => decide(el, d, 'decline'));
+    return el;
+  }
+
+  function decide(el, d, act){
+    const actions = el.querySelector('.card-actions');
+    const statusMark = el.querySelector('.status-mark');
+    const verdict = el.querySelector('.verdict');
+    actions.hidden = true;
+    el.classList.remove('needs-you');
+
+    if (act === 'approve'){
+      statusMark.innerHTML = '<span class="dot ok"></span>Authorizing';
+      setEngine('authorizing with PayPal…');
+      const land = () => {
+        el.classList.add('paid');
+        statusMark.innerHTML = '<span class="dot ok"></span>Paid';
+        verdict.hidden = false;
+        verdict.innerHTML = stampHTML('PAID', 'allow') + receiptHTML(d);
+        const fromNum = spent;
+        spent += d.amount;
+        setGauge(spent / CAP);      // CSS animates the fill + colour
+        animateNumber(fromNum, spent);
+        setEngine('captured · counted once');
+        updateCount();
+        setTimeout(appendNext, 1100);
+      };
+      if (reduce) land(); else setTimeout(land, 750);
+    } else {
+      el.classList.add('denied');
+      statusMark.innerHTML = '<span class="dot no"></span>You said no';
+      verdict.hidden = false;
+      verdict.innerHTML = stampHTML('DENIED', 'deny') + '<div class="receipt">no money moved</div>';
+      setEngine('declined · no money moved');
+      updateCount();
+      setTimeout(appendNext, 1100);
+    }
+  }
+
+  function appendNext(){
+    if (qi < queue.length){
+      gateList.appendChild(makeCard(queue[qi]));
+      qi++;
+      updateCount();
+    }
+  }
+
+  function init(){
+    gateList.innerHTML = '';
+    spent = 42; qi = 0;
+    setGauge(spent / CAP);
+    spentNum.textContent = fmt(spent);
+    setEngine('engine · rules owner-3 · checked fresh every time');
+    appendNext();
+  }
+
+  document.getElementById('replay').addEventListener('click', init);
+  init();
+</script>
+</body>
+</html>
