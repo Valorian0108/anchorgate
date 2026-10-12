@@ -1098,3 +1098,40 @@ nothing below is built yet.
   (`anchorgate.uicheck.1b@mailinator.com`) now carries sixteen catalog records
   from the live passes, fifteen still waiting; it is a throwaway account and can
   be deleted from the Supabase dashboard.
+- **Phase 3 (the Live Instrument Gate): the Gate screen now feels alive where it
+  should, and stays printed where it should.** Phase 2 made the *queue* live;
+  this folds the locked v3 "Live Instrument" specimen
+  (`design-research/live-instrument.specimen.v3.html`) into the real screen. The
+  thin grey budget gauge is replaced by the **anchor wall**: a hero figure for
+  what is spent this month (it counts when it changes), a wall that fills with
+  spent money and shows set-aside money in a lighter tint behind it, turning to
+  the caution colour near the cap and the refusal colour at or over it, with the
+  limit line fixed at the right and the serif line "Approval cannot move this
+  line." underneath. The honest figures (spent / set aside / left / limit) are
+  all still shown, so the wall never hides a number. Requests are now **decision
+  cards** instead of table rows: the one that needs the owner carries a slow,
+  low-amplitude pulse on its status mark that stops the moment it is decided;
+  settled cards carry a stamp (Paid / Declined / Blocked / Cleared) and a
+  one-line receipt. Approve and Decline run **inline on the card** through a new
+  `decideFromGate` server action that returns the real outcome (and the short
+  PayPal capture reference) rather than redirecting, so the card shows an
+  "Authorizing" beat and then exactly what happened: a verified capture stamps
+  Paid and ticks the wall, a hard refusal stamps Blocked and moves nothing, a
+  decline moves nothing. Every card says honestly where it came from
+  ("brought by your agent" for catalog items, "you asked for this" for a typed
+  ask), so a typed ask is never dressed up as the assistant's. The masthead
+  wordmark now reads ANCHORGATE in seal blue at 20px under a 2px ink rule. The
+  two components the rebuild replaced (`gate-register.tsx`, `purchase-row.tsx`)
+  were deleted and their now-dead CSS removed, so the repo stays clean. Motion
+  stays inside the canon: transform and opacity only, the fixed durations and
+  easings, and everything collapses under `prefers-reduced-motion`. Verified live
+  end to end on a fresh account (`anchorgate.gate.1012b@mailinator.com`, rules
+  owner-1, $500 limit): a real "$10.00 · Notion Team" request surfaced, was
+  approved and paid through PayPal sandbox, the receipt read "you approved ·
+  paid once · 64V74017…" the instant it settled **without a reload**, the hero
+  moved $0.00 → $10.00, and a reload showed the identical reference, proving the
+  instant value and the persisted value never diverge. Tests: **262 passing** (up
+  from 255; the new ones pin the card vocabulary, the honest source label, and
+  the blocked/declined/paid readings); typecheck and production build clean.
+  Per the owner's process this phase built the **Gate only**; the Record, the
+  request detail (case file) and the Statute stay on the Print treatment.

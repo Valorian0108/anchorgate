@@ -184,8 +184,8 @@ reported `spent this month 1.00 USD / remaining 99.00 USD`. Commands:
 
 | # | Requirement (source) | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- |
-| F1 | UI designed and approved by owner (§11, §12 P6) | `design-research/` — Live Instrument specimens, v3 locked (anchor wall, type A, curated-pool live feed, away notice); `CONSTRAINTS.md` §7 | Browser-verified specimens; owner approved the v3 feel | Design direction done; honesty sweep done; visual rebuild next |
-| F2 | Interface implemented after approval (§16) | Option 1 (every request needs you) landed in the engine and, after the Phase 1b sweep, on every screen; the live catalog feed (arrivals, entry animation, away badge and tab count) landed in Phase 2; browser-verified live | `engine.test.ts`, service and lifecycle coverage, ask-outcome copy pins, `catalog.test.ts` feed pins | In progress |
+| F1 | UI designed and approved by owner (§11, §12 P6) | `design-research/` — Live Instrument specimens, v3 locked (anchor wall, type A, curated-pool live feed, away notice); `CONSTRAINTS.md` §7 | Browser-verified specimens; owner approved the v3 feel | Design direction done; honesty sweep done; the v3 Live Instrument look is now folded into the real Gate (Phase 3); Record, case file and Statute stay on Print |
+| F2 | Interface implemented after approval (§16) | Option 1 (every request needs you) landed in the engine and, after the Phase 1b sweep, on every screen; the live catalog feed (arrivals, entry animation, away badge and tab count) landed in Phase 2; the Phase 3 Gate rebuild landed the anchor wall (hero spent figure, filling wall that shifts colour near the cap, fixed limit line), decision cards with a pulse on the one waiting item, and inline Approve/Decline that shows an "Authorizing" beat then the real outcome plus the short PayPal capture reference the instant it settles; browser-verified live | `engine.test.ts`, service and lifecycle coverage, ask-outcome copy pins, `catalog.test.ts` feed pins, `gateCard.test.ts` card-vocabulary pins | In progress (Gate done; Record, case file and Statute remain on Print) |
 | F3 | Sponsor tooling (e.g. AG Grid) for decision/audit tables | Owner chose core-app-first; AG Studio "Insights" is a late-October stretch (the sponsor prize stacks) | — | Deferred (stretch candidate) |
 
 ------------------------------------------------------------------------
@@ -194,17 +194,23 @@ reported `spent this month 1.00 USD / remaining 99.00 USD`. Commands:
 
 - Location: `src/**/*.test.ts`
 - Runner: Vitest (`npm test`)
-- Current: **255 tests passing** — the areas listed in earlier revisions
+- Current: **262 tests passing** — the areas listed in earlier revisions
   (authorization, lifecycle, spending, execution, persistence against a real
   in-process PostgreSQL engine, PayPal money/gateway/vault, AI agent,
   application service) plus the rules editor, the sign-in/sign-up actions, the
   card-vault request-id limit, and per-user data separation. The newest pins
   cover Option 1 (auto-approve off, every request inside the cap needs the
   owner, a legacy `AUTHORIZED` record can never ride older rules to payment, and
-  the ask box points at the one number the owner sets) and the live catalog feed
+  the ask box points at the one number the owner sets), the live catalog feed
   (the fourteen-item pool and its categories, the deterministic per-person deck,
   surfacing VERBATIM through the real engine, the twenty-second arrival gap that
   makes reloads idempotent, the derived catalog history, and the hold-back rule
-  that pauses the feed once four requests are waiting on the owner).
+  that pauses the feed once four requests are waiting on the owner), and the
+  Phase 3 Gate card vocabulary (a waiting request reads "needs you" with no
+  stamp, only a verified capture stamps Paid, an approval that has not captured
+  yet stays out of the Paid stamp, a refused request reads Blocked in plain words
+  with no money moved and no raw reason code, the owner's own refusal reads
+  distinctly from a rule refusal, and the honest source label never calls a typed
+  ask the assistant's).
 
 Update this file whenever a requirement's status changes.

@@ -16,6 +16,7 @@
  */
 
 import { InvalidToolInputError } from "ai";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { PROPOSE_PURCHASE_TOOL, type AgentRunResult } from "@/agent";
@@ -26,8 +27,9 @@ import {
 } from "@/core/authorization";
 import { verifyOwner } from "@/lib/auth/dal";
 import { askPathFor, frontDoorReason, type AskOutcome } from "@/lib/askOutcome";
+import { shortRef } from "@/lib/format";
 import { nextRuleVersion, parseMoneyToMinor, startingRules } from "@/lib/rulesEdit";
-import { getAgent, getActiveRules, saveRules, surfaceNextCatalog } from "@/lib/service";
+import { getAgent, getActiveRules, getService, saveRules, surfaceNextCatalog } from "@/lib/service";
 import type { PurchaseRecord } from "@/core/purchases";
 
 /** The verdict payload the propose tool returns (to the model, and to us). */
@@ -151,4 +153,71 @@ export async function updateRules(formData: FormData): Promise<void> {
 export async function surfaceNextFromGate(): Promise<PurchaseRecord | null> {
   const owner = await verifyOwner();
   return surfaceNextCatalog(owner.userId);
+}
+
+/** The two decisions an owner can take on a card at the gate. */
+export type GateDecision = "approve" | "decline";
+
+/**
+ * What a Gate decision returns to the card.
+ *
+ * `record` is the request after the decision, so the card shows exactly what
+ * happened (paid, blocked, or declined) without guessing. `ref` is the short
+ * PayPal capture reference, present only when a capture was verified — the same
+ * string the server-rendered card would show after a reload, so the reference
+ * appears the moment you pay rather than waiting for the page to refresh.
+ */
+export interface GateDecisionResult {
+  record: PurchaseRecord;
+  ref?: string;
+}
+
+/**
+ * Take one decision from a Gate card, server-side.
+ *
+ * This is the same path the case file uses, minus the redirect: approve runs the
+ * engine's re-check against the CURRENT rules and budget and, only if the request
+ * is still approved, executes the payment; decline records a final rejection.
+ *
+ * A hard refusal is a real result, not an error: the card shows it as blocked and
+ * no money moves.
+ *
+ * SECURITY: like every Server Function it can be reached by a direct POST, so it
+ * trusts nothing from the client. Identity is the signed-in owner, and the core
+ * re-gates the payment immediately before the provider is ever called.
+ */
+export async function decideFromGate(
+  id: string,
+  action: GateDecision,
+): Promise<GateDecisionResult> {
+  const owner = await verifyOwner();
+  const service = getService(owner.userId);
+
+  if (action === "decline") {
+    const outcome = await service.reject(id, owner.email);
+    revalidatePath("/");
+    revalidatePath("/record");
+    revalidatePath(`/requests/${id}`);
+    return { record: outcome.record };
+  }
+
+  const approval = await service.approve(id, owner.email);
+  if (approval.record.status !== "APPROVED") {
+    revalidatePath("/");
+    revalidatePath("/record");
+    revalidatePath(`/requests/${id}`);
+    return { record: approval.record };
+  }
+
+  const paid = await service.pay(id, { reconcilePending: true });
+  revalidatePath("/");
+  revalidatePath("/record");
+  revalidatePath(`/requests/${id}`);
+  // The capture id on a verified capture is exactly the ledger's providerRef, so
+  // this is the same short reference the reloaded card would show. Pending
+  // settlements carry no verified capture yet, so they show no reference.
+  const ref = paid.outcome.capture
+    ? shortRef(paid.outcome.capture.providerCaptureId)
+    : undefined;
+  return { record: paid.outcome.record, ref };
 }
