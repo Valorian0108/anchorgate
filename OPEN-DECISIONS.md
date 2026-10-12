@@ -450,6 +450,17 @@ nothing below is built yet.
   visible in the About section (MIT already exists), write a README with setup and
   run steps plus a `.env.example`, and remove any local-only helper scripts
   before publishing.
+- **Pre-submission checklist (owner actions flagged).** In order:
+  1. **Deploy** to Vercel, then add the deployed `https://<domain>/auth/confirm`
+     to Supabase → Authentication → URL Configuration → Redirect URLs.
+  2. **Publish the Google consent screen** (Google Auth Platform → Branding, fill
+     the required fields, then → Audience → **Publish app**). Deferred until after
+     the deploy because Google wants a homepage and privacy link; once published,
+     judges can sign in with Google, not just Test users.
+  3. **Turn off email confirmation** in Supabase (see the multi-user bullet above),
+     so judges can sign up with email + password.
+  4. **Flip the repo to public** on submission day, and confirm the license is
+     visible in the About section.
 - **Prize to name on purpose.** There is an Honorable Mention, **"Best Use of
   Agentic Commerce" ($5,000)**, that matches this product exactly, and a **"Best
   Use of PayPal + AI"** mention. The description and the video should speak to
@@ -915,3 +926,19 @@ nothing below is built yet.
     settings honestly; see `AUTH.md` § 5.
   - Tests: **218 passing** (17 new: 3 `startingRules`, 8 sign-in/sign-up
     actions, 6 card-vault and request-id). Typecheck and build clean.
+
+- **Update (Google sign-in enabled; publishing deferred, 12 oct 2026).** The
+  Google provider was configured in the Supabase dashboard (no code change was
+  needed; the button, the OAuth start, and the `/auth/confirm` callback already
+  existed) and verified live: pressing **Continue with Google** hands off to
+  `accounts.google.com` with the project's client id and `redirect_uri` =
+  `https://xyttfgqxqyyxsqwmjpfl.supabase.co/auth/v1/callback`; a real sign-in
+  joined the owner's existing account and landed on their own gate with their own
+  data intact. **Publishing the consent screen is deliberately deferred to after
+  the first deploy**, because Google's Branding page asks for a homepage and a
+  privacy link, which the deploy will supply; publishing is a one-click step once
+  those exist. Consequence: while the consent screen is **Testing**, only accounts
+  on its **Test users** list can use Google. This does not block the demo, because
+  (a) email + password covers everyone, and (b) Google OAuth sign-ins are already
+  verified by Google, so they never depend on the email-confirmation setting or
+  its 2-per-hour send cap. See `AUTH.md` § 5 item 4.

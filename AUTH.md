@@ -129,9 +129,19 @@ Authentication is configured in the Supabase dashboard, not in code.
    `/auth/confirm`. Configure the Redirect URLs anyway — the bridge only helps
    when the Site URL is the app origin.
 3. **Site URL** (same page): the canonical app origin.
-4. **Google (optional, later):** Authentication → Providers → Google → enable and
-   paste a Google OAuth client id/secret. Until then the Google button returns to
-   `/signin?reason=provider` with a plain sentence.
+4. **Google (enabled 12 oct 2026; publishing deferred).** Authentication →
+   Providers → Google → enabled with a Google OAuth client id/secret. Verified
+   live: pressing **Continue with Google** hands off to `accounts.google.com` with
+   the project's client id and `redirect_uri` =
+   `https://<project>.supabase.co/auth/v1/callback`, and a real sign-in joined the
+   owner's existing account (same email), landing on their own gate with their own
+   data. The OAuth consent screen is still in **Testing**, so only accounts on its
+   **Test users** list can use Google. **Publishing is deferred until after the
+   first deploy**, because Google's Branding page wants a homepage and privacy
+   link, which the deploy supplies. Until published, the Google button is fine for
+   the owner and named test accounts, and the email + password path covers everyone
+   else. (Email + password is unaffected by the publishing status; OAuth sign-ins
+   are already verified by Google, so they never need a confirmation email.)
 5. **Password rules:** the app asks for **8+ characters**; Supabase's own minimum
    is lower, so the app is the stricter gate.
 
