@@ -113,9 +113,9 @@ function Trail({ record }: { record: PurchaseRecord }) {
 }
 
 export default async function RecordPage() {
-  await verifyOwner();
+  const owner = await verifyOwner();
 
-  const service = getService();
+  const service = getService(owner.userId);
   const [budget, records, events] = await Promise.all([
     service.budget(),
     service.list(),

@@ -21,6 +21,7 @@ import { describeRules } from "../src/agent";
 import type { SpendingRules } from "../src/core/authorization";
 import { fromPayPalAmount } from "../src/infra/paypal/money";
 import { createDatabase, DrizzleSpendingRulesStore } from "../src/infra/persistence";
+import { resolveOwnerUserId } from "./owner-id";
 
 const DEFAULT_VERSION = "owner-1";
 
@@ -119,7 +120,8 @@ async function main(): Promise<void> {
   const command = process.argv[2] ?? "show";
   const flags = parseFlags(process.argv.slice(3));
   const { db, sql } = createDatabase(connectionString);
-  const store = new DrizzleSpendingRulesStore(db);
+  const ownerId = await resolveOwnerUserId(db);
+  const store = new DrizzleSpendingRulesStore(db, ownerId);
 
   try {
     if (command === "show") {

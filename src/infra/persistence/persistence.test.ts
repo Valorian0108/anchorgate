@@ -45,6 +45,9 @@ const STATE: SpendingState = { spentThisMonthMinor: 0, knownPayees: [] };
 const NOW = new Date("2026-10-09T12:00:00.000Z");
 const LATER = new Date("2026-10-09T12:05:00.000Z");
 
+/** The scoped stores' person for the main suite. */
+const OWNER = "user-a";
+
 function request(overrides: Partial<PurchaseRequest> = {}): PurchaseRequest {
   return {
     id: "req-1",
@@ -77,7 +80,7 @@ afterAll(async () => {
 
 describe("DrizzlePurchaseStore", () => {
   it("persists a record and reads it back with its evaluations", async () => {
-    const store = new DrizzlePurchaseStore(db);
+    const store = new DrizzlePurchaseStore(db, OWNER);
     const record = proposePurchase(request({ id: "p1" }), RULES, STATE, NOW).record!;
     await store.save(record);
 
@@ -89,7 +92,7 @@ describe("DrizzlePurchaseStore", () => {
   });
 
   it("persists an approval transition and its extra evaluation", async () => {
-    const store = new DrizzlePurchaseStore(db);
+    const store = new DrizzlePurchaseStore(db, OWNER);
     const pending = proposePurchase(request({ id: "p2", amountMinor: 1500 }), RULES, STATE, NOW)
       .record!;
     await store.save(pending);
@@ -104,7 +107,7 @@ describe("DrizzlePurchaseStore", () => {
   });
 
   it("filters by status", async () => {
-    const store = new DrizzlePurchaseStore(db);
+    const store = new DrizzlePurchaseStore(db, OWNER);
     const pending = await store.listByStatus("PENDING_APPROVAL");
     // p2 was approved; the only remaining pending is none of ours, so this is a
     // sanity check that filtering is applied.
@@ -112,7 +115,7 @@ describe("DrizzlePurchaseStore", () => {
   });
 
   it("returns null for an unknown id", async () => {
-    const store = new DrizzlePurchaseStore(db);
+    const store = new DrizzlePurchaseStore(db, OWNER);
     expect(await store.getById("does-not-exist")).toBeNull();
   });
 });
@@ -121,7 +124,7 @@ describe("DrizzlePurchaseStore", () => {
 
 describe("DrizzleSpendingStore", () => {
   it("records a verified capture and ignores the duplicate at the database level", async () => {
-    const ledger = new SpendingLedger(new DrizzleSpendingStore(db));
+    const ledger = new SpendingLedger(new DrizzleSpendingStore(db, OWNER));
     const capture = {
       id: captureEventId("CAP-DB-1"),
       requestId: "p1",
@@ -141,7 +144,7 @@ describe("DrizzleSpendingStore", () => {
   });
 
   it("lists events for one request", async () => {
-    const store = new DrizzleSpendingStore(db);
+    const store = new DrizzleSpendingStore(db, OWNER);
     const events = await store.listByRequest("p1");
     expect(events.length).toBeGreaterThanOrEqual(1);
     expect(events.every((e) => e.requestId === "p1")).toBe(true);
@@ -153,18 +156,18 @@ describe("DrizzleSpendingStore", () => {
 describe("DrizzleSpendingRulesStore", () => {
   it("returns null when no rules are configured", async () => {
     await db.delete(schema.spendingRules);
-    const store = new DrizzleSpendingRulesStore(db);
+    const store = new DrizzleSpendingRulesStore(db, OWNER);
     expect(await store.getActive()).toBeNull();
   });
 
   it("stores and reads back the active rules", async () => {
-    const store = new DrizzleSpendingRulesStore(db);
+    const store = new DrizzleSpendingRulesStore(db, OWNER);
     await store.save(RULES);
     expect(await store.getActive()).toEqual(RULES);
   });
 
-  it("replaces the active rules on save (single global set)", async () => {
-    const store = new DrizzleSpendingRulesStore(db);
+  it("replaces the active rules on save (one set per person)", async () => {
+    const store = new DrizzleSpendingRulesStore(db, OWNER);
     const updated: SpendingRules = { ...RULES, ruleVersion: "v2", monthlyCapMinor: 9000 };
     await store.save(updated);
     const loaded = await store.getActive();
@@ -180,7 +183,7 @@ function paymentMethod(
 ): SavedPaymentMethod {
   return {
     id: "pm-1",
-    ownerId: "default",
+    ownerId: OWNER,
     provider: "paypal",
     sourceType: "paypal",
     providerTokenId: "VAULT-1",
@@ -193,16 +196,16 @@ function paymentMethod(
 
 describe("DrizzlePaymentMethodStore", () => {
   it("stores an active vaulted method and reads it back", async () => {
-    const store = new DrizzlePaymentMethodStore(db);
+    const store = new DrizzlePaymentMethodStore(db, OWNER);
     await store.save(paymentMethod());
-    const active = await store.getActive("default");
+    const active = await store.getActive(OWNER);
     expect(active?.providerTokenId).toBe("VAULT-1");
     expect(active?.payerEmail).toBe("buyer@example.com");
     expect(active?.sourceType).toBe("paypal");
   });
 
   it("round-trips a card payment source", async () => {
-    const store = new DrizzlePaymentMethodStore(db);
+    const store = new DrizzlePaymentMethodStore(db, OWNER);
     await store.save(
       paymentMethod({ id: "pm-card", providerTokenId: "VAULT-CARD", sourceType: "card" }),
     );
@@ -211,31 +214,100 @@ describe("DrizzlePaymentMethodStore", () => {
   });
 
   it("keeps a single row per provider token across repeated saves", async () => {
-    const store = new DrizzlePaymentMethodStore(db);
+    const store = new DrizzlePaymentMethodStore(db, OWNER);
     // A retry of enrollment uses a fresh id but the same provider token.
     await store.save(paymentMethod({ id: "pm-2", providerTokenId: "VAULT-2" }));
     await store.save(
       paymentMethod({ id: "pm-9", providerTokenId: "VAULT-2", payerEmail: "new@example.com" }),
     );
-    const all = await store.list("default");
+    const all = await store.list(OWNER);
     expect(all.filter((m) => m.providerTokenId === "VAULT-2")).toHaveLength(1);
   });
 
   it("revokes a method so it is no longer active", async () => {
-    const store = new DrizzlePaymentMethodStore(db);
+    const store = new DrizzlePaymentMethodStore(db, OWNER);
     const saved = paymentMethod({ id: "pm-3", providerTokenId: "VAULT-3" });
     await store.save(saved);
     expect(await store.revoke("pm-3", "2026-10-05T00:00:00.000Z")).toBe(true);
     expect((await store.getById("pm-3"))?.status).toBe("REVOKED");
-    const active = await store.list("default");
+    const active = await store.list(OWNER);
     expect(active.find((m) => m.id === "pm-3")?.revokedAt).toBe(
       "2026-10-05T00:00:00.000Z",
     );
   });
 
   it("returns null for an unknown id", async () => {
-    const store = new DrizzlePaymentMethodStore(db);
+    const store = new DrizzlePaymentMethodStore(db, OWNER);
     expect(await store.getById("nope")).toBeNull();
+  });
+});
+
+// --- per-user separation ------------------------------------------------------
+
+describe("per-user separation", () => {
+  const ALICE = "user-alice";
+  const BOB = "user-bob";
+
+  it("one person cannot see or touch another's requests", async () => {
+    const alice = new DrizzlePurchaseStore(db, ALICE);
+    const bob = new DrizzlePurchaseStore(db, BOB);
+
+    const record = proposePurchase(request({ id: "iso-1" }), RULES, STATE, NOW).record!;
+    await alice.save(record);
+
+    expect(await bob.getById("iso-1")).toBeNull();
+    expect(await bob.list()).toHaveLength(0);
+    expect((await alice.getById("iso-1"))?.id).toBe("iso-1");
+  });
+
+  it("one person cannot see another's ledger", async () => {
+    const alice = new DrizzleSpendingStore(db, ALICE);
+    const bob = new DrizzleSpendingStore(db, BOB);
+
+    await alice.append({
+      id: captureEventId("CAP-ISO"),
+      requestId: "iso-1",
+      kind: "CAPTURE_VERIFIED",
+      amountMinor: 500,
+      currency: "USD",
+      occurredAt: "2026-10-09T12:00:00.000Z",
+      providerRef: "CAP-ISO",
+    });
+
+    expect(await bob.list()).toHaveLength(0);
+    expect(await bob.listByRequest("iso-1")).toHaveLength(0);
+    expect((await alice.list()).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("each person has their own single active rule set", async () => {
+    const alice = new DrizzleSpendingRulesStore(db, ALICE);
+    const bob = new DrizzleSpendingRulesStore(db, BOB);
+
+    await alice.save(RULES);
+    expect(await bob.getActive()).toBeNull();
+    expect(await alice.getActive()).toEqual(RULES);
+
+    await bob.save({ ...RULES, ruleVersion: "bob-1", monthlyCapMinor: 7777 });
+    expect((await alice.getActive())?.ruleVersion).toBe(RULES.ruleVersion);
+    expect((await alice.getActive())?.monthlyCapMinor).toBe(RULES.monthlyCapMinor);
+    expect((await bob.getActive())?.ruleVersion).toBe("bob-1");
+    expect((await bob.getActive())?.monthlyCapMinor).toBe(7777);
+  });
+
+  it("one person cannot reach another's vault, even passing their id", async () => {
+    const alice = new DrizzlePaymentMethodStore(db, ALICE);
+    const bob = new DrizzlePaymentMethodStore(db, BOB);
+
+    await alice.save(
+      paymentMethod({ id: "pm-iso", providerTokenId: "VAULT-ISO", ownerId: ALICE }),
+    );
+
+    expect(await bob.getActive(ALICE)).toBeNull();
+    expect(await bob.getById("pm-iso")).toBeNull();
+    expect(await bob.list(ALICE)).toHaveLength(0);
+    expect(await bob.revoke("pm-iso", "2026-10-05T00:00:00.000Z")).toBe(false);
+    expect((await alice.getActive(ALICE))?.providerTokenId).toBe("VAULT-ISO");
+    expect((await alice.getById("pm-iso"))?.status).toBe("ACTIVE");
   });
 });
 
@@ -248,7 +320,7 @@ describe("durability across restart", () => {
       const first = new PGlite(dir);
       const firstDb: AppDatabase = drizzle(first, { schema });
       await migrate(firstDb, MIGRATIONS);
-      await new DrizzleSpendingStore(firstDb).append({
+      await new DrizzleSpendingStore(firstDb, OWNER).append({
         id: captureEventId("CAP-RESTART"),
         requestId: "p-restart",
         kind: "CAPTURE_VERIFIED",
@@ -262,7 +334,7 @@ describe("durability across restart", () => {
       // Reopen the same on-disk database, as a fresh process would.
       const second = new PGlite(dir);
       const secondDb: AppDatabase = drizzle(second, { schema });
-      const events = await new DrizzleSpendingStore(secondDb).list();
+      const events = await new DrizzleSpendingStore(secondDb, OWNER).list();
 
       expect(events).toHaveLength(1);
       expect(events[0]?.amountMinor).toBe(700);

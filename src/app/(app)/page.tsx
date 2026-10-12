@@ -22,12 +22,12 @@ export default async function GatePage({
 }: {
   searchParams: Promise<{ ask?: string; why?: string }>;
 }) {
-  await verifyOwner();
+  const owner = await verifyOwner();
 
   const { ask, why } = await searchParams;
   const message = askMessageFor(ask, why);
 
-  const service = getService();
+  const service = getService(owner.userId);
   const budget = await service.budget();
   const records = (await service.list()).sort((a, b) =>
     b.createdAt.localeCompare(a.createdAt),

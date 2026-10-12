@@ -20,7 +20,7 @@
 import { existsSync } from "node:fs";
 import process from "node:process";
 
-import { DEFAULT_OWNER_ID } from "../src/core/payments";
+import { resolveOwnerUserId } from "./owner-id";
 import {
   createDatabase,
   DrizzlePaymentMethodStore,
@@ -71,6 +71,7 @@ async function main(): Promise<void> {
 
   const { db, sql: client } = createDatabase(url);
   try {
+    const ownerId = await resolveOwnerUserId(db);
     const rows = await db
       .select()
       .from(schema.savedPaymentMethods)
@@ -89,13 +90,13 @@ async function main(): Promise<void> {
     }
 
     const active = rows.find(
-      (row) => row.ownerId === DEFAULT_OWNER_ID && row.status === "ACTIVE",
+      (row) => row.ownerId === ownerId && row.status === "ACTIVE",
     );
     console.log();
     console.log(
       active
-        ? `Active method for owner "${DEFAULT_OWNER_ID}": ${active.sourceType} (${active.id.slice(0, 8)}…).`
-        : `No ACTIVE method for owner "${DEFAULT_OWNER_ID}" — the app cannot pay until one is enrolled.`,
+        ? `Active method for the owner account: ${active.sourceType} (${active.id.slice(0, 8)}…).`
+        : `No ACTIVE method for the owner account — the app cannot pay until one is enrolled.`,
     );
 
     if (!enroll) {
@@ -112,10 +113,10 @@ async function main(): Promise<void> {
     const vault = new SdkVaultPort(paypal);
 
     const method = await enrollCardVault(vault, {
-      ownerId: DEFAULT_OWNER_ID,
+      ownerId,
       card: SANDBOX_TEST_CARD,
     });
-    await new DrizzlePaymentMethodStore(db).save(method);
+    await new DrizzlePaymentMethodStore(db, ownerId).save(method);
 
     console.log("Vault enrollment complete and persisted.");
     console.log(

@@ -8,9 +8,9 @@ import { fmtClockUTC } from "@/lib/format";
 import { getService } from "@/lib/service";
 import { latestEvaluation } from "@/lib/vocab";
 
-export async function EngineLine() {
+export async function EngineLine({ userId }: { userId: string }) {
   try {
-    const service = getService();
+    const service = getService(userId);
     const [budget, records] = await Promise.all([service.budget(), service.list()]);
 
     let evaluated: string | null = null;

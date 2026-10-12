@@ -35,7 +35,7 @@ type SpendingRow = typeof spendingEvents.$inferSelect;
 type RulesRow = typeof spendingRules.$inferSelect;
 type PaymentMethodRow = typeof savedPaymentMethods.$inferSelect;
 
-/** The fixed primary key of the single global rules row (MVP). */
+/** The fixed id of each person's active rules row (keyed with owner_id). */
 export const ACTIVE_RULES_ID = "active";
 
 const REQUEST_STATUSES: readonly RequestStatus[] = [
@@ -62,9 +62,13 @@ function assertOneOf<T extends string>(value: string, allowed: readonly T[], lab
 }
 
 /** Values to insert/update for a purchase_request row. */
-export function toPurchaseRow(record: PurchaseRecord): typeof purchaseRequests.$inferInsert {
+export function toPurchaseRow(
+  record: PurchaseRecord,
+  ownerId: string,
+): typeof purchaseRequests.$inferInsert {
   return {
     id: record.id,
+    ownerId,
     agentId: record.request.agentId,
     payee: record.request.payee,
     purpose: record.request.purpose,
@@ -84,8 +88,10 @@ export function toPurchaseRow(record: PurchaseRecord): typeof purchaseRequests.$
 
 export function toEvaluationRows(
   record: PurchaseRecord,
+  ownerId: string,
 ): (typeof evaluations.$inferInsert)[] {
   return record.evaluations.map((evaluation) => ({
+    ownerId,
     requestId: record.id,
     context: evaluation.context,
     decision: evaluation.decision.decision,
@@ -160,9 +166,11 @@ export function toSpendingEvent(row: SpendingRow): SpendingEvent {
 
 export function toSpendingRow(
   event: SpendingEvent,
+  ownerId: string,
 ): typeof spendingEvents.$inferInsert {
   return {
     id: event.id,
+    ownerId,
     requestId: event.requestId,
     kind: event.kind as SpendingEventKind,
     amountMinor: event.amountMinor,
@@ -173,12 +181,14 @@ export function toSpendingRow(
   };
 }
 
-/** Values to write for the single active rules row. */
+/** Values to write for one person's active rules row. */
 export function toRulesRow(
   rules: SpendingRules,
   updatedAt: Date,
+  ownerId: string,
 ): typeof spendingRules.$inferInsert {
   return {
+    ownerId,
     id: ACTIVE_RULES_ID,
     ruleVersion: rules.ruleVersion,
     currency: rules.currency,

@@ -77,9 +77,14 @@ import {
   toPayPalAmount,
 } from "../src/infra/paypal";
 import { PurchaseService } from "../src/services";
+import { resolveOwnerUserId } from "./owner-id";
 
-/** The one and only owner for the MVP (see `core/payments/types.ts`). */
-const OWNER_ID = DEFAULT_OWNER_ID;
+/**
+ * Whose data the CLI acts on. The durable path resolves the real owner's
+ * Supabase user id (from OWNER_EMAIL) in `wireStores`; the in-memory fallback
+ * keeps the placeholder since nothing persists anyway.
+ */
+let OWNER_ID = DEFAULT_OWNER_ID;
 
 /** PayPal's standard Sandbox test card (Visa, always approves, no 3DS). */
 const SANDBOX_TEST_CARD = {
@@ -141,7 +146,7 @@ interface WiredStores {
   close: () => Promise<void>;
 }
 
-function wireStores(): WiredStores {
+async function wireStores(): Promise<WiredStores> {
   const url = process.env.DATABASE_URL?.trim();
   if (!url) {
     // In-memory fallback so the CLI is usable without a database. Not durable:
@@ -157,11 +162,12 @@ function wireStores(): WiredStores {
   }
 
   const { db, sql } = createDatabase(url);
+  OWNER_ID = await resolveOwnerUserId(db);
   return {
-    purchases: new DrizzlePurchaseStore(db),
-    spending: new DrizzleSpendingStore(db),
-    rules: new DrizzleSpendingRulesStore(db),
-    paymentMethods: new DrizzlePaymentMethodStore(db),
+    purchases: new DrizzlePurchaseStore(db, OWNER_ID),
+    spending: new DrizzleSpendingStore(db, OWNER_ID),
+    rules: new DrizzleSpendingRulesStore(db, OWNER_ID),
+    paymentMethods: new DrizzlePaymentMethodStore(db, OWNER_ID),
     durable: true,
     close: async () => {
       await sql.end({ timeout: 5 });
@@ -387,7 +393,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  const stores = wireStores();
+  const stores = await wireStores();
   const service = new PurchaseService({
     purchases: stores.purchases,
     spending: stores.spending,

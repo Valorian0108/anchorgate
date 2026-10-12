@@ -18,6 +18,7 @@ import {
   boolean,
   index,
   pgTable,
+  primaryKey,
   serial,
   text,
   timestamp,
@@ -29,24 +30,30 @@ import {
  * The request's material details are immutable; only the lifecycle columns
  * (status, approval, rejection) change after creation.
  */
-export const purchaseRequests = pgTable("purchase_requests", {
-  id: text("id").primaryKey(),
-  agentId: text("agent_id").notNull(),
-  payee: text("payee").notNull(),
-  purpose: text("purpose").notNull(),
-  category: text("category").notNull(),
-  amountMinor: bigint("amount_minor", { mode: "number" }).notNull(),
-  currency: text("currency").notNull(),
-  /** SHA-256 over the material details; binds approvals. */
-  fingerprint: text("fingerprint").notNull(),
-  status: text("status").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull(),
-  approvalBy: text("approval_by"),
-  approvalAt: timestamp("approval_at", { withTimezone: true, mode: "date" }),
-  rejectionBy: text("rejection_by"),
-  rejectionAt: timestamp("rejection_at", { withTimezone: true, mode: "date" }),
-  rejectionReason: text("rejection_reason"),
-});
+export const purchaseRequests = pgTable(
+  "purchase_requests",
+  {
+    id: text("id").primaryKey(),
+    /** Supabase auth user id of the person this request belongs to. */
+    ownerId: text("owner_id").notNull(),
+    agentId: text("agent_id").notNull(),
+    payee: text("payee").notNull(),
+    purpose: text("purpose").notNull(),
+    category: text("category").notNull(),
+    amountMinor: bigint("amount_minor", { mode: "number" }).notNull(),
+    currency: text("currency").notNull(),
+    /** SHA-256 over the material details; binds approvals. */
+    fingerprint: text("fingerprint").notNull(),
+    status: text("status").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull(),
+    approvalBy: text("approval_by"),
+    approvalAt: timestamp("approval_at", { withTimezone: true, mode: "date" }),
+    rejectionBy: text("rejection_by"),
+    rejectionAt: timestamp("rejection_at", { withTimezone: true, mode: "date" }),
+    rejectionReason: text("rejection_reason"),
+  },
+  (table) => [index("purchase_requests_owner_idx").on(table.ownerId)],
+);
 
 /**
  * The authorization evaluations recorded for a request, oldest first.
@@ -56,6 +63,7 @@ export const evaluations = pgTable(
   "evaluations",
   {
     id: serial("id").primaryKey(),
+    ownerId: text("owner_id").notNull(),
     requestId: text("request_id")
       .notNull()
       .references(() => purchaseRequests.id, { onDelete: "cascade" }),
@@ -66,7 +74,10 @@ export const evaluations = pgTable(
     ruleVersion: text("rule_version").notNull(),
     evaluatedAt: timestamp("evaluated_at", { withTimezone: true, mode: "date" }).notNull(),
   },
-  (table) => [index("evaluations_request_id_idx").on(table.requestId)],
+  (table) => [
+    index("evaluations_request_id_idx").on(table.requestId),
+    index("evaluations_owner_idx").on(table.ownerId),
+  ],
 );
 
 /**
@@ -77,6 +88,7 @@ export const spendingEvents = pgTable(
   "spending_events",
   {
     id: text("id").primaryKey(),
+    ownerId: text("owner_id").notNull(),
     requestId: text("request_id").notNull(),
     kind: text("kind").notNull(),
     amountMinor: bigint("amount_minor", { mode: "number" }).notNull(),
@@ -85,27 +97,35 @@ export const spendingEvents = pgTable(
     providerRef: text("provider_ref"),
     note: text("note"),
   },
-  (table) => [index("spending_events_request_id_idx").on(table.requestId)],
+  (table) => [
+    index("spending_events_request_id_idx").on(table.requestId),
+    index("spending_events_owner_idx").on(table.ownerId),
+  ],
 );
 
 /**
- * The active spending rules.
+ * The active spending rules, one row per person.
  *
- * Single global rule set for the MVP, stored as one row with the fixed id
- * "active". The schema can grow a user/tenant id later.
+ * Each signed-in user has their own rule set, stored as the row
+ * (owner_id, "active"). Missing rules fail safe: nothing can be approved.
  */
-export const spendingRules = pgTable("spending_rules", {
-  id: text("id").primaryKey(),
-  ruleVersion: text("rule_version").notNull(),
-  currency: text("currency").notNull(),
-  perPurchaseAutoLimitMinor: bigint("per_purchase_auto_limit_minor", {
-    mode: "number",
-  }).notNull(),
-  monthlyCapMinor: bigint("monthly_cap_minor", { mode: "number" }).notNull(),
-  permittedCategories: text("permitted_categories").array().notNull(),
-  requireApprovalForNewPayee: boolean("require_approval_for_new_payee").notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull(),
-});
+export const spendingRules = pgTable(
+  "spending_rules",
+  {
+    ownerId: text("owner_id").notNull(),
+    id: text("id").notNull(),
+    ruleVersion: text("rule_version").notNull(),
+    currency: text("currency").notNull(),
+    perPurchaseAutoLimitMinor: bigint("per_purchase_auto_limit_minor", {
+      mode: "number",
+    }).notNull(),
+    monthlyCapMinor: bigint("monthly_cap_minor", { mode: "number" }).notNull(),
+    permittedCategories: text("permitted_categories").array().notNull(),
+    requireApprovalForNewPayee: boolean("require_approval_for_new_payee").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.ownerId, table.id] })],
+);
 
 /**
  * The user's saved ("vaulted") payment methods.

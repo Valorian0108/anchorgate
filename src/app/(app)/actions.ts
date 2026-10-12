@@ -70,20 +70,20 @@ function outcomeFromRun(run: AgentRunResult, rules: SpendingRules | null): AskOu
 }
 
 export async function proposeFromGate(formData: FormData): Promise<void> {
-  await verifyOwner();
+  const owner = await verifyOwner();
 
   const text = String(formData.get("request") ?? "").trim();
   if (!text) {
     redirect("/?ask=empty");
   }
 
-  const rules = await getActiveRules();
+  const rules = await getActiveRules(owner.userId);
 
   // NOTE: redirect() throws, so it must happen OUTSIDE the try block or the
   // catch would swallow it and report an error on success.
   let outcome: AskOutcome;
   try {
-    const agent = await getAgent();
+    const agent = await getAgent(owner.userId);
     outcome = outcomeFromRun(await agent.run(text), rules);
   } catch (error) {
     // A tool input the contract rejected is a front-door refusal, not outage.
@@ -101,7 +101,7 @@ export async function proposeFromGate(formData: FormData): Promise<void> {
  * sense together.
  */
 export async function updateRules(formData: FormData): Promise<void> {
-  await verifyOwner();
+  const owner = await verifyOwner();
 
   const capMinor = parseMoneyToMinor(String(formData.get("cap") ?? ""));
   const autoMinor = parseMoneyToMinor(String(formData.get("auto") ?? ""));
@@ -113,12 +113,12 @@ export async function updateRules(formData: FormData): Promise<void> {
     redirect("/statute?saved=auto-above-cap");
   }
 
-  const current = await getActiveRules();
+  const current = await getActiveRules(owner.userId);
   if (!current) {
     redirect("/statute?saved=no-rules");
   }
 
-  await saveRules({
+  await saveRules(owner.userId, {
     ...current,
     monthlyCapMinor: capMinor,
     perPurchaseAutoLimitMinor: autoMinor,

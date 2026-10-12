@@ -37,7 +37,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <EngineLine />
+      <EngineLine userId={owner.userId} />
 
       <main>{children}</main>
     </div>

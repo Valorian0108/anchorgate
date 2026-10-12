@@ -68,11 +68,11 @@ export default async function StatutePage({
 }: {
   searchParams: Promise<{ saved?: string }>;
 }) {
-  await verifyOwner();
+  const owner = await verifyOwner();
 
   const { saved } = await searchParams;
 
-  const service = getService();
+  const service = getService(owner.userId);
   const budget = await service.budget();
   const rules = budget.rules;
 

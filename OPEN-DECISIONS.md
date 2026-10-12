@@ -818,3 +818,29 @@ nothing below is built yet.
   During verification the known `EMAXCONNSESSION` session-pool ceiling
   resurfaced (accumulated by the long-lived HMR dev server); a dev-server
   restart cleared it — environment, not a page defect.
+
+- **Update (multi-user, step 1 of 5 — the separation).** Owner gave the go
+  (12 oct 2026). Every row in all five tables now carries an `owner_id` (the
+  person's Supabase user id): migration 0005 added the column, backfilled all
+  existing data to the owner account (looked up by email in `auth.users`),
+  remapped the vault row from the CLI's old `"default"` label, made the rules
+  key `(owner_id, id)` so each person has their own single active rule set,
+  and created one row-level-security policy per table
+  (`owner_id = auth.uid()`) as defense in depth. All Drizzle stores are now
+  scoped at construction (`new DrizzlePurchaseStore(db, userId)`): every read
+  is filtered and every write is stamped, so one person can never reach
+  another's rows, not even by guessing an id. `getService`/`getActiveRules`/
+  `saveRules`/`getAgent` take the signed-in user's id (already returned by
+  `verifyOwner`); the PayPal gateway vaults per person. CLI scripts resolve
+  the owner's id from `OWNER_EMAIL` via `scripts/owner-id.ts`. Migration is
+  PGlite-safe (guarded `auth` lookups) so the tests run the identical SQL.
+  **Verified live:** 59/59 rows owned by the owner (id prefix 718d3d1f), 5
+  policies present, rules PK `(id, owner_id)`, `npm run rules:show` reads
+  owner-3 through the new scoped path. Suite **201 passing** (4 new separation
+  tests: requests, ledger, rules, and vault are each invisible across users);
+  typecheck and build clean. No visible change yet: sign-in stays owner-only
+  until step 2 (sign-up/sign-in for everyone). Also observed: the owner
+  rehearsed the Rules editor himself (`?saved=ok` twice, one correct
+  `auto-above-cap` refusal in the dev log); rules now owner-3, cap 200.00,
+  auto 50.00 — the month is no longer at its cap, so the live end-to-end demo
+  is unblocked.

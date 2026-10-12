@@ -48,6 +48,7 @@ import {
   DrizzleSpendingRulesStore,
   DrizzleSpendingStore,
 } from "../src/infra/persistence";
+import { resolveOwnerUserId } from "./owner-id";
 
 /**
  * A deliberately conservative demo rule set. It is saved only when the database
@@ -77,7 +78,7 @@ interface WiredStores {
 }
 
 /** Use the durable database when configured, otherwise in-memory. */
-function wireStores(): WiredStores {
+async function wireStores(): Promise<WiredStores> {
   const url = process.env.DATABASE_URL?.trim();
   if (!url) {
     return {
@@ -90,10 +91,11 @@ function wireStores(): WiredStores {
   }
 
   const { db, sql } = createDatabase(url);
+  const ownerId = await resolveOwnerUserId(db);
   return {
-    rules: new DrizzleSpendingRulesStore(db),
-    purchases: new DrizzlePurchaseStore(db),
-    spending: new DrizzleSpendingStore(db),
+    rules: new DrizzleSpendingRulesStore(db, ownerId),
+    purchases: new DrizzlePurchaseStore(db, ownerId),
+    spending: new DrizzleSpendingStore(db, ownerId),
     durable: true,
     close: async () => {
       await sql.end({ timeout: 5 });
@@ -116,7 +118,7 @@ async function main(): Promise<void> {
   loadLocalEnv();
 
   const config = readAgentConfig();
-  const stores = wireStores();
+  const stores = await wireStores();
 
   try {
     let rules = await stores.rules.getActive();

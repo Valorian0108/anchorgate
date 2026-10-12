@@ -44,7 +44,7 @@ export async function approveAndPayRequest(formData: FormData): Promise<void> {
   if (!id) return;
 
   const owner = await verifyOwner();
-  const service = getService();
+  const service = getService(owner.userId);
   const approval = await service.approve(id, owner.email);
   refresh(id);
 
@@ -62,7 +62,7 @@ export async function declineRequest(formData: FormData): Promise<void> {
   if (!id) return;
 
   const owner = await verifyOwner();
-  await getService().reject(id, owner.email);
+  await getService(owner.userId).reject(id, owner.email);
   refresh(id);
   redirect(`/requests/${id}`);
 }
@@ -75,8 +75,8 @@ export async function payRequest(formData: FormData): Promise<void> {
   const id = readId(formData);
   if (!id) return;
 
-  await verifyOwner();
-  await getService().pay(id, { reconcilePending: true });
+  const owner = await verifyOwner();
+  await getService(owner.userId).pay(id, { reconcilePending: true });
   refresh(id);
   redirect(`/requests/${id}`);
 }
@@ -86,8 +86,8 @@ export async function reconcileRequest(formData: FormData): Promise<void> {
   const id = readId(formData);
   if (!id) return;
 
-  await verifyOwner();
-  await getService().reconcile(id);
+  const owner = await verifyOwner();
+  await getService(owner.userId).reconcile(id);
   refresh(id);
   redirect(`/requests/${id}`);
 }

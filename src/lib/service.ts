@@ -5,12 +5,16 @@
  * stores over the Supabase Postgres connection, and a lazily-constructed PayPal
  * Sandbox gateway (only built when a payment command actually needs it).
  *
+ * Every entry point takes the signed-in user's id (from the auth DAL) and
+ * returns a service whose stores are scoped to that person: their requests,
+ * their ledger, their rules, their vault. One cached service per user.
+ *
  * SECURITY: connection string and PayPal credentials live in the environment
  * and never leave the server. Nothing here is imported by client components.
  */
 
 import type { SpendingRules } from "@/core/authorization";
-import { createDatabase } from "@/infra/persistence";
+import { createDatabase, type DatabaseHandle } from "@/infra/persistence";
 import {
   DrizzlePaymentMethodStore,
   DrizzlePurchaseStore,
@@ -40,33 +44,40 @@ interface Stores {
   paymentMethods: DrizzlePaymentMethodStore;
 }
 
-let stores: Stores | null = null;
-let cached: PurchaseService | null = null;
+let database: DatabaseHandle | null = null;
+const services = new Map<string, PurchaseService>();
 
-function getStores(): Stores {
-  if (stores) return stores;
+function getDatabase(): DatabaseHandle {
+  if (database) return database;
 
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     throw new Error("DATABASE_URL is not set. Cannot build the purchase service.");
   }
 
-  const { db } = createDatabase(connectionString);
-  stores = {
-    purchases: new DrizzlePurchaseStore(db),
-    spending: new DrizzleSpendingStore(db),
-    rules: new DrizzleSpendingRulesStore(db),
-    paymentMethods: new DrizzlePaymentMethodStore(db),
-  };
-  return stores;
+  database = createDatabase(connectionString);
+  return database;
 }
 
-export function getService(): PurchaseService {
-  if (cached) return cached;
+/** Stores scoped to one person. Cheap wrappers; built per service, not cached. */
+function storesFor(userId: string): Stores {
+  const { db } = getDatabase();
+  return {
+    purchases: new DrizzlePurchaseStore(db, userId),
+    spending: new DrizzleSpendingStore(db, userId),
+    rules: new DrizzleSpendingRulesStore(db, userId),
+    paymentMethods: new DrizzlePaymentMethodStore(db, userId),
+  };
+}
 
-  const s = getStores();
+/** The purchase service for one signed-in person (cached per user id). */
+export function getService(userId: string): PurchaseService {
+  const hit = services.get(userId);
+  if (hit) return hit;
 
-  cached = new PurchaseService({
+  const s = storesFor(userId);
+
+  const service = new PurchaseService({
     purchases: s.purchases,
     spending: s.spending,
     rules: s.rules,
@@ -77,37 +88,42 @@ export function getService(): PurchaseService {
         orders: new SdkOrdersPort(client),
         payments: new SdkPaymentsPort(client),
         paymentMethods: s.paymentMethods,
+        ownerId: userId,
       });
     },
   });
 
-  return cached;
+  services.set(userId, service);
+  return service;
 }
 
 /**
- * The active spending rules, for server-side callers that need policy facts
- * (e.g. explaining a front-door refusal). Never exposed to the client.
+ * The active spending rules for one person, for server-side callers that need
+ * policy facts (e.g. explaining a front-door refusal). Never exposed to the
+ * client.
  */
-export async function getActiveRules(): Promise<SpendingRules | null> {
-  return getStores().rules.getActive();
+export async function getActiveRules(userId: string): Promise<SpendingRules | null> {
+  return storesFor(userId).rules.getActive();
 }
 
 /**
- * Persist a new active rule set. Only the Rules editor calls this, and only
- * after the owner is verified. Recorded decisions keep the rule version they
- * were judged under, so replacing the active set never rewrites history.
+ * Persist a new active rule set for one person. Only the Rules editor calls
+ * this, and only after the person is verified. Recorded decisions keep the rule
+ * version they were judged under, so replacing the active set never rewrites
+ * history.
  */
-export async function saveRules(rules: SpendingRules): Promise<void> {
-  return getStores().rules.save(rules);
+export async function saveRules(userId: string, rules: SpendingRules): Promise<void> {
+  return storesFor(userId).rules.save(rules);
 }
 
 /**
- * The proposal-only AI agent, wired to the same durable stores as the service.
- * Server-side only. It can propose a purchase; it can never approve or pay.
- * Built fresh per call so the model always sees the currently active rules.
+ * The proposal-only AI agent for one person, wired to the same durable stores
+ * as their service. Server-side only. It can propose a purchase; it can never
+ * approve or pay. Built fresh per call so the model always sees the currently
+ * active rules of the signed-in person, and only theirs.
  */
-export async function getAgent(): Promise<PurchaseAgent> {
-  const s = getStores();
+export async function getAgent(userId: string): Promise<PurchaseAgent> {
+  const s = storesFor(userId);
   const config = readAgentConfig();
   const rules = await s.rules.getActive();
   const proposals = new ProposalService({

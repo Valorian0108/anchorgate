@@ -116,9 +116,9 @@ export default async function RequestDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await verifyOwner();
+  const owner = await verifyOwner();
   const { id } = await params;
-  const service = getService();
+  const service = getService(owner.userId);
 
   const record = await service.get(id);
   if (!record) notFound();
