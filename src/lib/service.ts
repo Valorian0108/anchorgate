@@ -32,12 +32,18 @@ import {
 } from "@/infra/paypal";
 import { PurchaseService } from "@/services";
 import {
+  CATALOG_AGENT_ID,
+  catalogArrivalDue,
+  catalogShouldHoldBack,
+  catalogState,
   createAgentModel,
   createPurchaseAgent,
   ProposalService,
   readAgentConfig,
+  surfaceCatalogPurchase,
   type PurchaseAgent,
 } from "@/agent";
+import type { PurchaseRecord } from "@/core/purchases";
 
 interface Stores {
   purchases: DrizzlePurchaseStore;
@@ -139,6 +145,45 @@ export async function getAgent(userId: string): Promise<PurchaseAgent> {
     proposals,
     rules,
   });
+}
+
+/**
+ * Surface the next catalog item as a real purchase request, if one is due.
+ *
+ * The live Gate feed's one server-side step. It reads the person's own records
+ * and rules, refuses when nothing is due (so a reload or a second tab can never
+ * double-file), picks the next item deterministically, and files it through the
+ * same `ProposalService` as everything else. The engine still decides: under
+ * Option 1 that means ASK, and the catalog can never approve or pay.
+ *
+ * Returns the new record, or null when no rules are set, no item is permitted,
+ * the owner is already behind on several, or the last arrival was too recent to
+ * be due.
+ */
+export async function surfaceNextCatalog(
+  userId: string,
+  now: Date = new Date(),
+): Promise<PurchaseRecord | null> {
+  const s = storesFor(userId);
+
+  const rules = await s.rules.getActive();
+  if (!rules) return null;
+
+  const records = await s.purchases.list();
+  if (catalogShouldHoldBack(records)) return null;
+
+  const { proposedCount, lastArrivalAt } = catalogState(records);
+  if (!catalogArrivalDue({ lastArrivalAt, nowMs: now.getTime() })) return null;
+
+  const proposals = new ProposalService({
+    rules: s.rules,
+    purchases: s.purchases,
+    spending: s.spending,
+    agentId: CATALOG_AGENT_ID,
+  });
+
+  const result = await surfaceCatalogPurchase({ proposals, seed: userId, proposedCount });
+  return result?.record ?? null;
 }
 
 /** PayPal's standard Sandbox test card (Visa, always approves, no 3DS). */

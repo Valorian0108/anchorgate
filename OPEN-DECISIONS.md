@@ -1059,3 +1059,42 @@ nothing below is built yet.
   screen can say honestly where a proposal came from. 14 new tests pin all of
   it: **246 passing**, typecheck clean. The ~30s feed UI, the entry animation
   and the away badge are Phase 2.
+- **Phase 2 (the live feed): the Gate is now live.** The curated pool surfaces
+  on its own, through the real engine, and the owner can be away while it
+  works. Owner decisions taken at the start of the phase: the "Ask the
+  assistant" box **stays** beside the feed (the feed is what the assistant
+  brings on its own, the box is for asking about something specific), and the
+  away notice goes as far as the **header badge and the browser tab count**,
+  staying inside the app (no closed-app push). How it works: a `FeedProvider`
+  in the signed-in layout asks a server action (`surfaceNextFromGate` →
+  `surfaceNextCatalog`) about every thirty seconds and keeps what comes back.
+  The feed is **not** a firehose: the server enforces a twenty-second gap
+  between arrivals, so reloading the Gate, opening a second tab, or a timer
+  that fires early can never file two requests back to back; picking is the
+  same deterministic per-person deck as Phase 1c, and each item is filed
+  VERBATIM as a real request the deterministic engine rules on (under Option 1,
+  ASK). A live pass exposed a real problem: with no ceiling, a tab left open
+  filed a request every thirty seconds forever and filled the ledger. The feed
+  now **holds back once four requests are already waiting on the owner**, and
+  resumes as they are decided. The register was moved into a client component
+  that merges the records the server already knows with the ones that arrive
+  while the page is open (deduplicated by id), so the count line, the empty
+  states and the ledger can never contradict each other; a new arrival lands
+  with one opacity-and-lift beat (220 ms, transform and opacity only, collapsed
+  to a quick fade under reduced motion). The away path: arrivals that land while
+  the tab is hidden or the owner is on another page count toward a "Gate · N
+  new" badge in the masthead and the count in the browser tab title, and coming
+  back shows "While you were away, N new requests arrived." then clears both.
+  Verified live on the UI-check account: a new "$120.00 · Flight · team offsite"
+  request arrived and appeared with the entry animation; the badge read
+  "Gate · 3 new"; the tab title read "Gate · 3 new · AnchorGate"; returning to
+  the front showed the banner, cleared the badge and restored the page title.
+  One fix came out of the pass: Next inserts its own `<title>` after mount, so
+  the plain `document.title` setter had created a stray second title element
+  the browser ignored; the title is now written to the element the browser
+  actually reads. Tests: **255 passing** (up from 246; the new ones pin the
+  arrival gap, the catalog history, and the hold-back rule); typecheck and
+  production build clean. Note for housekeeping: the UI-check account
+  (`anchorgate.uicheck.1b@mailinator.com`) now carries sixteen catalog records
+  from the live passes, fifteen still waiting; it is a throwaway account and can
+  be deleted from the Supabase dashboard.

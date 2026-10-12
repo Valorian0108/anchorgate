@@ -132,6 +132,81 @@ export function pickNextCatalogItem(opts: {
 }
 
 /**
+ * The shortest gap between two arrivals for one person.
+ *
+ * The Gate asks the feed for the next item about every thirty seconds, but the
+ * feed is not a firehose: this window is the real cadence, enforced on the
+ * server. Reloading the Gate, opening a second tab, or a timer that fires a
+ * touch early can never file two requests back to back, because a request
+ * within this window of the last one is simply not due yet.
+ */
+export const CATALOG_ARRIVAL_GAP_MS = 20_000;
+
+/**
+ * A person's catalog history, derived from their records and stored nowhere:
+ * how many catalog-sourced requests they have, and when the most recent one
+ * arrived. Only the fields this needs are read, so it composes over anything
+ * that looks like a record.
+ */
+export function catalogState(
+  records: readonly {
+    request: { agentId: string };
+    createdAt: string;
+  }[],
+): { proposedCount: number; lastArrivalAt: string | null } {
+  let proposedCount = 0;
+  let lastArrivalAt: string | null = null;
+  for (const record of records) {
+    if (record.request.agentId !== CATALOG_AGENT_ID) continue;
+    proposedCount += 1;
+    if (lastArrivalAt === null || record.createdAt > lastArrivalAt) {
+      lastArrivalAt = record.createdAt;
+    }
+  }
+  return { proposedCount, lastArrivalAt };
+}
+
+/**
+ * Is the next arrival due? Nothing yet means yes. Anything inside the gap
+ * since the last arrival means no. This is what makes the feed occasional and
+ * makes reloads idempotent.
+ */
+export function catalogArrivalDue(opts: {
+  lastArrivalAt: string | null;
+  nowMs: number;
+  gapMs?: number;
+}): boolean {
+  if (opts.lastArrivalAt === null) return true;
+  const last = new Date(opts.lastArrivalAt).getTime();
+  if (Number.isNaN(last)) return true;
+  const gap = opts.gapMs ?? CATALOG_ARRIVAL_GAP_MS;
+  return opts.nowMs - last >= gap;
+}
+
+/**
+ * The most requests the feed will leave waiting on the owner before it holds
+ * back. The point of the gate is a decision that stays human: if the owner is
+ * already behind on several, piling on more is noise, not a feed. Arrivals
+ * resume as soon as they work through them.
+ */
+export const CATALOG_MAX_WAITING_ON_YOU = 4;
+
+/**
+ * Should the feed hold back? Yes when the owner already has this many requests
+ * waiting on their okay. Reads only a record's status, so it composes over
+ * anything that looks like a record.
+ */
+export function catalogShouldHoldBack(
+  records: readonly { status: string }[],
+): boolean {
+  let waiting = 0;
+  for (const record of records) {
+    if (record.status === "PENDING_APPROVAL") waiting += 1;
+  }
+  return waiting >= CATALOG_MAX_WAITING_ON_YOU;
+}
+
+/**
  * Surface the next catalog item as a real purchase request.
  *
  * Composition only: read the person's active rules, pick from the pool, and

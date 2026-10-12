@@ -474,6 +474,13 @@ nav .active::before {
 .owner .signout:hover { border-color: var(--ink); color: var(--ink); }
 .owner form { display: flex; }
 
+/* The quiet "N new" count, shown only when arrivals happened away from the Gate. */
+.away-badge {
+  font-family: var(--m); font-size: 11px; letter-spacing: 0.04em;
+  color: var(--paper); background: var(--seal); border-radius: 999px;
+  padding: 4px 11px; white-space: nowrap;
+}
+
 /* ------------------------------------------------------------------
    Sign in — port of design-research/signin.comp.html
    Scoped under .signin; no shared-class collisions with the ledger.
@@ -605,6 +612,22 @@ nav .active::before {
 }
 @keyframes ag-reveal { to { opacity: 1; transform: none; } }
 
+/* One live arrival: a single opacity + lift beat, so a new request lands
+   visibly without the whole screen moving. Reduced motion collapses it via the
+   global duration rule above. */
+.row-enter { animation: ag-row-enter var(--dur-short) var(--ease-out) both; }
+@keyframes ag-row-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* "While you were away" — one line, quiet, above the ledger. */
+.away-banner {
+  font-family: var(--m); font-size: 12px; letter-spacing: 0.02em;
+  color: var(--seal); background: var(--seal-tint);
+  border-radius: 2px; padding: 9px 12px; margin-top: 14px;
+}
+
 /* Interactive feedback: hover + press on every control. */
 .btn, .row .act, .owner .signout, .signin .btn, .signin .btn-ghost, .askbox button,
 .rules-edit button {
@@ -713,5 +736,6 @@ nav .active::before {
     transition-duration: 150ms !important;
   }
   .reveal { animation: ag-reveal-reduced 150ms linear forwards; }
+  .row-enter { animation: ag-reveal-reduced 150ms linear both; }
   @keyframes ag-reveal-reduced { to { opacity: 1; transform: none; } }
 }

@@ -26,7 +26,12 @@ import { STARTING_CATEGORIES } from "../lib/rulesEdit";
 import {
   CATALOG,
   CATALOG_AGENT_ID,
+  CATALOG_ARRIVAL_GAP_MS,
+  CATALOG_MAX_WAITING_ON_YOU,
+  catalogArrivalDue,
   catalogForCategories,
+  catalogShouldHoldBack,
+  catalogState,
   pickNextCatalogItem,
   surfaceCatalogPurchase,
 } from "./catalog";
@@ -213,5 +218,75 @@ describe("surfaceCatalogPurchase", () => {
     });
     expect(result?.decision.decision).toBe("DENY");
     expect(result?.decision.reasonCode).toBe(ReasonCode.MONTHLY_CAP_EXCEEDED);
+  });
+});
+
+/** The shape `catalogState` reads: only a request's agentId and the time. */
+function entry(agentId: string, createdAt: string) {
+  return { request: { agentId }, createdAt };
+}
+
+describe("catalogState", () => {
+  it("counts only catalog-sourced requests, and finds the latest arrival", () => {
+    const state = catalogState([
+      entry(CATALOG_AGENT_ID, "2026-10-12T12:00:00.000Z"),
+      entry("ai-agent", "2026-10-12T12:05:00.000Z"), // a typed ask: not catalog
+      entry(CATALOG_AGENT_ID, "2026-10-12T12:02:00.000Z"),
+    ]);
+    expect(state.proposedCount).toBe(2);
+    expect(state.lastArrivalAt).toBe("2026-10-12T12:02:00.000Z");
+  });
+
+  it("is empty and dateless when nothing has arrived", () => {
+    expect(catalogState([])).toEqual({ proposedCount: 0, lastArrivalAt: null });
+    expect(catalogState([entry("ai-agent", "2026-10-12T12:00:00.000Z")])).toEqual({
+      proposedCount: 0,
+      lastArrivalAt: null,
+    });
+  });
+});
+
+describe("catalogArrivalDue", () => {
+  const now = new Date("2026-10-12T12:00:00.000Z").getTime();
+
+  it("is due when nothing has arrived yet", () => {
+    expect(catalogArrivalDue({ lastArrivalAt: null, nowMs: now })).toBe(true);
+  });
+
+  it("is not due again inside the gap, so a reload cannot double-file", () => {
+    const recent = new Date(now - (CATALOG_ARRIVAL_GAP_MS - 1)).toISOString();
+    expect(catalogArrivalDue({ lastArrivalAt: recent, nowMs: now })).toBe(false);
+  });
+
+  it("is due again once the gap has passed", () => {
+    const older = new Date(now - CATALOG_ARRIVAL_GAP_MS).toISOString();
+    expect(catalogArrivalDue({ lastArrivalAt: older, nowMs: now })).toBe(true);
+  });
+
+  it("treats an unreadable timestamp as due rather than stalling forever", () => {
+    expect(catalogArrivalDue({ lastArrivalAt: "not-a-date", nowMs: now })).toBe(true);
+  });
+});
+
+describe("catalogShouldHoldBack", () => {
+  const waiting = (n: number) =>
+    Array.from({ length: n }, () => ({ status: "PENDING_APPROVAL" }));
+
+  it("lets the feed run while the owner is not behind", () => {
+    expect(catalogShouldHoldBack([])).toBe(false);
+    expect(catalogShouldHoldBack(waiting(CATALOG_MAX_WAITING_ON_YOU - 1))).toBe(false);
+  });
+
+  it("holds back once the owner has that many waiting on them", () => {
+    expect(catalogShouldHoldBack(waiting(CATALOG_MAX_WAITING_ON_YOU))).toBe(true);
+  });
+
+  it("counts only what still needs the owner", () => {
+    const settled = [
+      { status: "EXECUTED" },
+      { status: "DENIED" },
+      { status: "REJECTED" },
+    ];
+    expect(catalogShouldHoldBack(settled)).toBe(false);
   });
 });

@@ -23,7 +23,12 @@ export type {
 export {
   CATALOG,
   CATALOG_AGENT_ID,
+  CATALOG_ARRIVAL_GAP_MS,
+  CATALOG_MAX_WAITING_ON_YOU,
+  catalogArrivalDue,
   catalogForCategories,
+  catalogShouldHoldBack,
+  catalogState,
   pickNextCatalogItem,
   surfaceCatalogPurchase,
 } from "./catalog";

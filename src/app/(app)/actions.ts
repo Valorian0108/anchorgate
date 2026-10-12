@@ -27,7 +27,8 @@ import {
 import { verifyOwner } from "@/lib/auth/dal";
 import { askPathFor, frontDoorReason, type AskOutcome } from "@/lib/askOutcome";
 import { nextRuleVersion, parseMoneyToMinor, startingRules } from "@/lib/rulesEdit";
-import { getAgent, getActiveRules, saveRules } from "@/lib/service";
+import { getAgent, getActiveRules, saveRules, surfaceNextCatalog } from "@/lib/service";
+import type { PurchaseRecord } from "@/core/purchases";
 
 /** The verdict payload the propose tool returns (to the model, and to us). */
 interface ProposeToolOutput {
@@ -136,4 +137,18 @@ export async function updateRules(formData: FormData): Promise<void> {
   );
 
   redirect("/statute?saved=ok");
+}
+
+/**
+ * The live feed's heartbeat.
+ *
+ * The Gate calls this about every thirty seconds. It files at most one catalog
+ * request per person per window (enforced on the server), and returns the new
+ * record so the Gate can show it arrive without a reload, or null when nothing
+ * is due. It never touches money: the request lands as ASK and still waits for
+ * the owner, exactly like a typed ask.
+ */
+export async function surfaceNextFromGate(): Promise<PurchaseRecord | null> {
+  const owner = await verifyOwner();
+  return surfaceNextCatalog(owner.userId);
 }
