@@ -983,3 +983,40 @@ nothing below is built yet.
     the old order. Those screens are rewritten next so nothing on screen
     contradicts the gate.
   - Tests: **231 passing** (13 new Option 1 tests). Typecheck clean.
+- **Phase 1b done (the screen-honesty sweep):** every screen now tells the
+  truth about Option 1: nothing is automatic and every request waits for the
+  owner. Verified live in a browser on a fresh account (sign-up → first rule
+  set → an assistant ask → case file → record):
+  - **Rules page:** one number ("Your number" / Monthly limit). The save
+    action no longer reads a second amount; a first set seeds the dormant
+    auto line at 0, the safest value it could ever have. §6 is now "Your
+    approval, every time", §8 ends "still waits for you", and the check order
+    ends at "6 your approval". The save message reads "Saved. Your monthly
+    limit is now X. Every purchase still needs your okay."
+  - **Case file:** the "under your auto-approve amount" and "paid this seller
+    before" rows became one honest row, "Your approval": "needed · nothing is
+    paid without you" when asked, "given by ..." when approved, "not needed at
+    the time · older rules cleared it" on pre-Option-1 records. Both legacy
+    ask reasons map onto that row, so old files still read true, and the
+    decision line keeps the exact historical phrase.
+  - **Legacy `AUTHORIZED` records** (older rules let them through without
+    asking) are labelled "Cleared by older rules" everywhere (headline,
+    receipt step, record page, ledger) and the case file offers "Send it to
+    your decision", which re-runs the checks; today's rules downgrade it to
+    "waiting on you" and the gateway is never called.
+  - **Copy fixed everywhere else:** sign-up ("You set your monthly limit..."),
+    the ask-box fine print (order ends at "6 your approval"), the record page
+    ("automatic" removed), the shared vocabulary (`APPROVAL_REQUIRED` reads
+    "your okay needed", not "new payee"), and the ask-outcome messages (the
+    dormant "allow" branch no longer claims a purchase "can go ahead without
+    you"; the no-rules message points at the one number).
+  - **Small hardening found by the browser pass:** the budget counter animates
+    with animation frames, which never run in a hidden tab, so the gauge would
+    sit at a stale zero. It now settles on the true number immediately when
+    the tab is hidden.
+  - Live-pass account: `anchorgate.uicheck.1b@mailinator.com` (disposable
+    inbox). The account, its owner-1 rules ($500 cap) and one $20 pending
+    record remain in the Supabase project; harmless, deletable from the
+    dashboard. No card was ever saved for it, so no payment was attempted.
+  - Tests: **232 passing** (one added, pinning the no-rules ask message).
+    Typecheck clean. Production build clean.

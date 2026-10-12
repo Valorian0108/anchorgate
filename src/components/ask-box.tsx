@@ -41,11 +41,11 @@ export function AskBox({
         <SubmitButton />
       </div>
       <p className="hint">
-        The assistant only proposes. Your rules decide, and you approve anything that needs it.
+        The assistant only proposes. Your rules check every proposal, and nothing is paid without your okay.
       </p>
       <p className="hint checks">
         The order it checks: 1 valid request · 2 positive amount · 3 right currency · 4 allowed
-        category · 5 monthly limit · 6 auto-approve line · 7 known seller · 8 allow. See{" "}
+        category · 5 monthly limit · 6 your approval. See{" "}
         <Link href="/statute">your rules</Link>.
       </p>
       {message ? (

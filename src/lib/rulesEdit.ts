@@ -1,6 +1,10 @@
 /**
- * Rules editing from the Rules page: parse the two amounts the owner types and
+ * Rules editing from the Rules page: parse the amount the owner types and
  * advance the rule version on save.
+ *
+ * The page collects ONE number now (Option 1: auto-approve is off, so there
+ * is no auto line to set). The pair guardrail below stays as dormant, tested
+ * plumbing for the day trust-based auto returns.
  *
  * Pure and unit-tested. The server action composes these with the durable
  * store; the engine is never involved here (it re-reads the saved rules fresh
@@ -10,8 +14,8 @@
 import type { SpendingRules } from "@/core/authorization";
 
 /**
- * The categories a brand-new gate starts with. The two numbers are the only
- * parts a person edits in the app; the rest of the rule set mirrors the
+ * The categories a brand-new gate starts with. The monthly limit is the only
+ * part a person edits in the app; the rest of the rule set mirrors the
  * command-line defaults so a fresh account behaves like the documented demo.
  */
 export const STARTING_CATEGORIES: readonly string[] = [
@@ -26,7 +30,9 @@ export const STARTING_CATEGORIES: readonly string[] = [
 ];
 
 /**
- * The first rule set for a brand-new person, built from their two numbers.
+ * The first rule set for a brand-new person, built from their monthly limit.
+ * `autoMinor` seeds the dormant auto line; the Rules page collects one number
+ * now, so the action passes 0, the safest value it could ever have.
  * Version "owner-1": the first set is not a bump of anything. New sellers
  * always need approval (fail-safe on), and the currency is USD, matching the
  * sandbox the whole product runs on.
@@ -78,8 +84,10 @@ export function nextRuleVersion(version: string): string {
 }
 
 /**
- * The one guardrail between the two numbers, in plain words. Null when the
- * pair is sensible. Mirrors the command-line rule setter.
+ * The guardrail between the auto line and the monthly cap, in plain words.
+ * Null when the pair is sensible. Dormant under Option 1 (the Rules page no
+ * longer collects an auto line); kept and tested for a future trust-based
+ * auto mode. Mirrors the command-line rule setter.
  */
 export function ruleEditProblem(autoMinor: number, capMinor: number): string | null {
   if (autoMinor > capMinor) {

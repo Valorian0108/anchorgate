@@ -1,7 +1,9 @@
 /**
  * The Rules editor's pure helpers. These pin the owner-facing contract: what
- * counts as a typed amount, how the rule version advances on save, and the one
- * guardrail between the two numbers.
+ * counts as a typed amount, how the rule version advances on save, and the
+ * guardrail between the auto line and the cap. Under Option 1 the Rules page
+ * collects one number, so the guardrail and the auto argument are dormant
+ * plumbing, still tested for the day trust-based auto returns.
  */
 
 import { describe, expect, it } from "vitest";

@@ -126,8 +126,11 @@ export function askMessageFor(
         error: false,
       };
     case "allow":
+      // Unreachable while auto-approve is off (Option 1): every filed request
+      // comes back "needs". Kept honest anyway for a future trust-based mode:
+      // even then, "allowed" only ever meant ready to pay, never paid.
       return {
-        text: "Added below. Your rules allowed it, so it can go ahead without you.",
+        text: "Added below. Your rules cleared it, so it is ready to pay when you press pay.",
         error: false,
       };
     case "needs":
@@ -151,7 +154,7 @@ export function askMessageFor(
       };
     case "norules":
       return {
-        text: "Nothing was added. Your gate has no rules yet, so nothing can be approved. Set your two numbers on the Rules page, then ask again.",
+        text: "Nothing was added. Your gate has no rules yet, so nothing can be approved. Set your monthly limit on the Rules page, then ask again.",
         error: false,
       };
     default:

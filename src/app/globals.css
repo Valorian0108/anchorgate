@@ -672,7 +672,8 @@ nav .active::before {
 .askbox .msg { margin-top: 10px; font-family: var(--m); font-size: 11px; color: var(--seal); }
 .askbox .msg.err { color: var(--deny); }
 
-/* Rules editor: the owner's two numbers (monthly limit, auto-approve line). */
+/* Rules editor: the owner's monthly limit, the one number they edit (Option 1:
+   auto-approve is off, so there is no second number). */
 .rules-edit { margin: 30px 0 0; padding: 20px 22px; border: 1px solid var(--line); background: var(--surface); }
 .rules-edit .label {
   font-family: var(--m); font-size: 10.5px; letter-spacing: 0.1em;

@@ -184,8 +184,8 @@ reported `spent this month 1.00 USD / remaining 99.00 USD`. Commands:
 
 | # | Requirement (source) | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- |
-| F1 | UI designed and approved by owner (§11, §12 P6) | `design-research/` — Live Instrument specimens, v3 locked (anchor wall, type A, curated-pool live feed, away notice); `CONSTRAINTS.md` §7 | Browser-verified specimens; owner approved the v3 feel | Design direction done; app rebuild in progress |
-| F2 | Interface implemented after approval (§16) | Rebuild underway; Option 1 (every request needs you) landed in the engine first | `engine.test.ts`, service and lifecycle coverage | In progress |
+| F1 | UI designed and approved by owner (§11, §12 P6) | `design-research/` — Live Instrument specimens, v3 locked (anchor wall, type A, curated-pool live feed, away notice); `CONSTRAINTS.md` §7 | Browser-verified specimens; owner approved the v3 feel | Design direction done; honesty sweep done; visual rebuild next |
+| F2 | Interface implemented after approval (§16) | Option 1 (every request needs you) landed in the engine and, after the Phase 1b sweep, on every screen; browser-verified live | `engine.test.ts`, service and lifecycle coverage, ask-outcome copy pins | In progress |
 | F3 | Sponsor tooling (e.g. AG Grid) for decision/audit tables | Owner chose core-app-first; AG Studio "Insights" is a late-October stretch (the sponsor prize stacks) | — | Deferred (stretch candidate) |
 
 ------------------------------------------------------------------------
@@ -194,12 +194,13 @@ reported `spent this month 1.00 USD / remaining 99.00 USD`. Commands:
 
 - Location: `src/**/*.test.ts`
 - Runner: Vitest (`npm test`)
-- Current: **231 tests passing** — the areas listed in earlier revisions
+- Current: **232 tests passing** — the areas listed in earlier revisions
   (authorization, lifecycle, spending, execution, persistence against a real
   in-process PostgreSQL engine, PayPal money/gateway/vault, AI agent,
   application service) plus the rules editor, the sign-in/sign-up actions, the
-  card-vault request-id limit, and per-user data separation. The newest 13 pin
-  Option 1: auto-approve off, every request inside the cap needs the owner,
-  and a legacy `AUTHORIZED` record can never ride older rules to payment.
+  card-vault request-id limit, and per-user data separation. The newest pins
+  cover Option 1: auto-approve off, every request inside the cap needs the
+  owner, a legacy `AUTHORIZED` record can never ride older rules to payment,
+  and the ask box points at the one number the owner sets.
 
 Update this file whenever a requirement's status changes.

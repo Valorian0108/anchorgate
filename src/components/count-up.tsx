@@ -5,7 +5,9 @@
  *
  * Counts a figure up from zero on first paint so the budget reads as live data,
  * not a static screenshot. Honors prefers-reduced-motion by rendering the final
- * value immediately. Animates transform-free (text only), so it stays cheap.
+ * value immediately, and settles immediately in a hidden tab (animation frames
+ * do not run there, so the figure would otherwise sit at a stale zero).
+ * Animates transform-free (text only), so it stays cheap.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -26,7 +28,7 @@ export function CountUp({ value, decimals = 2 }: { value: number; decimals?: num
       typeof window !== "undefined" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    if (reduce) {
+    if (reduce || document.visibilityState === "hidden") {
       shown.current = value;
       setDisplay(value);
       return;

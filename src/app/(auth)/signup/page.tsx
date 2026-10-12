@@ -33,8 +33,8 @@ export default function SignUpPage() {
             <div className="trust-line">
               <span className="sq" />
               <span>
-                You set two numbers: your monthly limit and your auto-approve
-                line. Nothing can raise them except you.
+                You set your monthly limit. Nothing can raise it except you,
+                and every purchase waits for your okay before it can pay.
               </span>
             </div>
             <div className="trust-line">
@@ -47,7 +47,7 @@ export default function SignUpPage() {
             <div className="trust-line">
               <span className="sq" />
               <span>
-                Until you set your numbers, nothing can be approved. That is the
+                Until you set your limit, nothing can be approved. That is the
                 safe default.
               </span>
             </div>

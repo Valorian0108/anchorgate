@@ -11,13 +11,18 @@ import type { Evaluation, RequestStatus } from "@/core/purchases";
 
 /** The one-line "what happened and why" for a decision, in plain words. */
 export function checkText(decision: AuthorizationDecision, reasonCode: ReasonCode): string {
-  if (decision === "ALLOW") return "Within your limits, so it can go ahead.";
+  // ALLOW only exists on records ruled by older rules (auto-approve is off
+  // now), and even then it only ever meant "ready to pay", never "paid".
+  if (decision === "ALLOW") return "Within your limits.";
   if (decision === "ASK") {
     switch (reasonCode) {
       case "APPROVAL_REQUIRED":
-        return "A payee you have not paid before, so it needs your okay.";
+        // Option 1: the standing reason everything asks. Older files where it
+        // meant "first-time seller" stay true: it needed their okay then too.
+        return "It needs your okay before anything happens.";
       case "PER_PURCHASE_LIMIT_EXCEEDED":
-        return "Over your auto-approve line, so it needs your okay.";
+        // Only records ruled before Option 1 can carry this code.
+        return "Over the auto-approve line in force at the time, so it needed your okay.";
       default:
         return "It needs your okay before anything happens.";
     }
@@ -47,9 +52,11 @@ export function checkText(decision: AuthorizationDecision, reasonCode: ReasonCod
 export function reasonPhrase(reasonCode: ReasonCode): string {
   switch (reasonCode) {
     case "APPROVAL_REQUIRED":
-      return "new payee";
+      // Option 1: every purchase asks, so this code now means simply that.
+      return "your okay needed";
     case "PER_PURCHASE_LIMIT_EXCEEDED":
-      return "over your auto line";
+      // Only pre-Option-1 records carry this code.
+      return "over the old auto line";
     case "MONTHLY_CAP_EXCEEDED":
       return "over monthly limit";
     case "CATEGORY_NOT_PERMITTED":
@@ -77,8 +84,11 @@ export function checkTextForStatus(status: RequestStatus): string {
     case "PENDING_APPROVAL":
       return "Waiting on you.";
     case "APPROVED":
-    case "AUTHORIZED":
       return "You said yes. Getting ready to pay.";
+    case "AUTHORIZED":
+      // Legacy state: older rules cleared small purchases without asking.
+      // Today's gate re-checks them and asks, so they never pay like this.
+      return "Cleared by older rules. The gate asks you first now.";
     case "PENDING_SETTLEMENT":
       return "Paid, waiting for it to settle.";
     case "EXECUTED":
@@ -96,7 +106,7 @@ export function stateWord(status: RequestStatus): string {
     case "PENDING_APPROVAL":
       return "waiting on you";
     case "AUTHORIZED":
-      return "ready";
+      return "from older rules";
     case "APPROVED":
       return "paying";
     case "PENDING_SETTLEMENT":

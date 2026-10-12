@@ -28,7 +28,9 @@ function outcomeText(record: PurchaseRecord): string {
     case "APPROVED":
       return "paying";
     case "AUTHORIZED":
-      return "ready · automatic";
+      // Legacy state: older rules cleared it without asking. It cannot pay
+      // like this anymore; the gate re-checks and asks first.
+      return "from older rules · needs a re-check";
     case "PENDING_SETTLEMENT":
       return "confirming";
     case "EXECUTED":
@@ -96,17 +98,22 @@ function Trail({ record }: { record: PurchaseRecord }) {
     );
   }
 
-  // The rules allowed it at proposal (no human involved), or an approval is
-  // still on its way to being paid.
+  // Legacy trail: the rules allowed it at proposal, back when small purchases
+  // could skip the owner. Option 1 ended that, so this branch only ever
+  // describes older records, and it says so plainly. If one was later demoted
+  // and approved by hand, the approval is shown too.
   return (
     <>
-      <span className="g">allowed</span> · within your limits ·{" "}
-      {record.status === "EXECUTED"
+      <span className="g">allowed</span> · within your limits
+      {record.approval ? (
+        <> → <span className="g">you approved</span> {fmtClock(record.approval.approvedAt)}</>
+      ) : null}{" "}
+      · {record.status === "EXECUTED"
         ? "paid"
         : record.status === "PENDING_SETTLEMENT"
           ? "confirming"
-          : record.status === "AUTHORIZED" || record.status === "APPROVED"
-            ? "automatic"
+          : record.status === "AUTHORIZED"
+            ? "from older rules · needs a re-check"
             : stateWord(record.status)}
     </>
   );

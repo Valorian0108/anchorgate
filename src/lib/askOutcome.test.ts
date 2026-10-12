@@ -108,7 +108,7 @@ describe("askPathFor and reasonFromSlug", () => {
 describe("askMessageFor", () => {
   it("says what happened when something was filed", () => {
     expect(askMessageFor("allow", undefined)?.text).toBe(
-      "Added below. Your rules allowed it, so it can go ahead without you.",
+      "Added below. Your rules cleared it, so it is ready to pay when you press pay.",
     );
     expect(askMessageFor("needs", undefined)?.text).toBe(
       "Added below. It needs your okay before any money moves.",
@@ -143,6 +143,12 @@ describe("askMessageFor", () => {
       "Nothing was added below. Add the amount, the seller, and what it is for, then ask again.",
     );
     expect(askMessageFor("error", undefined)?.error).toBe(true);
+  });
+
+  it("points at the Rules page, and at one number, when the gate has no rules", () => {
+    expect(askMessageFor("norules", undefined)?.text).toContain(
+      "Set your monthly limit on the Rules page",
+    );
   });
 
   it("shows nothing at all when there is no outcome code", () => {

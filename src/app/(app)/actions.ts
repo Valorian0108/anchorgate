@@ -9,9 +9,10 @@
  * agent can only PROPOSE; the deterministic engine still decides, and nothing
  * is paid here.
  *
- * The Rules editor. The owner edits the two money amounts on the Rules page.
- * Guardrails mirror the command-line rule setter, a save advances the rule
- * version, and the outcome travels back as an honest one-line code.
+ * The Rules editor. The owner edits their monthly limit, the one money amount
+ * the Rules page collects (Option 1: auto-approve is off, so there is no
+ * second number to set). A save advances the rule version, and the outcome
+ * travels back as an honest one-line code.
  */
 
 import { InvalidToolInputError } from "ai";
@@ -25,7 +26,7 @@ import {
 } from "@/core/authorization";
 import { verifyOwner } from "@/lib/auth/dal";
 import { askPathFor, frontDoorReason, type AskOutcome } from "@/lib/askOutcome";
-import { nextRuleVersion, parseMoneyToMinor, ruleEditProblem, startingRules } from "@/lib/rulesEdit";
+import { nextRuleVersion, parseMoneyToMinor, startingRules } from "@/lib/rulesEdit";
 import { getAgent, getActiveRules, saveRules } from "@/lib/service";
 
 /** The verdict payload the propose tool returns (to the model, and to us). */
@@ -101,38 +102,37 @@ export async function proposeFromGate(formData: FormData): Promise<void> {
 }
 
 /**
- * Save the owner's two numbers. Every failure path is a plain sentence on the
- * Rules page; nothing is saved unless both amounts parse and the pair makes
- * sense together.
+ * Save the owner's monthly limit, the only number the Rules page collects.
+ * Every failure path is a plain sentence on the Rules page; nothing is saved
+ * unless the amount parses.
+ *
+ * Option 1: auto-approve is off, so there is no second number. An existing
+ * set keeps its dormant auto line untouched (the engine ignores it while the
+ * flag is false); a first set starts that dormant line at zero, the safest
+ * value it could ever have.
  */
 export async function updateRules(formData: FormData): Promise<void> {
   const owner = await verifyOwner();
 
   const capMinor = parseMoneyToMinor(String(formData.get("cap") ?? ""));
-  const autoMinor = parseMoneyToMinor(String(formData.get("auto") ?? ""));
-  if (capMinor === null || autoMinor === null) {
+  if (capMinor === null) {
     redirect("/statute?saved=bad-money");
-  }
-
-  if (ruleEditProblem(autoMinor, capMinor)) {
-    redirect("/statute?saved=auto-above-cap");
   }
 
   const current = await getActiveRules(owner.userId);
 
-  // A person with no rules yet writes their FIRST set here: the two numbers
-  // they typed, on the documented starting defaults. For an existing set, only
-  // the two numbers change and the version bumps.
+  // A person with no rules yet writes their FIRST set here: the number they
+  // typed, on the documented starting defaults. For an existing set, only the
+  // limit changes and the version bumps.
   await saveRules(
     owner.userId,
     current
       ? {
           ...current,
           monthlyCapMinor: capMinor,
-          perPurchaseAutoLimitMinor: autoMinor,
           ruleVersion: nextRuleVersion(current.ruleVersion),
         }
-      : startingRules(capMinor, autoMinor),
+      : startingRules(capMinor, 0),
   );
 
   redirect("/statute?saved=ok");

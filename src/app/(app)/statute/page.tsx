@@ -38,22 +38,16 @@ function Clause({
 function savedMessageFor(
   saved: string | undefined,
   cap: number,
-  auto: number,
 ): { text: string; error: boolean } | null {
   switch (saved) {
     case "ok":
       return {
-        text: `Saved. Your monthly limit is now ${money(cap)} and your auto-approve line is now ${money(auto)}.`,
+        text: `Saved. Your monthly limit is now ${money(cap)}. Every purchase still needs your okay.`,
         error: false,
       };
     case "bad-money":
       return {
-        text: "Those amounts do not look right. Use a number above zero, like 150 or 150.00. Nothing was saved.",
-        error: true,
-      };
-    case "auto-above-cap":
-      return {
-        text: "Your auto-approve line cannot sit above your monthly limit. Nothing was saved.",
+        text: "That amount does not look right. Use a number above zero, like 150 or 150.00. Nothing was saved.",
         error: true,
       };
     default:
@@ -79,7 +73,7 @@ export default async function StatutePage({
     .replace(" ", " ");
 
   if (!rules) {
-    const firstMessage = savedMessageFor(saved, 0, 0);
+    const firstMessage = savedMessageFor(saved, 0);
     return (
       <>
         <section className="page-head reveal" style={{ "--i": 0 } as React.CSSProperties}>
@@ -96,7 +90,7 @@ export default async function StatutePage({
         </p>
 
         <section className="rules-edit reveal" style={{ "--i": 2 } as React.CSSProperties}>
-          <div className="label">Your two numbers</div>
+          <div className="label">Your number</div>
           <form action={updateRules} className="line">
             <div className="field">
               <label htmlFor="cap">Monthly limit</label>
@@ -112,25 +106,11 @@ export default async function StatutePage({
                 />
               </div>
             </div>
-            <div className="field">
-              <label htmlFor="auto">Auto-approve line</label>
-              <div className="in">
-                <span className="cur">$</span>
-                <input
-                  id="auto"
-                  name="auto"
-                  placeholder="50"
-                  inputMode="decimal"
-                  autoComplete="off"
-                  required
-                />
-              </div>
-            </div>
             <button type="submit">Save</button>
           </form>
           <p className="hint">
-            Save once and your first rule set is written: these two numbers, the standard
-            categories, and your okay needed for every first-time seller.
+            Save once and your first rule set is written: this limit, the standard
+            categories, and your okay needed for every purchase, from every seller.
           </p>
           {firstMessage ? (
             <p
@@ -150,12 +130,11 @@ export default async function StatutePage({
   }
 
   const currency = rules.currency;
-  const auto = rules.perPurchaseAutoLimitMinor;
   const cap = rules.monthlyCapMinor;
   const categories = rules.permittedCategories;
   const newPayee = rules.requireApprovalForNewPayee;
   const symbol = currency === "USD" ? "$" : currency;
-  const message = savedMessageFor(saved, cap, auto);
+  const message = savedMessageFor(saved, cap);
 
   return (
     <>
@@ -177,7 +156,7 @@ export default async function StatutePage({
       </p>
 
       <section className="rules-edit reveal" style={{ "--i": 2 } as React.CSSProperties}>
-        <div className="label">Your two numbers</div>
+        <div className="label">Your number</div>
         <form action={updateRules} className="line">
           <div className="field">
             <label htmlFor="cap">Monthly limit</label>
@@ -187,20 +166,6 @@ export default async function StatutePage({
                 id="cap"
                 name="cap"
                 defaultValue={money(cap)}
-                inputMode="decimal"
-                autoComplete="off"
-                required
-              />
-            </div>
-          </div>
-          <div className="field">
-            <label htmlFor="auto">Auto-approve line</label>
-            <div className="in">
-              <span className="cur">{symbol}</span>
-              <input
-                id="auto"
-                name="auto"
-                defaultValue={money(auto)}
                 inputMode="decimal"
                 autoComplete="off"
                 required
@@ -277,20 +242,20 @@ export default async function StatutePage({
 
         <Clause
           n="6"
-          title="The auto-approve line"
-          body={`At or under ${money(auto)}, and if everything else is fine, it can proceed without you. Over ${money(auto)}, it asks you first. This line is never waived.`}
+          title="Your approval, every time"
+          body="Nothing is paid automatically. Anything that passes the checks above waits for your Approve or Decline, whatever the amount. No purchase is small enough to skip you."
         >
-          <span className="rv">Auto-approve up to {money(auto)}</span>
-          <span className="warn">Over {money(auto)} needs your okay</span>
+          <span className="warn">Every purchase needs your okay</span>
+          <span className="hard">No amount is small enough to skip you</span>
         </Clause>
 
         <Clause
           n="7"
           title="First-time sellers"
-          body="A seller you have not paid before comes to you every time. An unfamiliar destination is exactly what this gate slows down."
+          body="A seller you have not paid before comes to you every time. So does every seller you know: under rule 6, nothing skips you. This rule stays on your books, so a new seller would never skip you even if small purchases ever became automatic again."
         >
           {newPayee ? (
-            <span className="warn">A new seller needs your okay</span>
+            <span className="warn">A new seller always needs your okay</span>
           ) : (
             <span className="rv">Off · new sellers are not checked by this rule</span>
           )}
@@ -299,9 +264,9 @@ export default async function StatutePage({
         <Clause
           n="8"
           title="Otherwise"
-          body="Anything that passes all of the above is allowed and can be paid automatically with your saved card."
+          body="Anything that passes all of the above still waits for you. Once you approve, it is checked again and paid with your saved card. Nothing is ever paid without your decision."
         >
-          <span className="rv">Otherwise it is allowed, within your limits</span>
+          <span className="rv">Otherwise it waits for you</span>
         </Clause>
       </section>
 
@@ -311,13 +276,13 @@ export default async function StatutePage({
         </span>{" "}
         <span className="rule">
           1 valid request · 2 positive amount · 3 right currency · 4 allowed category ·
-          5 monthly limit · 6 auto-approve line · 7 known seller · 8 allow
+          5 monthly limit · 6 your approval
         </span>
         <br />
         <span className="seq">
           <b>Strictest wins:</b>
         </span>{" "}
-        <span className="strict">a refusal beats &ldquo;needs you&rdquo;, which beats allow</span>
+        <span className="strict">a refusal beats &ldquo;needs you&rdquo;, and nothing passes on its own</span>
       </div>
 
       <div className="note reveal" style={{ "--i": 5 } as React.CSSProperties}>

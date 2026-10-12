@@ -22,8 +22,11 @@ const REASON_POSITION: Partial<Record<ReasonCode, number>> = {
   CURRENCY_MISMATCH: 3,
   CATEGORY_NOT_PERMITTED: 4,
   MONTHLY_CAP_EXCEEDED: 5,
+  // Option 1: every ask lands on the "your approval" step (6). The two
+  // historical ask reasons (over the old auto line, a first-time seller) map
+  // to the same row, so case files from before the change still read true.
   PER_PURCHASE_LIMIT_EXCEEDED: 6,
-  APPROVAL_REQUIRED: 7,
+  APPROVAL_REQUIRED: 6,
 };
 
 interface Row {
@@ -37,11 +40,9 @@ async function buildRows(args: {
   rulesCapture: number | null;
   rulesCurrency: string | null;
   rulesCategories: string[];
-  perPurchaseLimit: number | null;
   spentMinor: number;
-  knownPayees: Set<string>;
 }): Promise<{ rows: Row[]; failing: number | null }> {
-  const { record, rulesCapture, rulesCurrency, rulesCategories, perPurchaseLimit, spentMinor, knownPayees } = args;
+  const { record, rulesCapture, rulesCurrency, rulesCategories, spentMinor } = args;
   const ruling = latestEvaluation(record.evaluations);
   const decision = ruling?.decision.decision ?? null;
   const reasonCode = ruling?.decision.reasonCode ?? null;
@@ -87,14 +88,13 @@ async function buildRows(args: {
       verdict: bench(5),
     },
     {
-      rule: "It is under your auto-approve amount",
-      det: `${money(amount)} · your auto line is ${money(perPurchaseLimit ?? 0)}`,
+      rule: "Your approval",
+      det: record.approval
+        ? `given by ${record.approval.approvedBy} · ${fmtClock(record.approval.approvedAt)}`
+        : failing === 6
+          ? "needed · nothing is paid without you"
+          : "not needed at the time · older rules cleared it",
       verdict: bench(6),
-    },
-    {
-      rule: "You have paid this seller before",
-      det: `${record.request.payee} is ${knownPayees.has(record.request.payee) ? "a seller you know" : "a new seller, so it needs your okay"}`,
-      verdict: bench(7),
     },
   ];
 
@@ -104,7 +104,7 @@ async function buildRows(args: {
 const H = {
   PENDING_APPROVAL: "This purchase is <pay>waiting on you.</pay>",
   APPROVED: "You approved this. <pay>It is on the record.</pay>",
-  AUTHORIZED: "Ready to pay. <pay>It is within your limits.</pay>",
+  AUTHORIZED: "Cleared by older rules. <pay>The gate asks you first now.</pay>",
   PENDING_SETTLEMENT: "Paying now. <pay>Confirming with PayPal.</pay>",
   EXECUTED: "<pay>Paid, and on the record.</pay>",
   REJECTED: "You declined this. <pay>Nothing was paid.</pay>",
@@ -147,11 +147,8 @@ export default async function RequestDetailPage({
      decision on screen, not today's facts. Otherwise a row can contradict its
      own verdict (for example "146.00 of 100.00 would be used" next to a "yes").
      The reconstruction mirrors spendingState.ts, time-shifted to the ruling
-     evaluation:
-       - spent: verified captures in that moment's UTC month, at or before it;
-       - known payees: payees whose request was approved strictly before that
-         moment. Strictly, because the approval evaluation runs before this
-         record's own approval is written down. */
+     evaluation: spent = verified captures in that moment's UTC month, at or
+     before it. */
   const asOf = Date.parse(ruling?.evaluatedAt ?? record.createdAt);
   const asOfDate = new Date(asOf);
 
@@ -169,13 +166,6 @@ export default async function RequestDetailPage({
     spentAsOf += e.amountMinor;
   }
 
-  const knownPayees = new Set<string>();
-  for (const r of records) {
-    if (r.status !== "APPROVED" && r.status !== "EXECUTED") continue;
-    if (!r.approval) continue;
-    if (Date.parse(r.approval.approvedAt) < asOf) knownPayees.add(r.request.payee);
-  }
-
   const now = await service.evaluateNow(record.request);
 
   const { rows } = await buildRows({
@@ -183,11 +173,9 @@ export default async function RequestDetailPage({
     rulesCapture: cap,
     rulesCurrency: rules?.currency ?? null,
     rulesCategories: rules?.permittedCategories ?? [],
-    perPurchaseLimit: rules?.perPurchaseAutoLimitMinor ?? null,
     // A paid purchase shows the live total ("already counted"); every other
     // state shows what the engine saw at the moment it ruled.
     spentMinor: record.status === "EXECUTED" ? captured : spentAsOf,
-    knownPayees,
   });
 
   const captureEvent: SpendingEvent | undefined = events.find(
@@ -379,7 +367,7 @@ export default async function RequestDetailPage({
               </div>
               <Link href="/record" className="rec">See it in the record →</Link>
             </div>
-          ) : status === "APPROVED" || status === "AUTHORIZED" ? (
+          ) : status === "APPROVED" ? (
             <div className="stampbox">
               <div className="what">Approved. Ready to pay.</div>
               <div className="rows">
@@ -403,6 +391,28 @@ export default async function RequestDetailPage({
                   }
                 />
               </form>
+              <Link href="/" className="rec">Back to your purchases →</Link>
+            </div>
+          ) : status === "AUTHORIZED" ? (
+            <div className="stampbox">
+              <div className="what">Cleared by older rules.</div>
+              <div className="rows">
+                <div className="pl num"><span>why it sits here</span><b>older rules let small purchases through without asking</b></div>
+                <div className="pl num"><span>the gate now</span><b>every purchase waits for you</b></div>
+                <div className="pl num"><span>counted</span><b>set aside · not paid</b></div>
+              </div>
+              <form action={payRequest}>
+                <input type="hidden" name="id" value={id} />
+                <PendingButton
+                  className="prime"
+                  busy="Checking…"
+                  idle="Send it to your decision"
+                />
+              </form>
+              <div className="note">
+                Pressing this runs the checks again. Today&apos;s rules ask for your
+                approval, so it moves to &ldquo;waiting on you&rdquo; and no money moves.
+              </div>
               <Link href="/" className="rec">Back to your purchases →</Link>
             </div>
           ) : status === "PENDING_SETTLEMENT" ? (
@@ -473,12 +483,20 @@ export default async function RequestDetailPage({
               <time>open since {fmtClock(record.createdAt)}</time>
             </div>
           </div>
-        ) : status === "APPROVED" || status === "AUTHORIZED" ? (
+        ) : status === "APPROVED" ? (
           <div className="st">
             <div className="sn">03 · Approved</div>
             <div className="sv">
               you approved it
               <time>{approval ? fmtClock(approval.approvedAt) : ""} · by {approval?.approvedBy ?? "owner"}</time>
+            </div>
+          </div>
+        ) : status === "AUTHORIZED" ? (
+          <div className="st">
+            <div className="sn">03 · Cleared by older rules</div>
+            <div className="sv askb">
+              no decision was asked for at the time · the gate asks you first now
+              <time>waiting for a re-check</time>
             </div>
           </div>
         ) : status === "EXECUTED" ? (
@@ -552,6 +570,8 @@ export default async function RequestDetailPage({
             <>You declined it. Nothing moved, nothing counted.</>
           ) : status === "DENIED" ? (
             <>Your rules refused it. No person and no app moved it.</>
+          ) : status === "AUTHORIZED" ? (
+            <>Older rules cleared this one without asking. The gate asks you first now, so nothing moves until you decide.</>
           ) : (
             <>You approved it, and your word is on it. The stamp is earned once PayPal confirms the payment.</>
           )}
@@ -569,7 +589,7 @@ function stateWordLine(status: RequestStatus): string {
   switch (status) {
     case "PENDING_APPROVAL": return "waiting on you";
     case "APPROVED": return "paying";
-    case "AUTHORIZED": return "ready";
+    case "AUTHORIZED": return "cleared by older rules";
     case "PENDING_SETTLEMENT": return "confirming";
     case "EXECUTED": return "paid";
     case "REJECTED": return "you said no";
