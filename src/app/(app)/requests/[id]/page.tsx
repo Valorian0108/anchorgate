@@ -94,7 +94,11 @@ async function buildRows(args: {
         : failing === 6
           ? "needed · nothing is paid without you"
           : "not needed at the time · older rules cleared it",
-      verdict: bench(6),
+      // An ASK means the engine stopped at this step and handed it to a
+      // person. Once the approval is on record the row is satisfied, so it
+      // must not keep saying "needs you" next to its own "given by" detail:
+      // a row may never contradict its verdict.
+      verdict: record.approval ? "pass" : bench(6),
     },
   ];
 

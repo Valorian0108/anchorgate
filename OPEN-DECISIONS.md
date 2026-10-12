@@ -214,6 +214,20 @@ A proposal, a recommendation, or generated code is **not** a decision.
   version (owner-1 → owner-2), so recorded decisions keep the version they were
   judged under, and a save returns one honest confirmation line quoting the new
   numbers.
+  **(Superseded in part, 12 oct 2026:** Option 1 cut auto-approve, so the Rules
+  page now collects ONE number, the monthly limit; the pair guardrail survives
+  as dormant, tested plumbing. See the change log.)
+- **Demo card auto-provisioning (approved, 12 oct 2026).** New accounts get
+  PayPal's standard Sandbox test card automatically, so any fresh sign-up can
+  live the whole arc (ask, approve, pay, see the reference) with no setup. The
+  owner chose this over a card-entry screen or a shared demo login. Nothing new
+  to build: `ensureSandboxCard` already does exactly this, wired into sign-up
+  (when a session starts immediately), the email-confirm callback, and every
+  password sign-in, best-effort so auth never fails because PayPal hiccuped;
+  `signin/actions.test.ts` pins it. Verified live the same day: a brand-new
+  account asked, approved, and paid USD 20.00 through the UI (capture ref
+  `8EA73679XX673043A`). The card is Sandbox-only; a production build would use
+  PayPal's hosted fields instead.
 
 ## Assumptions (made to keep moving; safe to correct)
 
@@ -1020,3 +1034,15 @@ nothing below is built yet.
     dashboard. No card was ever saved for it, so no payment was attempted.
   - Tests: **232 passing** (one added, pinning the no-rules ask message).
     Typecheck clean. Production build clean.
+- **Phase 1b follow-up: the full money loop, verified live through the UI.** On
+  the fresh test account: ask the assistant (a real model run proposed the $20
+  book) → "needs you" → Approve and pay → `EXECUTED`, capture ref
+  `8EA73679XX673043A`, counted exactly once; the record shows the full trail
+  ("needs you → you approved → paid"), the full PayPal reference and the full
+  64-character fingerprint. The 30-minute inactivity sign-out was observed
+  working, and re-sign-in re-provisioned nothing (the card was already there).
+  One fix came out of the pass: the case-file "Your approval" row kept the
+  engine's historical "needs you" verdict even after the approval was on
+  record, contradicting its own "given by ..." detail; with an approval
+  recorded the row now reads "yes". Tests: **232 passing**; typecheck and
+  production build clean.
