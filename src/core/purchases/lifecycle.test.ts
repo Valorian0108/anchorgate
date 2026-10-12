@@ -17,6 +17,12 @@ import {
 } from "./lifecycle";
 import { InMemoryPurchaseStore } from "./store";
 
+/**
+ * Mechanics fixture: auto-approve ON. The lifecycle module's job (status
+ * transitions, re-checks, fingerprints) is independent of the Option 1 policy;
+ * the Option 1 behavior itself is proven in dedicated tests below and in the
+ * engine tests.
+ */
 const RULES: SpendingRules = {
   ruleVersion: "v1",
   currency: "USD",
@@ -24,7 +30,11 @@ const RULES: SpendingRules = {
   monthlyCapMinor: 5000,
   permittedCategories: ["office", "books"],
   requireApprovalForNewPayee: false,
+  autoApproveEnabled: true,
 };
+
+/** The product default (Option 1): auto-approve OFF, every request needs you. */
+const STRICT_RULES: SpendingRules = { ...RULES, autoApproveEnabled: false };
 
 const STATE: SpendingState = { spentThisMonthMinor: 0, knownPayees: [] };
 
@@ -63,6 +73,12 @@ describe("proposePurchase", () => {
   it("records a DENY as DENIED", () => {
     const outcome = proposePurchase(request({ category: "gambling" }), RULES, STATE, NOW);
     expect(outcome.record?.status).toBe("DENIED");
+  });
+
+  it("Option 1: with auto-approve off, even a small in-limit request is PENDING_APPROVAL", () => {
+    const outcome = proposePurchase(request(), STRICT_RULES, STATE, NOW);
+    expect(outcome.record?.status).toBe("PENDING_APPROVAL");
+    expect(outcome.decision.decision).toBe("ASK");
   });
 
   it("does not create a record for a malformed request, but still returns DENY", () => {
@@ -188,6 +204,16 @@ describe("revalidateBeforeExecution", () => {
     const record = proposePurchase(request({ amountMinor: 500 }), RULES, STATE, NOW).record!;
     const tightened = { ...RULES, perPurchaseAutoLimitMinor: 100 };
     const outcome = revalidateBeforeExecution(record, tightened, STATE, LATER);
+    expect(outcome.ok).toBe(false);
+    expect(outcome.record.status).toBe("PENDING_APPROVAL");
+  });
+
+  it("downgrades a legacy AUTHORIZED request when auto-approve has since been switched off", () => {
+    // Option 1 retroactive protection: a record authorized under older rules
+    // cannot ride them to execution; the current rules ask for the owner.
+    const record = proposePurchase(request({ amountMinor: 500 }), RULES, STATE, NOW).record!;
+    expect(record.status).toBe("AUTHORIZED");
+    const outcome = revalidateBeforeExecution(record, STRICT_RULES, STATE, LATER);
     expect(outcome.ok).toBe(false);
     expect(outcome.record.status).toBe("PENDING_APPROVAL");
   });

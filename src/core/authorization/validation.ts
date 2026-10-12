@@ -79,6 +79,7 @@ export function parseRules(input: unknown): ParseResult<SpendingRules> {
     monthlyCapMinor,
     permittedCategories,
     requireApprovalForNewPayee,
+    autoApproveEnabled,
   } = input;
 
   if (!isNonEmptyString(ruleVersion)) return { ok: false, reason: "ruleVersion is required." };
@@ -95,6 +96,12 @@ export function parseRules(input: unknown): ParseResult<SpendingRules> {
   if (typeof requireApprovalForNewPayee !== "boolean") {
     return { ok: false, reason: "requireApprovalForNewPayee must be a boolean." };
   }
+  // Optional at the boundary: rule sets saved before Option 1 do not carry the
+  // flag. Anything other than an explicit `true` fails safe to false, so a
+  // missing or malformed flag means auto-approve OFF (every request asks).
+  if (autoApproveEnabled !== undefined && typeof autoApproveEnabled !== "boolean") {
+    return { ok: false, reason: "autoApproveEnabled must be a boolean when present." };
+  }
 
   return {
     ok: true,
@@ -105,6 +112,7 @@ export function parseRules(input: unknown): ParseResult<SpendingRules> {
       monthlyCapMinor,
       permittedCategories,
       requireApprovalForNewPayee,
+      autoApproveEnabled: autoApproveEnabled === true,
     },
   };
 }

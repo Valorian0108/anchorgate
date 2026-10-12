@@ -12,8 +12,11 @@
  *   3. Reject a currency that does not match the configured rules
  *   4. Reject a category that is not explicitly permitted
  *   5. Reject if it would exceed the HARD monthly cap (approval cannot override)
- *   6. ASK if above the per-purchase limit, or another approval condition applies
- *   7. Otherwise ALLOW
+ *   6. ASK unless the rules explicitly enable auto-approve. Option 1 (owner
+ *      decision): auto-approve ships OFF, so every request inside the cap needs
+ *      the owner. When it IS enabled, ASK if above the per-purchase auto line
+ *      or another approval condition applies.
+ *   7. Otherwise (auto-approve enabled, every soft check passed) ALLOW
  *
  * The strictest answer always wins: DENY > ASK > ALLOW.
  */
@@ -132,7 +135,20 @@ export function evaluatePurchase(
     );
   }
 
-  // 6. Approval conditions (soft constraints).
+  // 6. Human approval. Option 1 (owner decision): auto-approve is OFF unless
+  //    the rules explicitly enable it, so every request that passes the hard
+  //    checks still waits for the owner. Nothing spends without a human. The
+  //    auto line and known-payee checks below are the dormant plumbing for a
+  //    future trust-based auto mode; they only run when the flag is on.
+  if (!cfg.autoApproveEnabled) {
+    return ask(
+      ReasonCode.APPROVAL_REQUIRED,
+      "Auto-approve is off; every purchase needs the owner's approval.",
+      ruleVersion,
+    );
+  }
+
+  // 6a. (Auto-approve enabled only.) Above the per-purchase auto line: ASK.
   if (req.amountMinor > cfg.perPurchaseAutoLimitMinor) {
     return ask(
       ReasonCode.PER_PURCHASE_LIMIT_EXCEEDED,
@@ -142,6 +158,7 @@ export function evaluatePurchase(
     );
   }
 
+  // 6b. (Auto-approve enabled only.) An unseen payee: ASK.
   if (cfg.requireApprovalForNewPayee && !spent.knownPayees.includes(req.payee)) {
     return ask(
       ReasonCode.APPROVAL_REQUIRED,
@@ -150,7 +167,7 @@ export function evaluatePurchase(
     );
   }
 
-  // 7. Passed every check.
+  // 7. Passed every check (reachable only with auto-approve explicitly on).
   return allow(
     ReasonCode.WITHIN_LIMITS,
     "Within the automatic per-purchase limit and the monthly budget.",

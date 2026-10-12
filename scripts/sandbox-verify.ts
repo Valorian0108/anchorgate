@@ -6,7 +6,9 @@
  *
  *   1. Enroll (vault) a payment source once.
  *   2. Propose a small purchase and run the deterministic authorization engine.
- *   3. Execute the authorized purchase through the PayPal gateway (server-side
+ *      Option 1: auto-approve is OFF, so the engine ASKs and the script then
+ *      records the owner's approval — the same human decision the app requires.
+ *   3. Execute the approved purchase through the PayPal gateway (server-side
  *      create + capture, charged against the vault).
  *   4. Verify the capture and count it exactly once in the spending ledger.
  *
@@ -32,7 +34,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { createInterface } from "node:readline/promises";
 import process from "node:process";
 
-import { proposePurchase } from "../src/core/purchases";
+import { approvePurchase, proposePurchase } from "../src/core/purchases";
 import {
   executeAuthorizedPurchase,
   reconcilePendingPurchase,
@@ -154,7 +156,7 @@ async function main(): Promise<void> {
 
   console.log();
   console.log("PayPal Sandbox verification  (Sandbox only - no real money)");
-  console.log("This runs the real code path: propose -> authorize -> pay -> count.");
+  console.log("This runs the real code path: propose -> decide -> approve -> pay -> count.");
   console.log(`Payment source: ${useWallet ? "PayPal wallet (browser)" : "card (server-side)"}`);
   if (envWarning) {
     console.log(`\nNote: ${envWarning}`);
@@ -227,15 +229,18 @@ async function main(): Promise<void> {
     // -------------------------------------------------------------------
     // Step 2: propose -> authorize (deterministic engine, no AI here).
     // -------------------------------------------------------------------
-    step("Step 2 of 3 - Propose and authorize the purchase");
+    step("Step 2 of 3 - Propose, decide, and approve the purchase");
 
     const rules = {
-      ruleVersion: "sandbox-verify-1",
+      ruleVersion: "sandbox-verify-2",
       currency: CURRENCY,
-      perPurchaseAutoLimitMinor: 500, // 5.00
+      perPurchaseAutoLimitMinor: 500, // 5.00 (dormant: auto-approve is off)
       monthlyCapMinor: 5000, // 50.00
       permittedCategories: ["software"],
       requireApprovalForNewPayee: false,
+      // Option 1, exactly like the product default: every request needs the
+      // owner, so this script must approve before any money can move.
+      autoApproveEnabled: false,
     };
 
     const request = {
@@ -261,17 +266,41 @@ async function main(): Promise<void> {
       return;
     }
 
-    if (proposal.decision.decision !== "ALLOW") {
+    // Option 1: with auto-approve off the engine must ASK for everything
+    // inside the cap. Anything else here means the gate is not the product
+    // gate, and the verification stops before any money moves.
+    if (proposal.decision.decision !== "ASK") {
       console.log(
-        "\nThe engine allowed the request to proceed. This verification only " +
-          "auto-executes ALLOW decisions; stopping here.",
+        `\nExpected the engine to ASK (auto-approve is off), got ${proposal.decision.decision}. ` +
+          "Stopping before payment.",
       );
       process.exitCode = 1;
       return;
     }
+    console.log("status:      PENDING_APPROVAL (waiting on the owner)");
+
+    // The human decision the app requires, recorded by whoever runs this
+    // script. Approval re-checks the request against the current rules and
+    // budget, exactly as it does in the app.
+    const approval = approvePurchase(
+      proposal.record,
+      "sandbox-verify-runner",
+      rules,
+      spentState,
+      new Date(),
+    );
+    if (!approval.ok || approval.record.status !== "APPROVED") {
+      console.log(
+        `\nApproval did not take (status ${approval.record.status}); stopping before payment.`,
+      );
+      process.exitCode = 1;
+      return;
+    }
+    console.log("approved by: sandbox-verify-runner (the human step)");
+    console.log("status:      APPROVED");
 
     // -------------------------------------------------------------------
-    // Step 3: execute the authorized purchase (server-side create + capture).
+    // Step 3: execute the APPROVED purchase (server-side create + capture).
     // -------------------------------------------------------------------
     step("Step 3 of 3 - Execute through PayPal (create + capture)");
 
@@ -287,7 +316,7 @@ async function main(): Promise<void> {
     console.log(`captures ${AMOUNT_MINOR} minor units (${CURRENCY}).`);
 
     let outcome = await executeAuthorizedPurchase({
-      record: proposal.record,
+      record: approval.record,
       rules,
       state: spentState,
       now: new Date(),
@@ -329,7 +358,7 @@ async function main(): Promise<void> {
       console.log(`  committedMinor: ${summary.committedMinor}`);
 
       line();
-      console.log("RESULT: PASS - real Sandbox payment authorized, captured, and counted once.");
+      console.log("RESULT: PASS - real Sandbox payment proposed, approved, captured, and counted once.");
       line();
     } else if (outcome.status === "PENDING") {
       console.log();

@@ -421,7 +421,7 @@ async function main(): Promise<void> {
         const rules = budget.rules;
         console.log(`rules version:        ${rules.ruleVersion}`);
         console.log(`currency:             ${rules.currency}`);
-        console.log(`per-purchase auto:    ${money(rules.perPurchaseAutoLimitMinor, rules.currency)}  (above this: ASK)`);
+        console.log(`per-purchase auto:    ${money(rules.perPurchaseAutoLimitMinor, rules.currency)}  (dormant: auto-approve off, every request asks)`);
         console.log(`monthly cap:          ${money(rules.monthlyCapMinor, rules.currency)}  (hard limit)`);
         console.log(`categories:           ${rules.permittedCategories.join(", ")}`);
         console.log(`approve new payees:   ${rules.requireApprovalForNewPayee ? "yes" : "no"}`);

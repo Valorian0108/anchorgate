@@ -76,6 +76,10 @@ describe("startingRules", () => {
     expect(rules.requireApprovalForNewPayee).toBe(true);
   });
 
+  it("Option 1: starts with auto-approve off, so every request needs the owner", () => {
+    expect(startingRules(50000, 5000).autoApproveEnabled).toBe(false);
+  });
+
   it("hands back a fresh category list each time, so saves never share state", () => {
     const a = startingRules(100, 50);
     const b = startingRules(100, 50);

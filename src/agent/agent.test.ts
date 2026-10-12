@@ -24,14 +24,19 @@ import { createPurchaseTools, PROPOSE_PURCHASE_TOOL } from "./tools";
 
 const NOW = new Date("2026-10-09T12:00:00.000Z");
 
+/** The product default (Option 1): auto-approve OFF — every proposal needs the owner. */
 const RULES: SpendingRules = {
   ruleVersion: "test-1",
   currency: "USD",
-  perPurchaseAutoLimitMinor: 1000, // $10.00 automatic
+  perPurchaseAutoLimitMinor: 1000, // $10.00 (dormant while auto-approve is off)
   monthlyCapMinor: 5000, // $50.00 hard cap
   permittedCategories: ["software", "office"],
   requireApprovalForNewPayee: false,
+  autoApproveEnabled: false,
 };
+
+/** Dormant plumbing exercised: what a future trust-based auto would switch on. */
+const AUTO_RULES: SpendingRules = { ...RULES, autoApproveEnabled: true };
 
 const INPUT = {
   payee: "Acme Software",
@@ -57,16 +62,17 @@ function makeService(rules: SpendingRules | null = RULES) {
 }
 
 describe("ProposalService (deterministic)", () => {
-  it("ALLOWs a purchase within the per-purchase limit and cap", async () => {
+  it("Option 1: ASKs the owner for every proposal, even a small in-limit one", async () => {
     const { service, purchases } = makeService();
     const result = await service.propose(INPUT);
-    expect(result.decision.decision).toBe("ALLOW");
-    expect(result.record?.status).toBe("AUTHORIZED");
+    expect(result.decision.decision).toBe("ASK");
+    expect(result.decision.reasonCode).toBe(ReasonCode.APPROVAL_REQUIRED);
+    expect(result.record?.status).toBe("PENDING_APPROVAL");
     expect(await purchases.getById(result.record!.id)).not.toBeNull();
   });
 
-  it("ASKs when the amount is above the automatic per-purchase limit", async () => {
-    const { service } = makeService();
+  it("ASKs when the amount is above the automatic per-purchase limit (auto-approve on)", async () => {
+    const { service } = makeService(AUTO_RULES);
     const result = await service.propose({ ...INPUT, amountMinor: 1500 });
     expect(result.decision.decision).toBe("ASK");
     expect(result.decision.reasonCode).toBe(ReasonCode.PER_PURCHASE_LIMIT_EXCEEDED);
@@ -126,16 +132,19 @@ describe("ProposalService (deterministic)", () => {
     expect(result.decision.reasonCode).toBe(ReasonCode.MONTHLY_CAP_EXCEEDED);
   });
 
-  it("requires approval for a first-time payee when configured", async () => {
-    const { service } = makeService({ ...RULES, requireApprovalForNewPayee: true });
+  it("requires approval for a first-time payee when configured (auto-approve on)", async () => {
+    const { service } = makeService({
+      ...AUTO_RULES,
+      requireApprovalForNewPayee: true,
+    });
     const result = await service.propose(INPUT);
     expect(result.decision.decision).toBe("ASK");
     expect(result.decision.reasonCode).toBe(ReasonCode.APPROVAL_REQUIRED);
   });
 
-  it("treats a previously approved payee as known", async () => {
+  it("treats a previously approved payee as known (auto-approve on)", async () => {
     const { service, purchases } = makeService({
-      ...RULES,
+      ...AUTO_RULES,
       requireApprovalForNewPayee: true,
     });
     const prior: PurchaseRecord = {
@@ -188,7 +197,9 @@ describe("agent tool set", () => {
       context: {},
     })) as { decision: string; requestId: string; decidedBy: string };
 
-    expect(result.decision).toBe("ALLOW");
+    // Option 1: the one tool the agent has can only ever come back ASK or DENY
+    // with the shipped default rules — never a self-approved ALLOW.
+    expect(result.decision).toBe("ASK");
     expect(await purchases.getById(result.requestId)).not.toBeNull();
     expect(result.decidedBy).toContain("deterministic");
   });
@@ -228,6 +239,16 @@ describe("describeRules", () => {
     expect(text).toContain("software");
     expect(text).toContain("office");
     expect(text).toContain("NEVER override");
+  });
+
+  it("tells the model plainly that nothing is automatic (Option 1)", () => {
+    expect(describeRules(RULES)).toContain("Auto-approve is OFF");
+    expect(describeRules(RULES)).toContain("nothing is paid automatically");
+  });
+
+  it("describes the auto line only when auto-approve is enabled", () => {
+    expect(describeRules(AUTO_RULES)).toContain("Automatic per-purchase limit");
+    expect(describeRules(AUTO_RULES)).not.toContain("Auto-approve is OFF");
   });
 
   it("says nothing can be authorized when there are no rules", () => {

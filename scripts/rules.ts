@@ -96,6 +96,18 @@ function rulesFromFlags(flags: Record<string, string>): SpendingRules {
     throw new Error("--categories must list at least one category (comma-separated).");
   }
 
+  // Option 1: auto-approve ships OFF. The flag is accepted so the future
+  // trust-based mode has a home, but `true` is refused until the rules table
+  // grows a column — a stored true would silently read back as false, and
+  // this CLI does not lie.
+  const autoApprove = parseBoolean(flags["auto-approve"], false);
+  if (autoApprove) {
+    throw new Error(
+      "--auto-approve=true is not supported yet: the rules table cannot persist " +
+        "it, so it would silently read back as false. Option 1 keeps auto-approve off.",
+    );
+  }
+
   return {
     ruleVersion: flags.version?.trim() || DEFAULT_VERSION,
     currency,
@@ -103,6 +115,7 @@ function rulesFromFlags(flags: Record<string, string>): SpendingRules {
     monthlyCapMinor,
     permittedCategories,
     requireApprovalForNewPayee: parseBoolean(flags["new-payee-approval"], true),
+    autoApproveEnabled: autoApprove,
   };
 }
 

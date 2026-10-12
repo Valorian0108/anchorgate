@@ -942,3 +942,44 @@ nothing below is built yet.
   (a) email + password covers everyone, and (b) Google OAuth sign-ins are already
   verified by Google, so they never depend on the email-confirmation setting or
   its 2-per-hour send cap. See `AUTH.md` § 5 item 4.
+
+- **Update (Option 1 implemented: auto-buy is cut, 12 oct 2026).** The owner's
+  decision — every request needs his Approve or Decline, the $200 cap stays the
+  hard backstop, and the auto plumbing is kept for a later trust-based mode —
+  is now live in the engine:
+  - **`autoApproveEnabled` on `SpendingRules`** (required in the type, so the
+    compiler enumerated every construction site). `parseRules` defaults it to
+    **false when absent**, so every stored rule set — including the live owner
+    rules, which have no such column — flipped to "everything needs you" with
+    **no database migration**. The trust-based work adds the column later;
+    until then `toRulesRow` drops the flag and every read fails safe to false.
+  - **Engine step 6 asks first.** With the flag off (the shipped default),
+    every request inside the hard cap returns **ASK** (`APPROVAL_REQUIRED`,
+    "Auto-approve is off; every purchase needs the owner's approval."). The
+    auto line, the known-seller check, and the ALLOW path survive behind the
+    flag, still exercised by tests so the plumbing cannot rot. The change only
+    makes the engine stricter — the fail-safe direction.
+  - **Retroactive protection, pinned by tests:** a legacy `AUTHORIZED` record
+    can never ride older rules to payment. `revalidateBeforeExecution` re-runs
+    the engine at the money boundary, so with auto-approve off the record is
+    downgraded to `PENDING_APPROVAL` and the gateway is never called.
+  - **The agent is told the truth:** `describeRules` is mode-aware and now says
+    "Auto-approve is OFF … nothing is paid automatically", so the model can
+    never imply a small purchase went through by itself. Its one tool can only
+    come back ASK or DENY under the shipped default.
+  - **`npm run sandbox:verify` now proves the real product flow:** propose →
+    engine ASK → recorded human approval → pay. Observed live (card path,
+    PASS): `ASK` (`APPROVAL_REQUIRED`) → `PENDING_APPROVAL` → `APPROVED`;
+    execution `CAPTURED`; provider capture id `6WL90084PC408574N`; `100 USD`;
+    record `EXECUTED`; ledger counted exactly once.
+  - **Also updated:** `startingRules` (flag false), the rules CLI (refuses
+    `--auto-approve=true` until a column exists, because a stored true would
+    silently read back false), the agent CLI demo rules (`demo-2`), and every
+    test fixture — mechanics fixtures pin the flag true where they exercise
+    the dormant ALLOW path; product-default fixtures run on Option 1 reality.
+  - **Still to come in Phase 1 (screen honesty):** the Rules page still shows
+    the auto-approve line as an editable number and its §8 still says allowed
+    items "can be paid automatically"; the case-file check rows still mirror
+    the old order. Those screens are rewritten next so nothing on screen
+    contradicts the gate.
+  - Tests: **231 passing** (13 new Option 1 tests). Typecheck clean.

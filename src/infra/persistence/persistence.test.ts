@@ -32,6 +32,11 @@ import * as schema from "./schema";
 
 const MIGRATIONS = { migrationsFolder: "./drizzle" };
 
+/**
+ * The product default (Option 1): auto-approve OFF. Rules round-trip through
+ * the real stores with the flag false — it has no column yet, and parseRules
+ * fails it safe to false on every read.
+ */
 const RULES: SpendingRules = {
   ruleVersion: "v1",
   currency: "USD",
@@ -39,6 +44,7 @@ const RULES: SpendingRules = {
   monthlyCapMinor: 5000,
   permittedCategories: ["office", "books"],
   requireApprovalForNewPayee: false,
+  autoApproveEnabled: false,
 };
 
 const STATE: SpendingState = { spentThisMonthMinor: 0, knownPayees: [] };
@@ -85,7 +91,8 @@ describe("DrizzlePurchaseStore", () => {
     await store.save(record);
 
     const loaded = await store.getById("p1");
-    expect(loaded?.status).toBe("AUTHORIZED");
+    // Option 1: proposals land in PENDING_APPROVAL — every request needs you.
+    expect(loaded?.status).toBe("PENDING_APPROVAL");
     expect(loaded?.request.amountMinor).toBe(500);
     expect(loaded?.evaluations).toHaveLength(1);
     expect(loaded?.evaluations[0]?.context).toBe("PROPOSAL");

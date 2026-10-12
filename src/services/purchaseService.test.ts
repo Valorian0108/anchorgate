@@ -28,14 +28,19 @@ import { InMemorySpendingStore } from "../core/spending";
 import type { PaymentGateway, PaymentInstruction, PaymentOutcome } from "../core/execution";
 import { PurchaseService } from "./purchaseService";
 
+/** The product default (Option 1): auto-approve OFF — service flows run on reality. */
 const RULES: SpendingRules = {
   ruleVersion: "v1",
   currency: "USD",
-  perPurchaseAutoLimitMinor: 1000,
+  perPurchaseAutoLimitMinor: 1000, // dormant while auto-approve is off
   monthlyCapMinor: 5000,
   permittedCategories: ["office", "books"],
   requireApprovalForNewPayee: false,
+  autoApproveEnabled: false,
 };
+
+/** For seeding legacy AUTHORIZED records, as older rules would have produced. */
+const AUTO_RULES: SpendingRules = { ...RULES, autoApproveEnabled: true };
 
 const NOW = new Date("2026-10-09T12:00:00.000Z");
 const EMPTY_STATE: SpendingState = { spentThisMonthMinor: 0, knownPayees: [] };
@@ -170,7 +175,7 @@ describe("PurchaseService.budget", () => {
 describe("PurchaseService approval", () => {
   it("approves a pending request and persists APPROVED", async () => {
     const harness = makeHarness();
-    await seed(harness, { amountMinor: 1500 }); // over the auto-approve limit -> ASK
+    await seed(harness, { amountMinor: 1500 }); // Option 1: any amount waits for the owner -> ASK
 
     const pending = await harness.service.listPending();
     expect(pending).toHaveLength(1);
@@ -220,10 +225,28 @@ describe("PurchaseService approval", () => {
 
   it("cannot approve a request that is not awaiting approval", async () => {
     const harness = makeHarness();
-    await seed(harness, { amountMinor: 500 }); // ALLOW -> AUTHORIZED, no approval needed
+    // Seed a legacy AUTHORIZED record, as older rules would have produced.
+    await seed(harness, { amountMinor: 500 }, { rules: AUTO_RULES });
     const outcome = await harness.service.approve("req-1", "owner@example.com");
     expect(outcome.ok).toBe(false);
     expect(outcome.record.status).toBe("AUTHORIZED");
+  });
+
+  it("Option 1: a small request waits for the owner, and paying before approval blocks", async () => {
+    const harness = makeHarness({ outcomes: [captured(500)] });
+    await seed(harness, { amountMinor: 500 }); // auto-approve off -> PENDING_APPROVAL
+    expect((await harness.purchases.getById("req-1"))?.status).toBe("PENDING_APPROVAL");
+
+    // Money must not move before the owner decides.
+    const early = await harness.service.pay("req-1");
+    expect(early.outcome.status).toBe("BLOCKED");
+    expect(harness.gateway.calls).toHaveLength(0);
+
+    await harness.service.approve("req-1", "owner@example.com");
+    const result = await harness.service.pay("req-1");
+    expect(result.outcome.status).toBe("CAPTURED");
+    expect(result.outcome.record.status).toBe("EXECUTED");
+    expect((await harness.service.budget()).spentThisMonthMinor).toBe(500);
   });
 });
 
@@ -263,7 +286,11 @@ describe("PurchaseService payment", () => {
   });
 
   it("lets an approval satisfy the new-payee rule, then pays", async () => {
-    const rules: SpendingRules = { ...RULES, requireApprovalForNewPayee: true };
+    // Auto-approve on, so this proves it is the new-payee rule doing the ASK.
+    const rules: SpendingRules = {
+      ...AUTO_RULES,
+      requireApprovalForNewPayee: true,
+    };
     const harness = makeHarness({ rules, outcomes: [captured(500)] });
 
     // A brand-new payee under a low amount: ASK because the payee is unknown.
@@ -307,7 +334,8 @@ describe("PurchaseService payment", () => {
 describe("PurchaseService ledger reads", () => {
   it("returns every event oldest-first, and one request's events alone", async () => {
     const harness = makeHarness({ outcomes: [captured(500)] });
-    await seed(harness, { amountMinor: 500 }); // ALLOW -> AUTHORIZED, no approval needed
+    await seed(harness, { amountMinor: 500 }); // Option 1: PENDING_APPROVAL
+    await harness.service.approve("req-1", "owner@example.com");
     await harness.service.pay("req-1");
 
     const all = await harness.service.allEvents();

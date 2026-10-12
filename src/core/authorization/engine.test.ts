@@ -3,6 +3,11 @@
  *
  * Mapped to the acceptance criteria in the project spec (section 11.1). These
  * tests run against the real engine — not a mock — because the engine is pure.
+ *
+ * Option 1 (owner decision): auto-approve ships OFF, so the product-default
+ * fixture (BASE_RULES) asks for everything inside the cap. The dormant
+ * auto-approve plumbing stays covered through AUTO_RULES, so a future
+ * trust-based mode cannot rot untested.
  */
 
 import { describe, expect, it } from "vitest";
@@ -17,14 +22,19 @@ import {
 
 // --- fixtures ---------------------------------------------------------------
 
+/** The product default: auto-approve OFF (Option 1). Everything needs the owner. */
 const BASE_RULES: SpendingRules = {
   ruleVersion: "v1",
   currency: "USD",
-  perPurchaseAutoLimitMinor: 1000, // $10.00
+  perPurchaseAutoLimitMinor: 1000, // $10.00 (dormant while auto-approve is off)
   monthlyCapMinor: 5000, // $50.00
   permittedCategories: ["office", "books", "software"],
   requireApprovalForNewPayee: false,
+  autoApproveEnabled: false,
 };
+
+/** The dormant plumbing, exercised: what trust-based auto would switch on. */
+const AUTO_RULES: SpendingRules = { ...BASE_RULES, autoApproveEnabled: true };
 
 const BASE_STATE: SpendingState = {
   spentThisMonthMinor: 0,
@@ -44,11 +54,59 @@ function request(overrides: Partial<PurchaseRequest> = {}): PurchaseRequest {
   };
 }
 
-// --- ALLOW ------------------------------------------------------------------
+// --- Option 1: every request needs the owner --------------------------------
 
-describe("ALLOW", () => {
-  it("allows a valid amount within the per-purchase limit and budget", () => {
+describe("Option 1 — auto-approve off (the product default)", () => {
+  it("asks for a small amount far under the per-purchase auto line", () => {
     const result = evaluatePurchase(request(), BASE_RULES, BASE_STATE);
+    expect(result.decision).toBe("ASK");
+    expect(result.reasonCode).toBe(ReasonCode.APPROVAL_REQUIRED);
+    expect(result.ruleVersion).toBe("v1");
+  });
+
+  it("asks for an amount exactly at the dormant auto line", () => {
+    const result = evaluatePurchase(
+      request({ amountMinor: 1000 }),
+      BASE_RULES,
+      BASE_STATE,
+    );
+    expect(result.decision).toBe("ASK");
+    expect(result.reasonCode).toBe(ReasonCode.APPROVAL_REQUIRED);
+  });
+
+  it("asks even when the payee is known and new-payee approval is required", () => {
+    const result = evaluatePurchase(
+      request(),
+      { ...BASE_RULES, requireApprovalForNewPayee: true },
+      { spentThisMonthMinor: 0, knownPayees: ["Acme Supplies"] },
+    );
+    expect(result.decision).toBe("ASK");
+    expect(result.reasonCode).toBe(ReasonCode.APPROVAL_REQUIRED);
+  });
+
+  it("still denies over the cap: Option 1 never softens a hard stop", () => {
+    const result = evaluatePurchase(
+      request({ amountMinor: 6000 }),
+      BASE_RULES,
+      BASE_STATE,
+    );
+    expect(result.decision).toBe("DENY");
+    expect(result.reasonCode).toBe(ReasonCode.MONTHLY_CAP_EXCEEDED);
+  });
+
+  it("treats rules that omit the flag (saved before Option 1) as off", () => {
+    const { autoApproveEnabled: _omit, ...legacyRules } = BASE_RULES;
+    const result = evaluatePurchase(request(), legacyRules, BASE_STATE);
+    expect(result.decision).toBe("ASK");
+    expect(result.reasonCode).toBe(ReasonCode.APPROVAL_REQUIRED);
+  });
+});
+
+// --- ALLOW (dormant plumbing: auto-approve explicitly on) --------------------
+
+describe("ALLOW — only with auto-approve enabled", () => {
+  it("allows a valid amount within the per-purchase limit and budget", () => {
+    const result = evaluatePurchase(request(), AUTO_RULES, BASE_STATE);
     expect(result.decision).toBe("ALLOW");
     expect(result.reasonCode).toBe(ReasonCode.WITHIN_LIMITS);
     expect(result.ruleVersion).toBe("v1");
@@ -57,7 +115,7 @@ describe("ALLOW", () => {
   it("allows an amount exactly at the per-purchase limit", () => {
     const result = evaluatePurchase(
       request({ amountMinor: 1000 }),
-      BASE_RULES,
+      AUTO_RULES,
       BASE_STATE,
     );
     expect(result.decision).toBe("ALLOW");
@@ -66,7 +124,7 @@ describe("ALLOW", () => {
   it("allows a purchase that lands exactly on the monthly cap", () => {
     const result = evaluatePurchase(
       request({ amountMinor: 500 }),
-      BASE_RULES,
+      AUTO_RULES,
       { spentThisMonthMinor: 4500, knownPayees: [] },
     );
     expect(result.decision).toBe("ALLOW");
@@ -79,7 +137,7 @@ describe("ASK", () => {
   it("asks when the amount exceeds the per-purchase limit but is within the cap", () => {
     const result = evaluatePurchase(
       request({ amountMinor: 1500 }),
-      BASE_RULES,
+      AUTO_RULES,
       BASE_STATE,
     );
     expect(result.decision).toBe("ASK");
@@ -89,7 +147,7 @@ describe("ASK", () => {
   it("asks for an unseen payee when approval for new payees is required", () => {
     const result = evaluatePurchase(
       request({ payee: "Brand New Shop" }),
-      { ...BASE_RULES, requireApprovalForNewPayee: true },
+      { ...AUTO_RULES, requireApprovalForNewPayee: true },
       BASE_STATE,
     );
     expect(result.decision).toBe("ASK");
@@ -99,7 +157,7 @@ describe("ASK", () => {
   it("allows a known payee when approval for new payees is required", () => {
     const result = evaluatePurchase(
       request({ payee: "Acme Supplies" }),
-      { ...BASE_RULES, requireApprovalForNewPayee: true },
+      { ...AUTO_RULES, requireApprovalForNewPayee: true },
       { spentThisMonthMinor: 0, knownPayees: ["Acme Supplies"] },
     );
     expect(result.decision).toBe("ALLOW");

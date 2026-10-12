@@ -181,7 +181,11 @@ export function toSpendingRow(
   };
 }
 
-/** Values to write for one person's active rules row. */
+/**
+ * Values to write for one person's active rules row. `autoApproveEnabled` has
+ * no column yet (Option 1 ships auto-approve OFF for everyone); it is dropped
+ * here and fails safe to false on every read.
+ */
 export function toRulesRow(
   rules: SpendingRules,
   updatedAt: Date,
@@ -203,6 +207,11 @@ export function toRulesRow(
 /**
  * Rebuild rules from a row and re-validate them. Stored rules that no longer
  * parse fail loudly rather than feeding the engine something malformed.
+ *
+ * `autoApproveEnabled` is intentionally absent from the parse input: the flag
+ * has no column, so parseRules defaults it to false (auto-approve OFF) for
+ * every stored rule set, including sets saved before Option 1. The future
+ * trust-based auto work adds the column and passes the stored value here.
  */
 export function toSpendingRules(row: RulesRow): SpendingRules {
   const parsed = parseRules({

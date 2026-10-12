@@ -24,6 +24,7 @@ const RULES: SpendingRules = {
   monthlyCapMinor: 10000,
   permittedCategories: ["books", "software"],
   requireApprovalForNewPayee: true,
+  autoApproveEnabled: false, // Option 1 default; the front door never reaches it
 };
 
 const INPUT = {

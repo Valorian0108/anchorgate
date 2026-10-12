@@ -55,12 +55,14 @@ import { resolveOwnerUserId } from "./owner-id";
  * has no active rules, so a real configuration is never overwritten.
  */
 const DEMO_RULES: SpendingRules = {
-  ruleVersion: "demo-1",
+  ruleVersion: "demo-2",
   currency: "USD",
-  perPurchaseAutoLimitMinor: 5000, // $50.00 or less is automatic
+  perPurchaseAutoLimitMinor: 5000, // $50.00 (dormant: auto-approve is off)
   monthlyCapMinor: 20000, // $200.00 hard monthly ceiling
   permittedCategories: ["software", "office_supplies", "books", "hardware"],
   requireApprovalForNewPayee: true,
+  // Option 1, same as the product default: every proposal waits for the owner.
+  autoApproveEnabled: false,
 };
 
 function loadLocalEnv(): void {

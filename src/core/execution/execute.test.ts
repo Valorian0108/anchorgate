@@ -33,6 +33,11 @@ import type {
   PaymentOutcome,
 } from "./types";
 
+/**
+ * Mechanics fixture: auto-approve ON, so these tests can exercise the
+ * AUTHORIZED path of the execution boundary. Option 1 enforcement at the money
+ * boundary has its own dedicated tests below.
+ */
 const RULES: SpendingRules = {
   ruleVersion: "v1",
   currency: "USD",
@@ -40,7 +45,11 @@ const RULES: SpendingRules = {
   monthlyCapMinor: 5000,
   permittedCategories: ["office", "books"],
   requireApprovalForNewPayee: false,
+  autoApproveEnabled: true,
 };
+
+/** The product default (Option 1): auto-approve OFF, every request needs you. */
+const STRICT_RULES: SpendingRules = { ...RULES, autoApproveEnabled: false };
 
 const EMPTY_STATE: SpendingState = { spentThisMonthMinor: 0, knownPayees: [] };
 const NOW = new Date("2026-10-09T12:00:00.000Z");
@@ -165,6 +174,29 @@ describe("executeAuthorizedPurchase", () => {
     expect(await ledger.capturedMinor()).toBe(1500);
   });
 
+  it("Option 1: pays an APPROVED request with auto-approve off — the owner is the gate", async () => {
+    const pending = proposePurchase(request({ amountMinor: 500 }), STRICT_RULES, EMPTY_STATE, NOW)
+      .record!;
+    expect(pending.status).toBe("PENDING_APPROVAL");
+    const approved = approvePurchase(pending, "owner@example.com", STRICT_RULES, EMPTY_STATE, NOW)
+      .record;
+    const gateway = new FakeGateway([captured()]);
+    const ledger = freshLedger();
+
+    const outcome = await executeAuthorizedPurchase({
+      record: approved,
+      rules: STRICT_RULES,
+      state: EMPTY_STATE,
+      now: NOW,
+      gateway,
+      ledger,
+    });
+
+    expect(outcome.status).toBe("CAPTURED");
+    expect(outcome.record.status).toBe("EXECUTED");
+    expect(await ledger.capturedMinor()).toBe(500);
+  });
+
   it("blocks at the gate when the monthly cap would be exceeded, without paying", async () => {
     const record = proposePurchase(request({ amountMinor: 500 }), RULES, EMPTY_STATE, NOW)
       .record!;
@@ -206,6 +238,31 @@ describe("executeAuthorizedPurchase", () => {
     expect(outcome.status).toBe("BLOCKED");
     expect(outcome.record.status).toBe("PENDING_APPROVAL");
     expect(gateway.calls).toHaveLength(0);
+  });
+
+  it("Option 1: never pays a legacy AUTHORIZED record once auto-approve is off", async () => {
+    // The strongest form of "nothing spends without you": a record that was
+    // auto-authorized under older rules is stopped at the money boundary when
+    // the current rules require the owner, and no provider call happens.
+    const record = proposePurchase(request({ amountMinor: 500 }), RULES, EMPTY_STATE, NOW)
+      .record!;
+    expect(record.status).toBe("AUTHORIZED");
+    const gateway = new FakeGateway([captured()]);
+    const ledger = freshLedger();
+
+    const outcome = await executeAuthorizedPurchase({
+      record,
+      rules: STRICT_RULES,
+      state: EMPTY_STATE,
+      now: NOW,
+      gateway,
+      ledger,
+    });
+
+    expect(outcome.status).toBe("BLOCKED");
+    expect(outcome.record.status).toBe("PENDING_APPROVAL");
+    expect(gateway.calls).toHaveLength(0);
+    expect(await ledger.capturedMinor()).toBe(0);
   });
 
   it("counts nothing when the provider fails", async () => {

@@ -137,10 +137,17 @@ export function describeRules(rules: SpendingRules | null): string {
     rules.permittedCategories.length > 0
       ? rules.permittedCategories.join(", ")
       : "(none)";
+  // Honest in both modes: with auto-approve off (Option 1, the shipped
+  // default) the model is told plainly that nothing is paid automatically,
+  // so it can never imply to a person that a small purchase "just went through".
+  const approvalLine = rules.autoApproveEnabled
+    ? `- Automatic per-purchase limit: ${formatMinor(rules.perPurchaseAutoLimitMinor, rules.currency)} ` +
+      "(above this, human approval is required)"
+    : "- Auto-approve is OFF: every proposal waits for the owner's approval; " +
+      "nothing is paid automatically";
   return [
     `- Currency: ${rules.currency}`,
-    `- Automatic per-purchase limit: ${formatMinor(rules.perPurchaseAutoLimitMinor, rules.currency)} ` +
-      "(above this, human approval is required)",
+    approvalLine,
     `- Hard monthly cap: ${formatMinor(rules.monthlyCapMinor, rules.currency)} ` +
       "(approval can NEVER override this)",
     `- Permitted categories: ${categories}`,

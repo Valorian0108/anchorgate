@@ -114,6 +114,16 @@ credentials), so it is not part of `npm test`.
   `4GR46789K0392653X`; `100 USD`; record `EXECUTED`; ledger
   `capturedMinor = 100` (counted exactly once). The `--wallet` path reports
   `PENDING` and counts nothing, as designed.
+- **Observed (fourth live run, first under Option 1, PASS on the card path):**
+  auto-approve is now OFF product-wide (`autoApproveEnabled`, defaulted false
+  on every rules read; no schema change). The $1.00 request that older rules
+  auto-ALLOWed returned **ASK** (`APPROVAL_REQUIRED`, "Auto-approve is off;
+  every purchase needs the owner's approval."), the script recorded the human
+  approval step, and only then did execution proceed. **Result —
+  `npm run sandbox:verify` (card):** `ASK` → `PENDING_APPROVAL` → approved →
+  `APPROVED`; execution `CAPTURED`; provider capture id `6WL90084PC408574N`;
+  `100 USD`; 2026-10-12; record `EXECUTED`; ledger `capturedMinor = 100`
+  (counted exactly once).
 
 ## AI agent
 
@@ -174,9 +184,9 @@ reported `spent this month 1.00 USD / remaining 99.00 USD`. Commands:
 
 | # | Requirement (source) | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- |
-| F1 | UI designed and approved by owner (§11, §12 P6) | Not started | — | Pending (gated on design discussion) |
-| F2 | Interface implemented after approval (§16) | Not started | — | Pending |
-| F3 | Sponsor tooling (e.g. AG Grid) for decision/audit tables | Not implemented | — | Pending (Phase 6 candidate) |
+| F1 | UI designed and approved by owner (§11, §12 P6) | `design-research/` — Live Instrument specimens, v3 locked (anchor wall, type A, curated-pool live feed, away notice); `CONSTRAINTS.md` §7 | Browser-verified specimens; owner approved the v3 feel | Design direction done; app rebuild in progress |
+| F2 | Interface implemented after approval (§16) | Rebuild underway; Option 1 (every request needs you) landed in the engine first | `engine.test.ts`, service and lifecycle coverage | In progress |
+| F3 | Sponsor tooling (e.g. AG Grid) for decision/audit tables | Owner chose core-app-first; AG Studio "Insights" is a late-October stretch (the sponsor prize stacks) | — | Deferred (stretch candidate) |
 
 ------------------------------------------------------------------------
 
@@ -184,14 +194,12 @@ reported `spent this month 1.00 USD / remaining 99.00 USD`. Commands:
 
 - Location: `src/**/*.test.ts`
 - Runner: Vitest (`npm test`)
-- Current: **161 tests passing** — 23 authorization, 19 lifecycle, 19 spending,
-  14 execution (including pending-capture handling and reconciliation),
-  15 persistence (against a real in-process PostgreSQL engine, including a
-  close-and-reopen durability test and the card payment-source round-trip),
-  11 PayPal money conversion, 19 PayPal gateway (fake port, including card
-  bodies, `PENDING`, and `checkCapture`), 6 PayPal vault enrollment (fake port),
-  6 PayPal error description, 18 AI agent (single-tool guarantee, deterministic
-  decisions, fail-safe config), and 11 application service (approval, hard-limit
-  refusal, new-payee approval, pay-once, pending reconciliation).
+- Current: **231 tests passing** — the areas listed in earlier revisions
+  (authorization, lifecycle, spending, execution, persistence against a real
+  in-process PostgreSQL engine, PayPal money/gateway/vault, AI agent,
+  application service) plus the rules editor, the sign-in/sign-up actions, the
+  card-vault request-id limit, and per-user data separation. The newest 13 pin
+  Option 1: auto-approve off, every request inside the cap needs the owner,
+  and a legacy `AUTHORIZED` record can never ride older rules to payment.
 
 Update this file whenever a requirement's status changes.

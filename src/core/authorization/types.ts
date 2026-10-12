@@ -80,6 +80,14 @@ export interface SpendingRules {
   permittedCategories: string[];
   /** When true, an unseen payee always requires human approval. */
   requireApprovalForNewPayee: boolean;
+  /**
+   * Option 1 (owner decision): when false, EVERY request inside the hard cap
+   * requires the owner's approval and the per-purchase auto line is dormant.
+   * Kept as plumbing so a future trust-based auto mode can switch it on.
+   * Not persisted yet: rules read back from storage always parse to false
+   * until the trust-based work adds a column, which is the safe direction.
+   */
+  autoApproveEnabled: boolean;
 }
 
 /**

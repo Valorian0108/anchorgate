@@ -30,6 +30,11 @@ export const STARTING_CATEGORIES: readonly string[] = [
  * Version "owner-1": the first set is not a bump of anything. New sellers
  * always need approval (fail-safe on), and the currency is USD, matching the
  * sandbox the whole product runs on.
+ *
+ * Option 1 (owner decision): auto-approve starts OFF, so every request inside
+ * the cap needs the owner. The auto number is still stored — dormant plumbing
+ * for a future trust-based auto mode — but the engine ignores it while the
+ * flag is false.
  */
 export function startingRules(capMinor: number, autoMinor: number): SpendingRules {
   return {
@@ -39,6 +44,7 @@ export function startingRules(capMinor: number, autoMinor: number): SpendingRule
     monthlyCapMinor: capMinor,
     permittedCategories: [...STARTING_CATEGORIES],
     requireApprovalForNewPayee: true,
+    autoApproveEnabled: false,
   };
 }
 
