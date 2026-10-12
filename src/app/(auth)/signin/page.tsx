@@ -15,12 +15,10 @@ function reasonNotice(reason: string | undefined): string | null {
   switch (reason) {
     case "timeout":
       return "You were signed out after 30 minutes of no activity. Sign in again to continue.";
-    case "not-owner":
-      return "That account is not the owner. This gate opens for the owner only.";
     case "link":
       return "That sign-in link did not work. It may be expired or already used. Try again.";
     case "provider":
-      return "Google sign-in is not set up yet. Please use the email link.";
+      return "Google sign-in is not set up yet. Please use your password.";
     default:
       return null;
   }
@@ -47,7 +45,7 @@ export default async function SignInPage({
   return (
     <div className="signin">
       <div className="headline reveal" style={{ "--i": 0 } as React.CSSProperties}>
-        Owner sign-in · {today()}
+        Sign in · {today()}
       </div>
 
       <section className="split">
@@ -91,7 +89,7 @@ export default async function SignInPage({
       </section>
 
       <footer className="reveal" style={{ "--i": 3 } as React.CSSProperties}>
-        <span>Owner sign-in · demo data</span>
+        <span>Sign in · PayPal Sandbox only</span>
         <span>Every decision is saved with your name and the time</span>
       </footer>
     </div>

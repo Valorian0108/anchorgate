@@ -7,6 +7,41 @@
  * on the next decision).
  */
 
+import type { SpendingRules } from "@/core/authorization";
+
+/**
+ * The categories a brand-new gate starts with. The two numbers are the only
+ * parts a person edits in the app; the rest of the rule set mirrors the
+ * command-line defaults so a fresh account behaves like the documented demo.
+ */
+export const STARTING_CATEGORIES: readonly string[] = [
+  "software",
+  "office_supplies",
+  "hardware",
+  "books",
+  "cloud_services",
+  "advertising",
+  "travel",
+  "meals",
+];
+
+/**
+ * The first rule set for a brand-new person, built from their two numbers.
+ * Version "owner-1": the first set is not a bump of anything. New sellers
+ * always need approval (fail-safe on), and the currency is USD, matching the
+ * sandbox the whole product runs on.
+ */
+export function startingRules(capMinor: number, autoMinor: number): SpendingRules {
+  return {
+    ruleVersion: "owner-1",
+    currency: "USD",
+    perPurchaseAutoLimitMinor: autoMinor,
+    monthlyCapMinor: capMinor,
+    permittedCategories: [...STARTING_CATEGORIES],
+    requireApprovalForNewPayee: true,
+  };
+}
+
 /**
  * Parse an amount the owner typed into integer minor units.
  *

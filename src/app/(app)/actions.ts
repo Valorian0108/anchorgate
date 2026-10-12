@@ -25,7 +25,7 @@ import {
 } from "@/core/authorization";
 import { verifyOwner } from "@/lib/auth/dal";
 import { askPathFor, frontDoorReason, type AskOutcome } from "@/lib/askOutcome";
-import { nextRuleVersion, parseMoneyToMinor, ruleEditProblem } from "@/lib/rulesEdit";
+import { nextRuleVersion, parseMoneyToMinor, ruleEditProblem, startingRules } from "@/lib/rulesEdit";
 import { getAgent, getActiveRules, saveRules } from "@/lib/service";
 
 /** The verdict payload the propose tool returns (to the model, and to us). */
@@ -78,6 +78,11 @@ export async function proposeFromGate(formData: FormData): Promise<void> {
   }
 
   const rules = await getActiveRules(owner.userId);
+  if (!rules) {
+    // No rules means nothing can ever be approved, and running the model would
+    // only produce a denial. Say so honestly and point at the Rules page.
+    redirect("/?ask=norules");
+  }
 
   // NOTE: redirect() throws, so it must happen OUTSIDE the try block or the
   // catch would swallow it and report an error on success.
@@ -114,16 +119,21 @@ export async function updateRules(formData: FormData): Promise<void> {
   }
 
   const current = await getActiveRules(owner.userId);
-  if (!current) {
-    redirect("/statute?saved=no-rules");
-  }
 
-  await saveRules(owner.userId, {
-    ...current,
-    monthlyCapMinor: capMinor,
-    perPurchaseAutoLimitMinor: autoMinor,
-    ruleVersion: nextRuleVersion(current.ruleVersion),
-  });
+  // A person with no rules yet writes their FIRST set here: the two numbers
+  // they typed, on the documented starting defaults. For an existing set, only
+  // the two numbers change and the version bumps.
+  await saveRules(
+    owner.userId,
+    current
+      ? {
+          ...current,
+          monthlyCapMinor: capMinor,
+          perPurchaseAutoLimitMinor: autoMinor,
+          ruleVersion: nextRuleVersion(current.ruleVersion),
+        }
+      : startingRules(capMinor, autoMinor),
+  );
 
   redirect("/statute?saved=ok");
 }

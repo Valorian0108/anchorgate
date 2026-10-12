@@ -149,6 +149,11 @@ export function askMessageFor(
           : "I could not file that one. Nothing was added below.",
         error: true,
       };
+    case "norules":
+      return {
+        text: "Nothing was added. Your gate has no rules yet, so nothing can be approved. Set your two numbers on the Rules page, then ask again.",
+        error: false,
+      };
     default:
       return null;
   }

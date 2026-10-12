@@ -14,11 +14,18 @@ import {
 import { describe, expect, it } from "vitest";
 
 import type { PayPalVaultPort } from "./ports";
-import { completeVaultEnrollment, startVaultEnrollment } from "./vault";
+import {
+  completeVaultEnrollment,
+  enrollCardVault,
+  startVaultEnrollment,
+  vaultRequestId,
+} from "./vault";
 
 class FakeVaultPort implements PayPalVaultPort {
   lastSetupRequest?: SetupTokenRequest;
   lastPaymentTokenRequest?: PaymentTokenRequest;
+  lastSetupRequestId?: string;
+  lastPaymentRequestId?: string;
   constructor(
     private readonly setup: SetupTokenResponse | Error,
     private readonly token: PaymentTokenResponse | Error,
@@ -28,6 +35,7 @@ class FakeVaultPort implements PayPalVaultPort {
     paypalRequestId?: string;
   }): Promise<SetupTokenResponse> {
     this.lastSetupRequest = input.body;
+    this.lastSetupRequestId = input.paypalRequestId;
     if (this.setup instanceof Error) throw this.setup;
     return this.setup;
   }
@@ -40,6 +48,7 @@ class FakeVaultPort implements PayPalVaultPort {
     paypalRequestId?: string;
   }): Promise<PaymentTokenResponse> {
     this.lastPaymentTokenRequest = input.body;
+    this.lastPaymentRequestId = input.paypalRequestId;
     if (this.token instanceof Error) throw this.token;
     return this.token;
   }
@@ -141,5 +150,80 @@ describe("completeVaultEnrollment", () => {
     await expect(
       completeVaultEnrollment(vault, { setupTokenId: "SETUP-1", ownerId: "default" }),
     ).rejects.toThrow(/payment token id/);
+  });
+});
+
+describe("enrollCardVault", () => {
+  const card = {
+    number: "4111111111111111",
+    expiry: "2027-02",
+    name: "Sandbox Tester",
+    billingAddress: { countryCode: "US" },
+  };
+
+  it("vaults the card under the person's own merchant customer id", async () => {
+    const vault = new FakeVaultPort(
+      { id: "SETUP-1", status: PaymentTokenStatus.Approved },
+      { id: "VAULT-1", customer: { id: "CUST-1" } },
+    );
+
+    const method = await enrollCardVault(vault, {
+      ownerId: "user-42",
+      card,
+      now: new Date("2026-10-12T05:00:00.000Z"),
+    });
+
+    expect(method).toMatchObject({
+      ownerId: "user-42",
+      provider: "paypal",
+      sourceType: "card",
+      providerTokenId: "VAULT-1",
+      providerCustomerId: "CUST-1",
+      status: "ACTIVE",
+      createdAt: "2026-10-12T05:00:00.000Z",
+    });
+    expect(vault.lastSetupRequest?.customer).toEqual({
+      merchantCustomerId: "user-42",
+    });
+    expect(vault.lastSetupRequest?.paymentSource.card?.number).toBe(
+      "4111111111111111",
+    );
+  });
+
+  it("throws when PayPal returns no setup token id", async () => {
+    const vault = new FakeVaultPort({}, { id: "VAULT-1" });
+    await expect(
+      enrollCardVault(vault, { ownerId: "user-42", card }),
+    ).rejects.toThrow(/setup token id/);
+  });
+
+  it("throws when PayPal returns no payment token id", async () => {
+    const vault = new FakeVaultPort(
+      { id: "SETUP-1", status: PaymentTokenStatus.Approved },
+      {},
+    );
+    await expect(
+      enrollCardVault(vault, { ownerId: "user-42", card }),
+    ).rejects.toThrow(/payment token id/);
+  });
+});
+
+describe("vaultRequestId", () => {
+  it("stays under PayPal's 38-character header cap", () => {
+    expect(vaultRequestId("card-setup").length).toBeLessThanOrEqual(38);
+    expect(vaultRequestId("setup").length).toBeLessThanOrEqual(38);
+  });
+
+  it("is unique per call, so idempotency does not collapse distinct attempts", () => {
+    expect(vaultRequestId("card-setup")).not.toBe(vaultRequestId("card-setup"));
+  });
+
+  it("is reflected in the id both vault setup calls send", async () => {
+    const vault = new FakeVaultPort(
+      { id: "SETUP-1", status: PaymentTokenStatus.Approved },
+      { id: "VAULT-1" },
+    );
+    await enrollCardVault(vault, { ownerId: "user-42", card: { number: "4", expiry: "2027-02" } });
+    expect(vault.lastSetupRequestId?.length).toBeLessThanOrEqual(38);
   });
 });

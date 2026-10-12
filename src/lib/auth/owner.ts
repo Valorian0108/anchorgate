@@ -3,10 +3,11 @@
  *
  * Two facts live here, both server-side:
  *
- *   1. WHO the owner is. `OWNER_EMAIL` is an allowlist of exactly one address.
- *      A Supabase account that authenticates but is not this address is refused.
+ *   1. WHO the demo owner is. `OWNER_EMAIL` names the one account allowed to
+ *      sign in by emailed link (the built-in sender's 2-per-hour cap is why
+ *      links stay owner-only). Everyone else signs in with a password.
  *
- *   2. WHEN the owner was last active. The 30-minute idle timeout is enforced
+ *   2. WHEN a person was last active. The 30-minute idle timeout is enforced
  *      from a signed, HttpOnly cookie (`ag_seen`). The cookie carries the user
  *      id and the last-active instant, authenticated with an HMAC. A tampered
  *      cookie fails verification and the session is treated as idle — the check
@@ -18,7 +19,7 @@
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-/** The single account allowed through the gate. */
+/** The demo owner's address: the one account allowed emailed sign-in links. */
 export const OWNER_EMAIL = (process.env.OWNER_EMAIL ?? "").trim().toLowerCase();
 
 /** Idle window: 30 minutes. The server refuses a session past this gap. */

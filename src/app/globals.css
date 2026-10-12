@@ -560,6 +560,22 @@ nav .active::before {
   font-family: var(--g); font-weight: 400; font-size: 13.5px; line-height: 1.6;
   color: var(--ink-soft); margin: 0 0 8px;
 }
+.signin .switch-row { margin-top: 16px; }
+.signin .switch {
+  border: 0; background: none; padding: 0; cursor: pointer;
+  font-family: var(--m); font-size: 11px; letter-spacing: 0.02em;
+  color: var(--ink-soft); text-decoration: underline; text-underline-offset: 3px;
+  text-decoration-color: var(--line);
+}
+.signin .switch:hover { color: var(--seal); text-decoration-color: var(--seal); }
+.signin .to {
+  margin-top: 16px; font-family: var(--m); font-size: 11px;
+  letter-spacing: 0.02em; color: var(--ink-soft);
+}
+.signin .to a {
+  color: var(--seal); text-decoration: underline; text-underline-offset: 3px;
+}
+.signin .to a:hover { color: var(--seal-bright); }
 .signin footer {
   margin-top: 64px; padding-top: 14px; border-top: 1px solid var(--line);
   display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap;

@@ -6,7 +6,12 @@
 
 import { describe, expect, it } from "vitest";
 
-import { nextRuleVersion, parseMoneyToMinor, ruleEditProblem } from "./rulesEdit";
+import {
+  nextRuleVersion,
+  parseMoneyToMinor,
+  ruleEditProblem,
+  startingRules,
+} from "./rulesEdit";
 
 describe("parseMoneyToMinor", () => {
   it("reads whole and decimal amounts into minor units", () => {
@@ -53,5 +58,28 @@ describe("ruleEditProblem", () => {
   it("allows an auto line at or under the limit", () => {
     expect(ruleEditProblem(10000, 10000)).toBeNull();
     expect(ruleEditProblem(5000, 10000)).toBeNull();
+  });
+});
+
+describe("startingRules", () => {
+  it("writes a first set from the two numbers, starting at owner-1", () => {
+    const rules = startingRules(50000, 5000);
+    expect(rules.ruleVersion).toBe("owner-1");
+    expect(rules.monthlyCapMinor).toBe(50000);
+    expect(rules.perPurchaseAutoLimitMinor).toBe(5000);
+    expect(rules.currency).toBe("USD");
+  });
+
+  it("fails safe: the standard categories, and new sellers always ask", () => {
+    const rules = startingRules(50000, 5000);
+    expect(rules.permittedCategories.length).toBe(8);
+    expect(rules.requireApprovalForNewPayee).toBe(true);
+  });
+
+  it("hands back a fresh category list each time, so saves never share state", () => {
+    const a = startingRules(100, 50);
+    const b = startingRules(100, 50);
+    a.permittedCategories.push("mutated");
+    expect(b.permittedCategories).not.toContain("mutated");
   });
 });

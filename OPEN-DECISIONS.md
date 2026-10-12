@@ -414,20 +414,19 @@ criteria (equally weighted): Technological Implementation, Design, Potential
 Impact, Innovation/Idea, and Presentation. Recorded here as the packaging plan;
 nothing below is built yet.
 
-- **Judge access (parked, 10 oct 2026).** The app is single-owner by design (one
-  allowlist address, one global rule set, one shared ledger), so a judge cannot
-  sign in with the owner's magic link. The Official Rules say judges **may judge
-  solely on the video, text, and images**, and the functional-demo requirement is
-  met by **either** complete setup and run instructions in the repo **or** a
-  hosted demo URL; a gated site must supply login credentials in its testing
-  instructions. Planned: a hosted (Vercel) build. With multi-user pulled forward
-  (below), judges sign in through the product's own sign-in instead of a
-  dedicated workaround; a seeded demo account or a pre-minted link remains the
-  fallback if the multi-user build slips. Sandbox only, so a judge pressing Pay
-  moves fake money. The Google Console walkthrough was cancelled 10 oct 2026 and
-  folded into the multi-user build: none of that setup needs redoing later,
-  because the OAuth client, the redirect URIs, and the provider enablement do
-  not depend on how many users exist.
+- **Judge access (resolved by multi-user, 12 oct 2026).** The app was
+  single-owner; it is now multi-user, so a judge **signs up fresh** (email and
+  password) and lives the whole arc — set two numbers, ask, approve, pay, see the
+  reference — with no seeded account and no workaround. The Official Rules say
+  judges **may judge solely on the video, text, and images**, and the
+  functional-demo requirement is met by **either** complete setup and run
+  instructions in the repo **or** a hosted demo URL. Planned: a hosted (Vercel)
+  build with its redirect URL added to Supabase. Sandbox only, so a judge pressing
+  Pay moves fake money. A judge's card is the same public Sandbox test card,
+  vaulted under that judge's own customer id. The Google Console walkthrough was
+  cancelled 10 oct 2026 and folded into the multi-user build: none of that setup
+  needs redoing later, because the OAuth client, the redirect URIs, and the
+  provider enablement do not depend on how many users exist.
 - **Multi-user approved and pulled forward (owner, 10 oct 2026).** Per-person
   rule sets, per-person records, per-person cards, and open sign-in will be
   built **before submission**, replacing the owner-only identity for the Nov 12
@@ -438,6 +437,15 @@ nothing below is built yet.
   and it compresses packaging time, so it must be scoped tightly. The saved-payment
   table already carries an owner id, so it is the first piece already shaped for
   it.
+  **Resolved (12 oct 2026):** **both**, built in safe order — email + password
+  first (zero console config, and it sidesteps the built-in sender's 2-emails-per-
+  hour cap), Google second (Console walkthrough done with the owner when reached;
+  if it slips, the deadline is safe). Steps 1 (separation) and 2 (sign-up /
+  sign-in for everyone) are done and live-verified.
+  **Owner action before demo day:** turn **off** email confirmation in Supabase
+  (Authentication → Sign In / Up → Email → Confirm email). With it on, each
+  sign-up needs a confirmation email and the built-in sender allows only 2 per
+  hour, so a room of judges cannot all sign up. See `AUTH.md` § 5.
 - **Repo packaging.** Add a public GitHub remote, ensure the license file is
   visible in the About section (MIT already exists), write a README with setup and
   run steps plus a `.env.example`, and remove any local-only helper scripts
@@ -844,3 +852,66 @@ nothing below is built yet.
   `auto-above-cap` refusal in the dev log); rules now owner-3, cap 200.00,
   auto 50.00 — the month is no longer at its cap, so the live end-to-end demo
   is unblocked.
+
+- **Update (multi-user, step 2 of 5 — sign-up and sign-in for everyone).**
+  The gate now opens for any signed-in person, in the owner's chosen order
+  (**email + password first**, Google second, so nothing waits on a console
+  walkthrough):
+  - **Anyone may enter; each sees only their own rows.** `dal.verifyOwner`
+    dropped the `OWNER_EMAIL` allowlist (any account with an email passes);
+    `src/lib/supabase/proxy.ts` dropped the "not the owner" refusal. The
+    scoped stores from step 1 do the real separation. `OWNER_EMAIL` now means
+    only "the address allowed an emailed magic link".
+  - **New sign-up screen** (`/signup`, same Ledger slip language): email,
+    password, repeat. 8-character minimum and the match are checked **before**
+    any provider call. Two honest endings: a session straight back (confirmation
+    off) enters the app; otherwise the "check your inbox" beat. `/signup` was
+    added to the proxy's public paths.
+  - **Password sign-in** is the primary method on `/signin`; the owner's emailed
+    one-time link moved one toggle away ("Owner? Use an emailed one-time link
+    instead") and stays **owner-only**, because Supabase's built-in sender allows
+    only 2 emails per hour project-wide. Provider errors become one plain
+    sentence each ("That email and password do not match. Try again, or create
+    your gate.").
+  - **New people start fail-closed, with a way out.** The Rules page's no-rules
+    state was a dead end (it said "there are no rules to edit yet"); it now
+    renders the same "Your two numbers" form, and a save with no prior rules
+    **writes the first set** (`startingRules` → `owner-1`, the documented eight
+    categories, new sellers always need the okay). The ask box short-circuits
+    before the model when no rules exist and says, honestly, that nothing can be
+    approved until the two numbers are set.
+  - **A fresh account can live the whole arc**, so judges need no seeded login.
+    On first sign-in (`/auth/confirm`, password sign-in, and sign-up) the app
+    enrolls PayPal's public Sandbox test card **best-effort** under the person's
+    own `merchantCustomerId` (`ensureSandboxCard`, `src/lib/service.ts`).
+    Sandbox-only; failures are swallowed on purpose so a card problem never
+    blocks sign-in, and the pay step then says its own honest sentence.
+  - **Observed live as a real second account** (created through the proper
+    Supabase endpoint, confirmation completed through the app's own callback):
+    landed on the Gate with **no rules set, so nothing can be approved**; the
+    ask box refused with the no-rules sentence and no model call; the Rules page
+    wrote **owner-1** (cap 300.00, auto 25.00); an ask for a $20 book from a new
+    seller read **needs you · new payee**; approving stamped it with that
+    person's own email; the capture went through the person's **own vaulted
+    card** and the case file read **paid** with ref `6EJ82469…`, the re-check
+    honestly flipping to **allowed · within limits** once the seller was known.
+    The owner's rows stayed invisible throughout; two separate
+    `saved_payment_methods` rows, one per person. The throwaway account was
+    removed afterwards (app rows + auth user), leaving the owner's data as it
+    was.
+  - **Bug found and fixed while verifying: `PayPal-Request-Id` length.** The
+    vault call was failing with a bare `UNKNOWN_VALIDATION` 400. The cause was
+    our own id: it embedded the owner's uuid **and** a timestamp (55 to 61
+    chars), and PayPal caps that header at **38 characters** on the vault
+    endpoints. Short ids succeeded every time; long ids failed deterministically.
+    `vaultRequestId(prefix)` now returns a prefix plus 16 hex characters, used by
+    both vault setup-token calls, and `vault.test.ts` pins the cap so it cannot
+    regress. (The order/capture ids the live payments already use are unaffected;
+    they are short enough and are left alone.)
+  - **Owner action required before demo day:** turn **off** email confirmation
+    (Supabase → Authentication → Sign In / Up → Email → Confirm email). With it
+    on, every sign-up needs a confirmation email, and the built-in sender allows
+    only 2 per hour, so a room of judges cannot all sign up. The app handles both
+    settings honestly; see `AUTH.md` § 5.
+  - Tests: **218 passing** (17 new: 3 `startingRules`, 8 sign-in/sign-up
+    actions, 6 card-vault and request-id). Typecheck and build clean.

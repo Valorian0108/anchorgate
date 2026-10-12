@@ -56,8 +56,6 @@ function savedMessageFor(
         text: "Your auto-approve line cannot sit above your monthly limit. Nothing was saved.",
         error: true,
       };
-    case "no-rules":
-      return { text: "There are no rules to edit yet.", error: true };
     default:
       return null;
   }
@@ -81,6 +79,7 @@ export default async function StatutePage({
     .replace(" ", " ");
 
   if (!rules) {
+    const firstMessage = savedMessageFor(saved, 0, 0);
     return (
       <>
         <section className="page-head reveal" style={{ "--i": 0 } as React.CSSProperties}>
@@ -93,10 +92,59 @@ export default async function StatutePage({
 
         <p className="preamble reveal" style={{ "--i": 1 } as React.CSSProperties}>
           You have not set any rules yet. Because the gate plays it safe,{" "}
-          <b>nothing can be approved</b> until you write a rule set.
+          <b>nothing can be approved</b> until you write your first rule set.
         </p>
 
-        <div className="note">No rules means no spending. That is the safe default.</div>
+        <section className="rules-edit reveal" style={{ "--i": 2 } as React.CSSProperties}>
+          <div className="label">Your two numbers</div>
+          <form action={updateRules} className="line">
+            <div className="field">
+              <label htmlFor="cap">Monthly limit</label>
+              <div className="in">
+                <span className="cur">$</span>
+                <input
+                  id="cap"
+                  name="cap"
+                  placeholder="500"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  required
+                />
+              </div>
+            </div>
+            <div className="field">
+              <label htmlFor="auto">Auto-approve line</label>
+              <div className="in">
+                <span className="cur">$</span>
+                <input
+                  id="auto"
+                  name="auto"
+                  placeholder="50"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  required
+                />
+              </div>
+            </div>
+            <button type="submit">Save</button>
+          </form>
+          <p className="hint">
+            Save once and your first rule set is written: these two numbers, the standard
+            categories, and your okay needed for every first-time seller.
+          </p>
+          {firstMessage ? (
+            <p
+              className={firstMessage.error ? "msg err" : "msg"}
+              role={firstMessage.error ? "alert" : "status"}
+            >
+              {firstMessage.text}
+            </p>
+          ) : null}
+        </section>
+
+        <div className="note reveal" style={{ "--i": 3 } as React.CSSProperties}>
+          No rules means no spending. That is the safe default.
+        </div>
       </>
     );
   }

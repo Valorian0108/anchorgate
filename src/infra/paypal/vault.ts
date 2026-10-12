@@ -50,6 +50,18 @@ function findApproveUrl(links: LinkDescription[] | undefined): string | null {
   return links?.find((l) => l.href.includes("approve"))?.href ?? null;
 }
 
+/**
+ * A `PayPal-Request-Id` for an idempotent call.
+ *
+ * PayPal caps this header at 38 characters on the vault endpoints and answers a
+ * longer id with a bare `UNKNOWN_VALIDATION` 400 that names no field. A prefix
+ * plus 16 hex characters of a random UUID stays well under the cap and is
+ * unique enough for PayPal's 6-hour idempotency window.
+ */
+export function vaultRequestId(prefix: string): string {
+  return `${prefix}-${randomUUID().replace(/-/g, "").slice(0, 16)}`;
+}
+
 /** Step 1: create a setup token and return the approval link. */
 export async function startVaultEnrollment(
   vault: PayPalVaultPort,
@@ -72,7 +84,7 @@ export async function startVaultEnrollment(
         },
       },
     },
-    paypalRequestId: `setup:${args.merchantCustomerId ?? "default"}:${Date.now()}`,
+    paypalRequestId: vaultRequestId("setup"),
   });
 
   if (!response.id) {
@@ -170,6 +182,7 @@ export async function enrollCardVault(
 ): Promise<SavedPaymentMethod> {
   const setup = await vault.createSetupToken({
     body: {
+      customer: { merchantCustomerId: args.ownerId },
       paymentSource: {
         card: {
           number: args.card.number,
@@ -186,7 +199,7 @@ export async function enrollCardVault(
         },
       },
     },
-    paypalRequestId: `card-setup:${args.ownerId}:${Date.now()}`,
+    paypalRequestId: vaultRequestId("card-setup"),
   });
 
   if (!setup.id) {

@@ -5,9 +5,12 @@
  * Responsibilities, in order:
  *   - refresh the Supabase session and write rotated cookies to the response;
  *   - send unauthenticated visitors on protected paths to /signin;
- *   - refuse a signed-in account that is not the owner;
  *   - refuse a session that has been idle past the window, and sign it out;
  *   - refresh the signed activity stamp on genuine activity.
+ *
+ * Any signed-in account may enter; per-person data separation is enforced by
+ * the scoped stores behind the DAL, and in depth by the database's own
+ * row-level-security policies.
  *
  * This is an OPTIMISTIC layer. The authoritative re-check is the DAL
  * (`src/lib/auth/dal.ts`), which every page and action calls. Keeping the
@@ -21,16 +24,15 @@ import { supabaseAnonKey, supabaseUrl } from "./config";
 import {
   IDLE_COOKIE,
   assessStamp,
-  isOwnerEmail,
   signStamp,
   stampCookieOptions,
 } from "@/lib/auth/owner";
 
 /**
  * Paths reachable without a session. `/auth/*` is the magic-link / OAuth
- * callback surface; `/signin` is the front door.
+ * callback surface; `/signin` and `/signup` are the front doors.
  */
-const PUBLIC_PREFIXES = ["/signin", "/auth"];
+const PUBLIC_PREFIXES = ["/signin", "/signup", "/auth"];
 
 function isPublic(pathname: string): boolean {
   return PUBLIC_PREFIXES.some(
@@ -94,15 +96,9 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     return isPublic(pathname) ? response : redirectTo("/signin");
   }
 
-  // Signed in, but not the owner — refuse and clear the session.
-  if (!isOwnerEmail(user.email)) {
-    await supabase.auth.signOut({ scope: "local" });
-    return redirectTo("/signin?reason=not-owner");
-  }
-
-  // Signed in as the owner, but idle or presenting a stamp that does not
-  // authenticate — refuse and clear the session. A missing stamp is a fresh
-  // session: the window starts now.
+  // Signed in, but idle or presenting a stamp that does not authenticate —
+  // refuse and clear the session. A missing stamp is a fresh session: the
+  // window starts now.
   const assessment = assessStamp(
     user.id,
     request.cookies.get(IDLE_COOKIE)?.value,

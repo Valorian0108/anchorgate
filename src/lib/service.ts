@@ -23,10 +23,12 @@ import {
 } from "@/infra/persistence";
 import {
   createPayPalClient,
+  enrollCardVault,
   PayPalPaymentGateway,
   readPayPalConfigFromEnv,
   SdkOrdersPort,
   SdkPaymentsPort,
+  SdkVaultPort,
 } from "@/infra/paypal";
 import { PurchaseService } from "@/services";
 import {
@@ -137,4 +139,44 @@ export async function getAgent(userId: string): Promise<PurchaseAgent> {
     proposals,
     rules,
   });
+}
+
+/** PayPal's standard Sandbox test card (Visa, always approves, no 3DS). */
+const SANDBOX_TEST_CARD = {
+  number: "4111111111111111",
+  expiry: "2027-02",
+  name: "Sandbox Tester",
+  billingAddress: {
+    addressLine1: "2211 N First Street",
+    adminArea1: "CA",
+    adminArea2: "San Jose",
+    postalCode: "95131",
+    countryCode: "US",
+  },
+};
+
+/**
+ * Make sure one person has a payment method in their vault, enrolling PayPal's
+ * public Sandbox test card server-side when they do not. This is a SANDBOX-ONLY
+ * convenience so a fresh account can live the whole arc (ask, approve, pay,
+ * see the reference) without a CLI; in production the card would be enrolled
+ * through PayPal's own hosted fields.
+ *
+ * Throws when the database or PayPal credentials are missing, or when the
+ * enrollment fails. Callers decide how loud to be: sign-in flows treat it as
+ * best-effort, because a person without a card can still set rules and ask;
+ * the pay step then fails with its own honest sentence.
+ */
+export async function ensureSandboxCard(userId: string): Promise<void> {
+  const s = storesFor(userId);
+  const existing = await s.paymentMethods.getActive(userId);
+  if (existing) return;
+
+  const config = readPayPalConfigFromEnv(process.env);
+  const client = createPayPalClient(config);
+  const method = await enrollCardVault(new SdkVaultPort(client), {
+    ownerId: userId,
+    card: SANDBOX_TEST_CARD,
+  });
+  await s.paymentMethods.save(method);
 }
