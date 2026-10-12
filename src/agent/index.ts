@@ -21,6 +21,14 @@ export type {
   ProposalServiceDeps,
 } from "./proposal";
 export {
+  CATALOG,
+  CATALOG_AGENT_ID,
+  catalogForCategories,
+  pickNextCatalogItem,
+  surfaceCatalogPurchase,
+} from "./catalog";
+export type { CatalogItem } from "./catalog";
+export {
   createProposePurchaseTool,
   createPurchaseTools,
   PROPOSE_PURCHASE_TOOL,

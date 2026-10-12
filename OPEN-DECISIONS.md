@@ -1046,3 +1046,16 @@ nothing below is built yet.
   record, contradicting its own "given by ..." detail; with an approval
   recorded the row now reads "yes". Tests: **232 passing**; typecheck and
   production build clean.
+- **Phase 1c core (the curated catalog, module + tests):** the feed's honesty
+  guarantee now lives in code. `src/agent/catalog.ts` carries the approved v3
+  specimen's fourteen real items verbatim, each tagged to an established
+  starting category, plus a deterministic per-person deck (seeded shuffle, no
+  repeats within a pass, reshuffled when the deck runs out, nothing stored)
+  and `surfaceCatalogPurchase`, which files the picked item VERBATIM through
+  the real `ProposalService`: the engine rules on it (under Option 1, ASK),
+  the record is durable, and even the catalog cannot ride over the hard
+  monthly cap. No rules, or no permitted items, means silence, never
+  invention. Catalog-sourced requests carry `agentId: "catalog"` so every
+  screen can say honestly where a proposal came from. 14 new tests pin all of
+  it: **246 passing**, typecheck clean. The ~30s feed UI, the entry animation
+  and the away badge are Phase 2.
