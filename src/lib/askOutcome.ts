@@ -122,7 +122,7 @@ export function askMessageFor(
       };
     case "clarify":
       return {
-        text: "Nothing was added below. Add the amount, the seller, and what it is for, then ask again.",
+        text: "Nothing was added below. Tell it the amount, the seller, what it is for, and what kind of purchase it is (for example software, books, or meals), then ask again.",
         error: false,
       };
     case "allow":

@@ -140,7 +140,7 @@ describe("askMessageFor", () => {
       "Type what you want looked at first, then ask.",
     );
     expect(askMessageFor("clarify", undefined)?.text).toBe(
-      "Nothing was added below. Add the amount, the seller, and what it is for, then ask again.",
+      "Nothing was added below. Tell it the amount, the seller, what it is for, and what kind of purchase it is (for example software, books, or meals), then ask again.",
     );
     expect(askMessageFor("error", undefined)?.error).toBe(true);
   });

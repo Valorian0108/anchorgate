@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
 import { decideFromGate, type GateDecisionResult } from "@/app/(app)/actions";
 import type { PurchaseRecord } from "@/core/purchases";
-import { isReserved } from "@/lib/vocab";
+import { isReserved, latestEvaluation } from "@/lib/vocab";
 
 import { AnchorWall } from "./anchor-wall";
 import { AskBox } from "./ask-box";
@@ -18,6 +18,21 @@ const MIN_BEAT_MS = 700;
 
 /** How many settled columns the queue shows beside the waiting ones. */
 const SETTLED_SHOWN = 1;
+
+/**
+ * When a record settled, mirroring the card's elapsed-time anchor. The queue
+ * keeps the most recently SETTLED column, not the most recently created one:
+ * a just-paid receipt is what the owner needs to see, even when a newer
+ * request was declined first.
+ */
+function settledAt(record: PurchaseRecord): string {
+  return (
+    record.approval?.approvedAt ??
+    record.rejection?.rejectedAt ??
+    latestEvaluation(record.evaluations)?.evaluatedAt ??
+    record.createdAt
+  );
+}
 
 interface Override {
   /** The record after a decision, if one has come back. */
@@ -112,7 +127,9 @@ export function GateBoard({
   }, [records, arrivals, overrides]);
 
   const waiting = items.filter((item) => item.record.status === "PENDING_APPROVAL");
-  const settled = items.filter((item) => item.record.status !== "PENDING_APPROVAL");
+  const settled = items
+    .filter((item) => item.record.status !== "PENDING_APPROVAL")
+    .sort((a, b) => settledAt(b.record).localeCompare(settledAt(a.record)));
   const settledShown = settled.slice(0, SETTLED_SHOWN);
   const settledHidden = settled.length - settledShown.length;
 

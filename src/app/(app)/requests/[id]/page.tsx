@@ -201,9 +201,17 @@ export default async function RequestDetailPage({
 
   // The purchase's own filing day, not today: a case file is a historical
   // document and must not re-date itself every time it is opened.
-  const day = new Date(record.createdAt)
-    .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-    .replace(" ", " ");
+  const fileDay = (iso: string): string =>
+    new Date(iso).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  const day = fileDay(record.createdAt);
+  // The stamp, though, carries the decision day: it is earned "the moment you
+  // decide", so a paid stamp must show when it was allowed, not when the
+  // agent filed the proposal. The filing day stays on the case reference.
+  const stampDay = fileDay(approval?.approvedAt ?? record.createdAt);
 
   const headline = H[record.status as keyof typeof H] ?? H.PENDING_APPROVAL;
   const status = record.status;
@@ -358,7 +366,7 @@ export default async function RequestDetailPage({
               <div className="stampwrap">
                 <span className="stamp">
                   <span className="sw">allowed</span>
-                  <span className="sd">AnchorGate · {day} · No. {displayId(id)}</span>
+                  <span className="sd">AnchorGate · {stampDay} · No. {displayId(id)}</span>
                 </span>
               </div>
               <div className="what">Nothing else to do.</div>

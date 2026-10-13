@@ -22,8 +22,11 @@
      (--paper / --surface / --seal* names are historical; the warm paper
      palette they once carried is retired. Values are ice now.) */
   --ink: #12293A;
-  --ink-soft: #5B7186;
-  --ink-faint: #7E93A6;
+  /* secondary inks, darkened by the polish audit (13 oct 2026): the old
+     values measured 2.6-4.4:1 over the ground gradient; these clear 4.5:1
+     at every place small text can sit */
+  --ink-soft: #4A6072;
+  --ink-faint: #546A7C;
   --paper: #F4F9FC;          /* ground fallback under the fixed backdrop */
   --surface: #E7F0F7;        /* hover / fill tint */
   --line: #D8E5EE;           /* ice hairline */
@@ -34,13 +37,17 @@
   --accent: #2D9CDB;
   --accent-ink: #0F6E8C;
   --accent-deep: #0A566C;
+  /* accent for large display text only (hook words, the spent figure):
+     the bright accent measures 2.5-2.9:1, under even the 3:1 large-text
+     floor; this one notch deeper clears it everywhere */
+  --accent-text: #2289C9;
   --seal-deep: #0A566C;
   --seal: #0F6E8C;
   --seal-bright: #0A566C;    /* hover ink: darker, never behind white text */
   --seal-tint: #E4F0F7;
   /* verdicts (meaning frozen; these pass 4.5:1 on white panes) */
   --allow: #2F6B4F;
-  --ask: #A66312;
+  --ask: #97590F;
   --deny: #9E2B25;
   /* glass tiers (owner call 13 oct 2026, third call: enforce the glass
      more). True frost on the Gate: bar 24px, band 32px. Light veil on
@@ -107,7 +114,7 @@ a { color: var(--seal); text-decoration: none; }
 a:hover { color: var(--seal-bright); }
 
 /* the two-tone hook word: one accent word per headline, used sparingly */
-.hook { color: var(--accent); }
+.hook { color: var(--accent-text); }
 
 /* the caption voice (one size, one style, everywhere) */
 .cap {
@@ -251,7 +258,7 @@ nav a.active { background: var(--accent-ink); color: #fff; }
 .gauge .readout .cap { display: block; margin-bottom: var(--s1); }
 .gauge .spent {
   font-family: var(--m); font-weight: 500; font-size: var(--t-readout);
-  line-height: 1; letter-spacing: -0.02em; color: var(--accent);
+  line-height: 1; letter-spacing: -0.02em; color: var(--accent-text);
   font-variant-numeric: tabular-nums;
 }
 .gauge .spent .sym { color: var(--accent-ink); }
@@ -278,7 +285,7 @@ nav a.active { background: var(--accent-ink); color: #fff; }
     background-color var(--dur-long) var(--ease-in-out);
 }
 .gauge .tick { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(18,41,58,0.18); }
-.gauge .threshold { position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(166,99,18,0.6); }
+.gauge .threshold { position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(151,89,15,0.6); }
 .gauge .wall-cap { position: absolute; top: 0; bottom: 0; right: 0; width: 2px; background: var(--ink); }
 .gauge .legend {
   display: flex; flex-wrap: wrap; gap: var(--s3); margin-top: var(--s2);
@@ -582,7 +589,7 @@ nav a.active { background: var(--accent-ink); color: #fff; }
 }
 .case-head .ref { font-family: var(--m); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 10px; }
 .case-head h1 { max-width: 28ch; }
-.case-head h1 .pay { color: var(--accent); }
+.case-head h1 .pay { color: var(--accent-text); }
 .case-head .meta { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
 .case-head .chip { font-size: 11px; padding: 5px 12px; }
 .case-head .waiting { font-family: var(--m); font-size: 11px; color: var(--ink-soft); text-align: right; letter-spacing: 0.02em; }

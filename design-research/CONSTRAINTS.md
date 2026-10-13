@@ -89,19 +89,23 @@ Sora, with the two-tone accent hook as the ceremonial device.
 | seal-tint | `#E8EDF5` | quiet fill |
 
 **Verdict signals (functional; only inside the stamp / mark):**
-`ALLOW #2F6B4F` · `ASK #A66312` · `DENY #9E2B25`
+`ALLOW #2F6B4F` · `ASK #97590F` · `DENY #9E2B25`
+(ASK darkened one notch by the polish audit, 13 oct 2026: the old `#A66312`
+measured 3.9:1 at its smallest sizes; §6(h). Meaning frozen, value swapped.)
 
 **Icy palette — the live surfaces only (§9, owner 13 oct 2026; light ice after
 the v4 dark-ground draft was withdrawn):**
 | Token | Value | Use |
 | --- | --- | --- |
-| ground | `#F2F8FC` to `#D8EAF4` | pale ice field, top to bottom |
+| ground | `#F4F9FC` to `#DAEAF4` | pale ice field, top to bottom |
 | ink | `#12293A` | primary text on light |
-| ink-soft | `#5B7186` | secondary text on light |
-| accent | `#2D9CDB` | fills, bars, the 32px readout; never under white text (3:1) |
-| accent-ink | `#0F6E8C` | small accent text, links, and the primary button fill with white text (5.9:1) |
-| frost | white at 55% plus blur | the top bar and the instrument band |
-| veil | white at 30 to 42% plus light blur | cards and the ask strip |
+| ink-soft | `#4A6072` | secondary text on light (audit value, §6(h)) |
+| ink-faint | `#546A7C` | quiet metadata: caps, timestamps, proofs (audit value, §6(h)) |
+| accent | `#2D9CDB` | fills, bars, dots and rules only; never text, never under white text |
+| accent-text | `#2289C9` | large display text only: the hook words, the 32px readout (clears the 3:1 large floor, §6(h)) |
+| accent-ink | `#0F6E8C` | small accent text, links, and the primary button fill with white text (5.8:1) |
+| frost | white at 55-58% plus blur 24-32px | the top bar and the instrument band |
+| veil | white at 60% plus blur 12px | every icy-paper pane (§6(g)) |
 
 The warm palette above is retired (owner call 13 oct 2026: everything joins
 the ice). The icy palette below is the product's only palette; the warm table
@@ -243,6 +247,21 @@ the *only* icon source in the build; nothing from external icon packages
   (white at 60%, blur 12px, saturate 140%) with the inset top highlight.
   Hierarchy holds: true frost stays a Gate-only object; panes are veils;
   buttons, pills and the receipt strip stay solid.
+- (h) **Polish audit (13 oct 2026, agent-run at the owner's "run an audit for
+  a polish").** Every (color, background) pair was measured against the real
+  composited grounds: the gradient's mid and bottom stops, the harbour-art
+  overlap, the veil pane, the frost band and the receipt strip. Four tokens
+  failed §2's contrast rule and were darkened one notch, hues unchanged,
+  meanings frozen: ink-soft `#5B7186` → `#4A6072` (worst case was 4.1:1, now
+  5.3:1); ink-faint `#7E93A6` → `#546A7C` (was 2.6:1, now 4.6:1); ask
+  `#A66312` → `#97590F` (was 3.9:1, now 4.6:1); and the bright accent stopped
+  being text at all. A new `--accent-text #2289C9` carries the hook words and
+  the 32px spent figure (`#2D9CDB` measured 2.5:1 as text, under even the 3:1
+  large floor; the fix clears 3.1:1 everywhere). The gauge's threshold tick
+  follows the new ask value. Everything else passed as-is: ink, allow, deny,
+  accent-ink, white-on-button (5.8:1) and the three receipt inks (6.4-13.1:1).
+  Small text over a decorative art stroke sits at ≥4.2:1, a texture exception:
+  the strokes are blurred at 16% opacity and never carry meaning alone.
 
 ---
 
