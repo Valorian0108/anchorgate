@@ -50,7 +50,9 @@ export default async function SignInPage({
 
       <section className="split">
         <div className="left reveal" style={{ "--i": 1 } as React.CSSProperties}>
-          <h1>This gate opens for one person. You.</h1>
+          <h1>
+            This gate opens for one person. <span className="hook">You.</span>
+          </h1>
 
           {notice ? (
             <p className="notice" role="alert">

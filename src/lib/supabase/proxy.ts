@@ -30,9 +30,10 @@ import {
 
 /**
  * Paths reachable without a session. `/auth/*` is the magic-link / OAuth
- * callback surface; `/signin` and `/signup` are the front doors.
+ * callback surface; `/signin` and `/signup` are the front doors; `/home`
+ * is the signed-out front page that "/" rewrites to.
  */
-const PUBLIC_PREFIXES = ["/signin", "/signup", "/auth"];
+const PUBLIC_PREFIXES = ["/signin", "/signup", "/auth", "/home"];
 
 function isPublic(pathname: string): boolean {
   return PUBLIC_PREFIXES.some(
@@ -92,6 +93,18 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     if (pathname === "/" && request.nextUrl.searchParams.has("code")) {
       const search = request.nextUrl.search;
       return redirectTo(`/auth/confirm${search}`);
+    }
+    // The one address, two doors (owner call, 13 oct 2026): signed-out
+    // visitors see the front page AT "/", signed-in owners see the Gate
+    // there. The rewrite keeps the shared address clean; the intro page
+    // itself lives at /home.
+    if (pathname === "/") {
+      const url = new URL("/home", request.url);
+      const res = NextResponse.rewrite(url);
+      for (const setCookie of response.headers.getSetCookie()) {
+        res.headers.append("set-cookie", setCookie);
+      }
+      return res;
     }
     return isPublic(pathname) ? response : redirectTo("/signin");
   }

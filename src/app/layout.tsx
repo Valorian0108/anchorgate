@@ -1,19 +1,12 @@
 import type { ReactNode } from "react";
-import { IBM_Plex_Mono, Newsreader, Sora } from "next/font/google";
+import { IBM_Plex_Mono, Sora } from "next/font/google";
 import "./globals.css";
 
-// Sora is the interface voice everywhere (canon §1); the serif keeps its
-// ceremony job on the Print screens only.
+// Sora is the interface voice everywhere (canon §1). The serif retired
+// with the warm paper skin (owner call, 13 oct 2026): one voice, ice.
 const g = Sora({
   subsets: ["latin"],
   variable: "--font-sora",
-  display: "swap",
-});
-
-const s = Newsreader({
-  subsets: ["latin"],
-  style: ["normal", "italic"],
-  variable: "--font-newsreader",
   display: "swap",
 });
 
@@ -32,7 +25,7 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${g.variable} ${s.variable} ${m.variable}`}>
+    <html lang="en" className={`${g.variable} ${m.variable}`}>
       <body>{children}</body>
     </html>
   );

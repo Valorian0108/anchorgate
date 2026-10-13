@@ -1,16 +1,18 @@
 "use client";
 
 /**
- * The surface switch: one product, two skins (canon §7, §9, §10).
+ * The ice chrome, on every screen (owner call, 13 oct 2026).
  *
- * The Gate ("/") wears the live ice: a composed still backdrop, the seamless
- * top bar, and the cockpit below it. Every other signed-in screen is Print or
- * statute and keeps the warm paper chrome it was comped with. The switch reads
- * the pathname, which is available during server rendering too, so the right
- * skin is painted on first byte with no flash and no client round trip.
+ * One product, one ground: the composed still backdrop and the seamless
+ * top bar are shared by the Gate, the Record, the Statute, the case
+ * files and the front door. The Gate keeps the full cockpit; the other
+ * screens are "icy paper": the same language with matte panels instead
+ * of glass.
  *
- * Both chrome slots are rendered by the server layout and passed in, so all
- * the data work (owner, engine line, sign-out action) stays server-side.
+ * The engine line (the instrument whisper) shows on every signed-in
+ * screen except the Gate, which carries the live status strip instead.
+ * The switch reads the pathname, available during server rendering too,
+ * so the right chrome is painted on first byte with no flash.
  */
 
 import { usePathname } from "next/navigation";
@@ -56,37 +58,42 @@ function HarbourArt() {
   );
 }
 
+/**
+ * The ice ground itself: pale field, washed harbour art, finest grain.
+ * Fixed behind everything, composed once, never animated. Exported so
+ * the signed-out screens (front door, sign-in) paint the same ground.
+ */
+export function IceBackdrop() {
+  return (
+    <div className="ice-backdrop" aria-hidden="true">
+      <HarbourArt />
+      <div className="grain" />
+    </div>
+  );
+}
+
 export function Chrome({
-  ice,
-  paper,
+  topbar,
+  engine,
   children,
 }: {
-  /** The ice chrome (the seamless top bar), shown on the Gate. */
-  ice: ReactNode;
-  /** The paper chrome (masthead plus engine line), shown elsewhere. */
-  paper: ReactNode;
+  /** The seamless ice top bar (server-rendered: owner, nav, sign-out). */
+  topbar: ReactNode;
+  /** The engine line, shown on every signed-in screen except the Gate. */
+  engine: ReactNode;
   children: ReactNode;
 }) {
   const pathname = usePathname();
   const isGate = pathname === "/";
 
-  if (isGate) {
-    return (
-      <div className="surface-ice">
-        <div className="ice-backdrop" aria-hidden="true">
-          <HarbourArt />
-          <div className="grain" />
-        </div>
-        {ice}
-        <main className="wrap">{children}</main>
-      </div>
-    );
-  }
-
   return (
-    <div className="wrap">
-      {paper}
-      <main>{children}</main>
+    <div className="surface-ice">
+      <IceBackdrop />
+      {topbar}
+      <main className="wrap">
+        {isGate ? null : engine}
+        {children}
+      </main>
     </div>
   );
 }

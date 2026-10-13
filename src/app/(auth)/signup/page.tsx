@@ -27,7 +27,9 @@ export default function SignUpPage() {
 
       <section className="split">
         <div className="left reveal" style={{ "--i": 1 } as React.CSSProperties}>
-          <h1>Your own gate. Your own rules.</h1>
+          <h1>
+            Your own gate. Your own <span className="hook">rules</span>.
+          </h1>
 
           <div className="trust">
             <div className="trust-line">

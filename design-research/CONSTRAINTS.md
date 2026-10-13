@@ -9,14 +9,23 @@ visual wins and this document records it here.
 
 **Icy-glass direction (owner taste calls locked 13 oct 2026):** the live
 surfaces move to a crafted icy-glass system (§9): Sora as the display/UI voice,
-the serif retired from the Gate, the two-tone accent device on, frost used
-twice per view, and nav as a seamless top bar that sits still at the top of the
-page (owner call 13 oct 2026: nothing follows him down the page). The ground is
-LIGHT ice over a washed harbour line drawing; the v4 dark-navy draft was
-withdrawn the same day because its frost read as a flat dark dashboard. The
-Print screens keep the warm paper and the serif ceremony. Specimen v7
+the two-tone accent device on, frost used at most twice per view, and nav as a
+seamless top bar that sits still at the top of the page (owner call 13 oct
+2026: nothing follows him down the page). The ground is LIGHT ice over a washed
+harbour line drawing; the v4 dark-navy draft was withdrawn the same day
+because its frost read as a flat dark dashboard. Specimen v7
 (`live-instrument.specimen.v7.html`) is the approved Gate cockpit (§10); the
 rebuild follows it exactly, one screen at a time.
+
+**Everything joins the ice (owner call, 13 oct 2026, second call):** every
+screen now wears the ice, not just the Gate. The non-Gate screens (Record,
+case files, Rules, sign-in, sign-up, the front door) are "icy paper":
+everything the Gate is made of, glassmorphism without the glass. Same ground,
+same seamless top bar, same type voices and capsule controls, but their panels
+are matte (white at 72%, no backdrop-filter) and no second frost object
+appears. The warm paper skin and the serif voice are retired everywhere; frost
+survives only on the Gate (top bar + instrument band) and, as the shared
+product chrome, in the top bar on every screen.
 
 **Direction (owner-approved):** *Ledger* base + *print/document* signature +
 a *whisper of instrument* in the data layer. See `DESIGN.md` §7c and
@@ -30,24 +39,24 @@ a *whisper of instrument* in the data layer. See `DESIGN.md` §7c and
 
 | Voice | Job | Face |
 | --- | --- | --- |
-| **Display / UI** | headings, navigation, labels, buttons | **Sora** (owner pick 13 oct 2026: the softer of the two candidates) |
-| **Serif** | ceremony on the Print screens only: the stamp, statements, the Print page titles | **Newsreader** |
+| **Display / UI** | headings, navigation, labels, buttons, ceremony | **Sora** (owner pick 13 oct 2026: the softer of the two candidates) |
+| **Serif** | *retired* (owner call 13 oct 2026: everything joins the ice; the ceremony job passes to Sora) | ~~Newsreader~~ |
 | **Mono** | data: money, timestamps, rule ids, lifecycle | **IBM Plex Mono** |
 
-All three are free/open (Google Fonts), so no licence risk for the demo.
+All faces are free/open (Google Fonts), so no licence risk for the demo.
 Sora replaced Schibsted Grotesk as the interface voice when the live surfaces
-moved to the icy-glass system (§9). The serif keeps its ceremony job but only
-on the Print screens, never on the Gate (owner pick 13 oct 2026).
+moved to the icy-glass system (§9). Newsreader is no longer loaded: the serif
+retired with the warm paper skin when every screen joined the ice (owner call
+13 oct 2026). Ceremony (statements, the stamp, the sign-in title) now sets in
+Sora, with the two-tone accent hook as the ceremonial device.
 
 **Rules**
 - Interface headings are roman. Emphasis = weight or size, never a gradient.
-  One ceremonial exception, approved via the comps: the page title on each
-  Print screen (Record, case file, Rules, sign-in) sets in Newsreader italic.
-  The serif never appears on the Gate (owner pick 13 oct 2026); there the
-  ceremonial line sets in Sora light.
-  The wordmark is the display lockup (uppercase, 20px, anchor mark), not serif:
-  ink with the accent anchor in the floating dock on live, seal blue with the
-  seal anchor on the paper chrome.
+  Ceremony is carried by scale, weight and the one accent hook word per
+  headline (used sparingly: the front door, sign-in, sign-up, the case-file
+  amount).
+  The wordmark is the display lockup (uppercase, 13px, anchor mark tile),
+  ink on the seamless top bar.
 - Weight contrast over bold-everything; large display can run light (à la Stripe).
 - Prose measure 45–75ch. Tabular numerals on every column of figures.
 - Banned: Inter, Roboto, Open Sans, system-default stacks, Space Grotesk.
@@ -89,8 +98,11 @@ the v4 dark-ground draft was withdrawn):**
 | frost | white at 55% plus blur | the top bar and the instrument band |
 | veil | white at 30 to 42% plus light blur | cards and the ask strip |
 
-The warm palette above keeps its territory: the Print screens and every paper
-moment. Two palettes, one product: printed where permanent, icy where live.
+The warm palette above is retired (owner call 13 oct 2026: everything joins
+the ice). The icy palette below is the product's only palette; the warm table
+stays as a historical record. The CSS token names `--paper`, `--surface` and
+`--seal*` are historical too: they now carry ice values. The receipt strip's
+deep ground moved from warm dark to deep ice (`#0F2B3D`).
 
 **Rules**
 - Accent footprint < ~5% of any view. Accent is emphasis, not fill.
@@ -205,6 +217,18 @@ the *only* icon source in the build; nothing from external icon packages
   homepage and sign-in included. The rebuild follows
   `design-research/live-instrument.specimen.v7.html` (§10), one screen at a
   time, keeping every live behavior inside the new skin.
+- (f) **Owner ordered every screen into the ice (13 oct 2026, second call).**
+  His words: the non-Gate screens are "everything the gate is made up of,
+  glassmorphism but without the glass and a icy paper feel." Built and
+  verified the same day: the warm paper skin and Newsreader are retired; the
+  Record, case files, Rules, sign-in and sign-up wear matte ice panels (white
+  at 72%, no backdrop-filter), Sora headings, capsule buttons and the shared
+  seamless top bar; frost survives on the Gate only (top bar + instrument
+  band). He also chose **Option A** for the front door: one address, two
+  doors — signed-out visitors see the intro page AT "/" (the proxy rewrites to
+  the static `/home` route), signed-in owners see the Gate at the same "/".
+  The sign-in title's open question resolves with the serif retirement: it
+  sets in Sora with the accent hook on "You.".
 
 ---
 
@@ -216,8 +240,10 @@ bans so there is no gap for defaults to fill.
 
 **The split — printed where permanent, alive where responsive.**
 - The **Record** and the **case file** are *Print*: receipt strip, stamp,
-  immutability, hairline rules. Settled and permanent. The paper metaphor is
-  exactly right here.
+  immutability, hairline rules. Settled and permanent. *(Superseded in skin,
+  owner call 13 oct 2026: the paper metaphor's job — permanence — now rides on
+  "icy paper": matte white panels, hairline ice rules, the deep-ice receipt
+  strip. The behavior is unchanged; only the warm paper look retired.)*
 - The **Gate** (home), the **budget**, and the **decisions** are a *Live
   Instrument*: a control surface that responds to reality. It breathes.
 
@@ -270,6 +296,11 @@ nothing is banned.
 
 ## 8. One object language across every screen (approved 13 oct 2026)
 
+*(Superseded the same day by the owner's second call, §6(f): with every screen
+in the ice, the unified object language is the ice one — matte panes at 16px
+radius, capsule buttons, hairline ice rules, the seamless top bar. The 6px
+paper radii and seal-fill buttons recorded below are historical.)*
+
 The Live Instrument layer (§7) rebuilt the Gate; this folds the same face onto
 the Print screens and the entry screens so the whole app reads as one product.
 It changes shapes and fills only. It adds no motion and no numbers to the
@@ -315,11 +346,13 @@ and all five are mandatory:
    about 55%, 20 to 24px blur); the top bar is frost too; everything else is a
    light veil (white at 30 to 42%, 8 to 10px blur) or plain ground. Not
    everything frosted equally, and most things not at all.
-4. **Frost is rare and the frame stays solid.** Exactly two frosted objects
-   per live view: the seamless top bar and the instrument band. The top bar
+4. **Frost is rare and the frame stays solid.** At most two frosted objects
+   per live view: on the Gate, the seamless top bar and the instrument band.
+   Every other screen carries the same top bar as shared product chrome (its
+   frost is the only one there) and matte icy-paper panels; no second frost
+   object appears off the Gate. The top bar
    sits still at the top of the page and scrolls away with it (owner call
    13 oct 2026); the floating dock is retired. Cards are veils, not glass.
-   The Print screens keep paper chrome.
 5. **Contrast is verified on the worst case.** Every text pair is checked at
    4.5:1 against text over a glow, not against the easy ground.
 
@@ -385,7 +418,12 @@ reference for the Gate rebuild. The poster is gone; the Gate is a cockpit:
   18 headings, 15 sub, 14 body, 11 mono caps, 22 mono figures, 32 mono
   readout. Motion stays the §7 canon.
 
-The Print screens (Record, case file) keep the warm paper and the serif
-ceremony unless the owner says otherwise. The entry screens (homepage,
-sign-in) join the ice by his 13 oct 2026 call; whether the sign-in title keeps
-its serif ceremony is logged as an open decision, not assumed.
+Every screen joined the ice by the owner's second call of 13 oct 2026 (§6(f)):
+the Record, case files and Rules are "icy paper" (this cockpit's language with
+matte panels instead of glass), the entry screens wear the same top bar and
+ground, and the front door lives at "/" for signed-out visitors (Option A: one
+address, two doors; the intro page itself is the static `/home` route the
+proxy rewrites to). The sign-in title sets in Sora with the accent hook; the
+serif retired everywhere with the warm paper. The front door's instrument band
+is a matte `.gauge.demo` reproduction labelled "an example · not live data",
+which keeps §3 ban 5 (no invented metrics) honest.

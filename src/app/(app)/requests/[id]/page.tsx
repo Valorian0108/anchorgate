@@ -258,7 +258,7 @@ export default async function RequestDetailPage({
       </section>
 
       {/* file + rail */}
-      <div className="body reveal" style={{ "--i": 2 } as React.CSSProperties}>
+      <div className="case-body reveal" style={{ "--i": 2 } as React.CSSProperties}>
         <div>
           {/* the facts */}
           <section className="facts">
@@ -532,7 +532,7 @@ export default async function RequestDetailPage({
         {status === "EXECUTED" && captureEvent ? (
           <div className="st">
             <div className="sn">04 · Paid · confirmed</div>
-            <div className="sv cap">
+            <div className="sv done">
               counted exactly once
               <time>
                 {fmtClock(captureEvent.occurredAt)} · <span className="ref">ref {shortRef(captureEvent.providerRef ?? captureEvent.id)}</span>
