@@ -20,12 +20,17 @@ rebuild follows it exactly, one screen at a time.
 **Everything joins the ice (owner call, 13 oct 2026, second call):** every
 screen now wears the ice, not just the Gate. The non-Gate screens (Record,
 case files, Rules, sign-in, sign-up, the front door) are "icy paper":
-everything the Gate is made of, glassmorphism without the glass. Same ground,
-same seamless top bar, same type voices and capsule controls, but their panels
-are matte (white at 72%, no backdrop-filter) and no second frost object
-appears. The warm paper skin and the serif voice are retired everywhere; frost
-survives only on the Gate (top bar + instrument band) and, as the shared
-product chrome, in the top bar on every screen.
+everything the Gate is made of. Same ground, same seamless top bar, same type
+voices and capsule controls. The warm paper skin and the serif voice are
+retired everywhere.
+
+**Enforce the glass more (owner call, 13 oct 2026, third call):** the glass is
+tiered and present everywhere. True frost on the Gate deepened: top bar
+blur 24px, instrument band blur 32px, whiter fills, richer saturation. Off
+the Gate the icy-paper panes are a light veil (white at 60%, blur 12px,
+saturate 140%): quiet glass, never true frost, so the Gate stays the hero
+surface. Solid chrome (capsule buttons, top-bar pills, the deep-ice receipt
+strip) stays solid, because glass reads as glass only against something firm.
 
 **Direction (owner-approved):** *Ledger* base + *print/document* signature +
 a *whisper of instrument* in the data layer. See `DESIGN.md` §7c and
@@ -229,6 +234,15 @@ the *only* icon source in the build; nothing from external icon packages
   the static `/home` route), signed-in owners see the Gate at the same "/".
   The sign-in title's open question resolves with the serif retirement: it
   sets in Sora with the accent hook on "You.".
+- (g) **Owner: "the glassmorphism in the ui can you enforce it more" (13 oct
+  2026, third call).** The glass tiers deepened: the Gate's top bar to
+  blur 24px and the instrument band to blur 32px on whiter, richer fills;
+  the icy-paper panes (integrity strip, preamble, decision order, rules
+  editor, decision slip, closed box, sign-in notice, away banner, the front
+  door's labelled example band) moved from matte to the light veil tier
+  (white at 60%, blur 12px, saturate 140%) with the inset top highlight.
+  Hierarchy holds: true frost stays a Gate-only object; panes are veils;
+  buttons, pills and the receipt strip stay solid.
 
 ---
 
@@ -349,8 +363,9 @@ and all five are mandatory:
 4. **Frost is rare and the frame stays solid.** At most two frosted objects
    per live view: on the Gate, the seamless top bar and the instrument band.
    Every other screen carries the same top bar as shared product chrome (its
-   frost is the only one there) and matte icy-paper panels; no second frost
-   object appears off the Gate. The top bar
+   frost is the only one there) and icy-paper panes in the light veil tier
+   (white at 60%, blur 12px; owner call 13 oct 2026, third call). True frost
+   never appears off the Gate. The top bar
    sits still at the top of the page and scrolls away with it (owner call
    13 oct 2026); the floating dock is retired. Cards are veils, not glass.
 5. **Contrast is verified on the worst case.** Every text pair is checked at
@@ -420,10 +435,11 @@ reference for the Gate rebuild. The poster is gone; the Gate is a cockpit:
 
 Every screen joined the ice by the owner's second call of 13 oct 2026 (§6(f)):
 the Record, case files and Rules are "icy paper" (this cockpit's language with
-matte panels instead of glass), the entry screens wear the same top bar and
-ground, and the front door lives at "/" for signed-out visitors (Option A: one
-address, two doors; the intro page itself is the static `/home` route the
-proxy rewrites to). The sign-in title sets in Sora with the accent hook; the
-serif retired everywhere with the warm paper. The front door's instrument band
-is a matte `.gauge.demo` reproduction labelled "an example · not live data",
-which keeps §3 ban 5 (no invented metrics) honest.
+veil panes in place of true frost, deepened by the third call, §6(g)), the
+entry screens wear the same top bar and ground, and the front door lives at
+"/" for signed-out visitors (Option A: one address, two doors; the intro page
+itself is the static `/home` route the proxy rewrites to). The sign-in title
+sets in Sora with the accent hook; the serif retired everywhere with the warm
+paper. The front door's instrument band is a veil `.gauge.demo` reproduction
+labelled "an example · not live data", which keeps §3 ban 5 (no invented
+metrics) honest.
