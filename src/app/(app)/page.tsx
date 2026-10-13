@@ -1,9 +1,9 @@
-import { displayId, fmtClockUTC, shortRef } from "@/lib/format";
+import { shortRef } from "@/lib/format";
 import { getService } from "@/lib/service";
 import { verifyOwner } from "@/lib/auth/dal";
 import { GateBoard } from "@/components/gate-board";
 import { askMessageFor } from "@/lib/askOutcome";
-import { decisionWord, isReserved, latestEvaluation } from "@/lib/vocab";
+import { isReserved, latestEvaluation } from "@/lib/vocab";
 
 // Live data on every load — this screen IS the current state of the gate.
 export const dynamic = "force-dynamic";
@@ -34,6 +34,15 @@ export default async function GatePage({
     }
   }
 
+  // When the engine last evaluated anything: the status strip ticks from here.
+  let evaluatedAt: string | null = null;
+  for (const record of records) {
+    const latest = latestEvaluation(record.evaluations);
+    if (latest && (!evaluatedAt || latest.evaluatedAt > evaluatedAt)) {
+      evaluatedAt = latest.evaluatedAt;
+    }
+  }
+
   const capMinor = budget.rules?.monthlyCapMinor ?? null;
   const spentMinor = budget.spentThisMonthMinor;
   const reservedMinor = records
@@ -41,45 +50,20 @@ export default async function GatePage({
     .reduce((sum, record) => sum + record.request.amountMinor, 0);
   const currency = budget.currency ?? "USD";
 
-  const day = new Date().toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-
-  const latest = records[0];
-  const latestDecision = latest ? latestEvaluation(latest.evaluations) : null;
-
   return (
     <>
       <GateBoard
         records={records}
         refs={refs}
-        day={day}
         capMinor={capMinor}
         spentMinor={spentMinor}
         reservedMinor={reservedMinor}
         currency={currency}
         askMessage={message}
+        evaluatedAt={evaluatedAt}
+        ruleVersion={budget.rules?.ruleVersion ?? null}
       />
 
-      {/* footer record strip */}
-      <footer className="record-foot reveal" style={{ "--i": 3 } as React.CSSProperties}>
-        <span>
-          latest decision{" "}
-          <span className="rv">
-            {latest && latestDecision
-              ? `${displayId(latest.id)} ${decisionWord(latestDecision.decision.decision)} · ${fmtClockUTC(latestDecision.evaluatedAt)}`
-              : "none yet"}
-          </span>
-        </span>
-        <span>
-          your rules{" "}
-          <span className="rv">
-            {budget.rules ? `${budget.rules.ruleVersion} · ${budget.rules.currency}` : "none set"}
-          </span>
-        </span>
-      </footer>
       <div className="note">
         Live sandbox data · demo purchases · the assistant proposes, your rules decide, you approve
       </div>

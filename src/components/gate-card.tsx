@@ -5,18 +5,22 @@ import Link from "next/link";
 import type { PurchaseRecord } from "@/core/purchases";
 import { money } from "@/lib/format";
 import { currencySymbol, gateCardStatus, sourcePhrase } from "@/lib/gateCard";
+import { latestEvaluation } from "@/lib/vocab";
+
+import { Age } from "./age";
 
 /**
- * One request as a decision card.
+ * One request as a queue column (canon §10).
  *
- * A request that still needs the owner keeps its two actions in place; every
- * other card is settled and carries its stamp and its one-line receipt. The card
- * is presentational: it reads a record plus the small amount of local state the
- * board owns (is a decision in flight, did it fail) and reports clicks upward.
- * The board does the talking to the server.
+ * A column on open ground with a thin left rule (accent while it needs you),
+ * never a box. Top line: the status mark with its breathing dot and a live
+ * elapsed time. Then the payee, what it is, what it costs, and either the two
+ * decisions or the settled line with its receipt. The last element sits on the
+ * shared bottom edge of the row of columns, so all columns end together.
  *
- * The arrival beat is the shared `.gcard.enter` animation, so a request looks the
- * same whether it was on the page at load or arrived while the owner watched.
+ * The card is presentational: it reads a record plus the small amount of local
+ * state the board owns (is a decision in flight, did it fail) and reports
+ * clicks upward. The board does the talking to the server.
  */
 export function GateCard({
   record,
@@ -37,77 +41,89 @@ export function GateCard({
   const needsYou = status.kind === "needs-you";
   const sym = currencySymbol(record.request.currency);
 
+  // What the elapsed time counts from: created while waiting, the owner's
+  // decision (or the engine's last word) once settled.
+  const lastEval = latestEvaluation(record.evaluations);
+  const ageSince = needsYou
+    ? record.createdAt
+    : (record.approval?.approvedAt ??
+      record.rejection?.rejectedAt ??
+      lastEval?.evaluatedAt ??
+      record.createdAt);
+
+  const toneClass =
+    status.tone === "allow" ? "t-allow" : status.tone === "deny" ? "t-deny" : "t-ask";
+
   return (
     <article
-      className={`gcard ${status.kind}${entering ? " enter" : ""}${working ? " working" : ""}`}
+      className={`col${needsYou ? " needs" : ""}${entering ? " enter" : ""}`}
       aria-busy={working || undefined}
     >
-      <div className="gcard-main">
-        <div className="gcard-left">
-          <div className="status-mark">
-            <span
-              className={`gdot${status.tone === "allow" ? " ok" : status.tone === "deny" ? " no" : ""}`}
-            />
-            {working ? "Authorizing" : status.mark}
-          </div>
-          <div className="seller">{record.request.payee}</div>
-          <div className="what">
-            {record.request.category.toLowerCase()} · {record.request.purpose}
-          </div>
-          <div className="why">{sourcePhrase(record.request.agentId)}</div>
-        </div>
-        <div className="gamount num">
-          <span className="cur">{sym.trim()}</span>
-          {money(record.request.amountMinor)}
-        </div>
+      <span className="status">
+        <span className="lab">
+          <span
+            className={`gdot${status.tone === "allow" ? " ok" : status.tone === "deny" ? " no" : ""}${needsYou ? " pulse" : ""}`}
+          />
+          <span className={`cap ${toneClass}`}>{working ? "Authorizing" : status.mark}</span>
+        </span>
+        <Age since={ageSince} kind={needsYou ? "waiting" : "settled"} />
+      </span>
+
+      <h3>{record.request.payee}</h3>
+      <p className="body">
+        {record.request.category.toLowerCase()} · {record.request.purpose}
+      </p>
+      <p className="receiptline">{sourcePhrase(record.request.agentId)}</p>
+      <div className="amount num">
+        {sym.trim()}
+        {money(record.request.amountMinor)}
       </div>
 
       {needsYou ? (
-        <div className="gcard-actions">
-          <button
-            type="button"
-            className="gbtn primary"
-            disabled={working}
-            onClick={() => onDecide(record.id, "approve")}
-          >
-            Approve and pay
-          </button>
-          <button
-            type="button"
-            className="gbtn quiet"
-            disabled={working}
-            onClick={() => onDecide(record.id, "decline")}
-          >
-            Decline
-          </button>
-          <Link className="gcard-open" href={`/requests/${record.id}`}>
-            See the full case
-          </Link>
-        </div>
-      ) : (
-        <div className="gverdict">
-          {status.stamp ? (
-            <span className={`gstamp ${status.stamp.tone}`}>{status.stamp.text}</span>
-          ) : null}
-          <div className="greceipt">
-            {status.receipt}
-            {refText ? <span className="ref"> · {refText}</span> : null}
+        <>
+          <div className="grow" />
+          <div className="actions">
+            <button
+              type="button"
+              className="btn btn-primary btn-block"
+              disabled={working}
+              onClick={() => onDecide(record.id, "approve")}
+            >
+              Approve and pay
+            </button>
+            <button
+              type="button"
+              className="btn btn-quiet btn-block"
+              disabled={working}
+              onClick={() => onDecide(record.id, "decline")}
+            >
+              Decline
+            </button>
           </div>
-          <Link className="gcard-open" href={`/requests/${record.id}`}>
+          <Link className="link" href={`/requests/${record.id}`}>
             See the full case
           </Link>
-        </div>
+        </>
+      ) : (
+        <>
+          <p className="receiptline">
+            {status.receipt}
+            {refText ? <span> · {refText}</span> : null}
+          </p>
+          <div className="grow" />
+          <Link className="link" href={`/requests/${record.id}`}>
+            Open the record
+          </Link>
+        </>
       )}
 
       {working ? (
-        <div className="greceipt working-line">
-          Talking to PayPal. Nothing moves until it answers.
-        </div>
+        <p className="receiptline">Talking to PayPal. Nothing moves until it answers.</p>
       ) : null}
       {failed ? (
-        <div className="greceipt failed-line" role="status">
+        <p className="receiptline failed" role="status">
           That did not go through. Open the full case to try again.
-        </div>
+        </p>
       ) : null}
     </article>
   );

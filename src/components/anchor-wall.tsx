@@ -9,19 +9,17 @@ import { money } from "@/lib/format";
 import { currencySymbol } from "@/lib/gateCard";
 
 /**
- * The anchor wall: this month's money as a live instrument.
+ * The anchor wall as a horizontal instrument band (canon §10, frost object 1).
  *
- * The spent figure is a hero and counts when it changes. The wall behind it
- * fills with what is already spent and, behind that in a lighter tint, what is
- * set aside for requests still waiting on you. When the wall nears the cap it
- * turns to the caution colour, and to the refusal colour near or over it, so the
- * colour is a live signal rather than decoration.
+ * Readout at 32px with its unit line under it; the wall carries scale ticks at
+ * 25 and 50, an amber caution threshold at 75, and the hard cap notch at the
+ * end; the legend sits under the bar; "Approval cannot move this line" is a
+ * footnote at the right in Sora light, with the cap, the caution money and the
+ * reset day explained in plain words beside it.
  *
- * The line at the right is the limit. Approval cannot move it.
- *
- * Motion: the wall uses a transform transition, the figure uses the shared
- * count-up. Both collapse under `prefers-reduced-motion`; the values still
- * change, they simply land without travel.
+ * The colour is a live signal: accent while there is room, caution from three
+ * quarters of the cap, refusal near or over it. The spent figure counts only
+ * when the value changes, and the wall moves only when a capture is verified.
  */
 export function AnchorWall({
   capMinor,
@@ -38,7 +36,7 @@ export function AnchorWall({
 
   if (capMinor === null || capMinor <= 0) {
     return (
-      <section className="budget" aria-label="Your money this month">
+      <section className="gauge" aria-label="Your money this month">
         <div className="wall-empty">
           <p className="wall-empty-h">
             {capMinor === null
@@ -56,60 +54,66 @@ export function AnchorWall({
   const spentFrac = Math.min(spentMinor / capMinor, 1);
   const resFrac = Math.max(0, Math.min(reservedMinor / capMinor, 1 - spentFrac));
   const usedFrac = spentFrac + resFrac;
-  const pct = Math.round(usedFrac * 100);
+  const pct = Math.round(spentFrac * 100);
   const headroomMinor = Math.max(capMinor - spentMinor - reservedMinor, 0);
+  const cautionMinor = Math.round(capMinor * 0.75);
   const wallColor =
-    usedFrac >= 0.85 ? "var(--deny)" : usedFrac >= 0.6 ? "var(--ask)" : "var(--seal)";
+    usedFrac >= 0.9 ? "var(--deny)" : usedFrac >= 0.75 ? "var(--ask)" : "var(--accent)";
 
   return (
-    <section className="budget" aria-label="Your money this month">
-      <div className="budget-row">
+    <section
+      className="gauge"
+      aria-label="Your money this month"
+      style={
+        {
+          "--spent-frac": spentFrac,
+          "--res-frac": resFrac,
+          "--wall-color": wallColor,
+        } as CSSProperties
+      }
+    >
+      <div className="readout">
+        <span className="cap">This month</span>
         <div className="spent num">
           <span className="sym">{sym}</span>
           <CountUp value={spentMinor / 100} />
         </div>
-        <div className="budget-meta">
-          <div className="of num">
-            of your <span className="cap">{sym}{money(capMinor)}</span> monthly limit
-          </div>
-          <div className="pct num">{pct}% used</div>
+        <p className="of num">
+          of your <b>{sym}{money(capMinor)}</b> limit · <b>{pct}%</b> used
+        </p>
+      </div>
+
+      <div>
+        <div className="wall" aria-hidden="true">
+          <div className="wall-fill" />
+          <div className="wall-set" />
+          <i className="tick" style={{ left: "25%" }} />
+          <i className="tick" style={{ left: "50%" }} />
+          <i className="threshold" style={{ left: "75%" }} />
+          <div className="wall-cap" />
+        </div>
+        <div className="legend num">
+          <span>
+            spent <b>{sym}{money(spentMinor)}</b>
+          </span>
+          <span>
+            set aside <b>{sym}{money(reservedMinor)}</b>
+          </span>
+          <span className="hl">
+            left <b>{sym}{money(headroomMinor)}</b>
+          </span>
         </div>
       </div>
 
-      <div
-        className="wall"
-        aria-hidden="true"
-        style={
-          {
-            "--spent-frac": spentFrac,
-            "--res-frac": resFrac,
-            "--wall-color": wallColor,
-          } as CSSProperties
-        }
-      >
-        <div className="wall-fill" />
-        <div className="wall-set" />
-        <div className="wall-cap" />
-      </div>
-
-      <div className="wall-legend num">
-        <span>
-          spent <b>{sym}{money(spentMinor)}</b>
-        </span>
-        <span>
-          set aside <b>{sym}{money(reservedMinor)}</b>
-        </span>
-        <span>
-          left <b className="hl">{sym}{money(headroomMinor)}</b>
-        </span>
-      </div>
-
-      <p className="cap-note">
-        <span className="cap-note-mark">
+      <div className="side">
+        <p className="cap-note">
           <AnchorMark />
+          Approval cannot move this line.
+        </p>
+        <span className="cap num">
+          cap {sym}{money(capMinor)} · caution from {sym}{money(cautionMinor)} · resets on the 1st
         </span>
-        Approval cannot move this line.
-      </p>
+      </div>
     </section>
   );
 }

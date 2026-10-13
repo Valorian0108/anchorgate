@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
 import { decideFromGate, type GateDecisionResult } from "@/app/(app)/actions";
@@ -10,9 +11,13 @@ import { AnchorWall } from "./anchor-wall";
 import { AskBox } from "./ask-box";
 import { useFeed } from "./feed-provider";
 import { GateCard } from "./gate-card";
+import { StatusStrip } from "./status-strip";
 
 /** The shortest time "Authorizing" stays up, so the beat reads instead of flickers. */
 const MIN_BEAT_MS = 700;
+
+/** How many settled columns the queue shows beside the waiting ones. */
+const SETTLED_SHOWN = 1;
 
 interface Override {
   /** The record after a decision, if one has come back. */
@@ -26,38 +31,41 @@ interface Override {
 }
 
 /**
- * The Gate, made live.
+ * The Gate as a cockpit (canon §10), made live.
  *
- * It renders the wall, the ask box and the decision cards from one merged list:
- * what the server already knows plus what arrived while the page was open,
- * deduplicated by id and settled by the decisions taken here. The count line, the
- * empty state, the wall and the cards all read from the same list, so nothing can
- * contradict anything else.
+ * One status strip, one instrument band, then the queue as equal columns on
+ * open ground: the ask column first, every request that needs the owner, and
+ * the most recently settled one beside them. Everything reads from one merged
+ * list (server state plus arrivals plus decisions taken here), so the strip,
+ * the band and the columns can never contradict each other.
  *
- * A decision is the owner's, never the screen's: the card asks the server for the
- * real outcome and shows exactly what came back. The wall moves only when a
- * capture is verified, so approving a request that the rules then refuse moves
- * nothing, as it should.
+ * A decision is the owner's, never the screen's: the column asks the server
+ * for the real outcome and shows exactly what came back. The wall moves only
+ * when a capture is verified, so approving a request that the rules then
+ * refuse moves nothing, as it should.
  */
 export function GateBoard({
   records,
   refs,
-  day,
   capMinor,
   spentMinor,
   reservedMinor,
   currency,
   askMessage,
+  evaluatedAt,
+  ruleVersion,
 }: {
   records: PurchaseRecord[];
   /** Short capture reference per request id, for the settled cards. */
   refs: Record<string, string>;
-  day: string;
   capMinor: number | null;
   spentMinor: number;
   reservedMinor: number;
   currency: string;
   askMessage: { text: string; error: boolean } | null;
+  /** When the engine last evaluated anything, for the strip's live tick. */
+  evaluatedAt: string | null;
+  ruleVersion: string | null;
 }) {
   const { arrivals, unseen, markSeen, setGatePresent } = useFeed();
   const [awayCount, setAwayCount] = useState(0);
@@ -72,7 +80,7 @@ export function GateBoard({
     return () => setGatePresent(false);
   }, [setGatePresent]);
 
-  // Track tab visibility so a return to the front can raise the banner.
+  // Track tab visibility so a return to the front can raise the away line.
   useEffect(() => {
     const onVisibility = () => setVisible(document.visibilityState === "visible");
     onVisibility();
@@ -103,7 +111,10 @@ export function GateBoard({
       .sort((a, b) => b.record.createdAt.localeCompare(a.record.createdAt));
   }, [records, arrivals, overrides]);
 
-  const waiting = items.filter((item) => item.record.status === "PENDING_APPROVAL").length;
+  const waiting = items.filter((item) => item.record.status === "PENDING_APPROVAL");
+  const settled = items.filter((item) => item.record.status !== "PENDING_APPROVAL");
+  const settledShown = settled.slice(0, SETTLED_SHOWN);
+  const settledHidden = settled.length - settledShown.length;
 
   async function decide(id: string, action: "approve" | "decline") {
     const item = items.find((candidate) => candidate.record.id === id);
@@ -151,61 +162,52 @@ export function GateBoard({
 
   return (
     <>
-      <AnchorWall
-        capMinor={capMinor}
-        spentMinor={spent}
-        reservedMinor={reserved}
-        currency={currency}
+      <StatusStrip
+        waiting={waiting.length}
+        evaluatedAt={evaluatedAt}
+        ruleVersion={ruleVersion}
       />
 
-      <div className="reveal" style={{ "--i": 1 } as CSSProperties}>
-        <AskBox message={askMessage} />
+      <div className="reveal" style={{ "--i": 0 } as CSSProperties}>
+        <AnchorWall
+          capMinor={capMinor}
+          spentMinor={spent}
+          reservedMinor={reserved}
+          currency={currency}
+        />
       </div>
 
+      {awayCount > 0 ? (
+        <div className="away-banner" role="status" style={{ marginTop: "var(--s3)" }}>
+          While you were away, {awayCount} new request{awayCount > 1 ? "s" : ""} arrived.
+        </div>
+      ) : null}
+
       <section
-        className="gate reveal"
-        style={{ "--i": 2 } as CSSProperties}
+        className="band reveal"
+        style={{ "--i": 1 } as CSSProperties}
         aria-label="Requests at the gate"
       >
-        <div className="gate-head">
-          <h2>At the gate</h2>
-          <span className="gate-count num">
-            {day} · {waiting > 0 ? `${waiting} waiting on you` : items.length > 0 ? "all clear" : "nothing yet"}
+        <div className="band-head">
+          <span className="cap">At the gate</span>
+          <span className="count num">
+            {waiting.length > 0
+              ? `${waiting.length} waiting on you`
+              : items.length > 0
+                ? "all clear"
+                : "nothing yet"}
           </span>
+          {settledHidden > 0 ? (
+            <Link className="more" href="/record">
+              {settledHidden} more in the record
+            </Link>
+          ) : null}
         </div>
 
-        {awayCount > 0 ? (
-          <div className="away-banner" role="status">
-            While you were away, {awayCount} new request{awayCount > 1 ? "s" : ""} arrived.
-          </div>
-        ) : null}
+        <div className="cols">
+          <AskBox message={askMessage} />
 
-        {items.length === 0 ? (
-          <div className="empty">
-            <h2>No requests yet.</h2>
-            <p>
-              When the agent finds something worth buying, it lands here with what
-              it is and what it costs, before any money moves.
-            </p>
-            <span className="next">
-              Ask the assistant about your first purchase in the box above.
-            </span>
-          </div>
-        ) : waiting === 0 ? (
-          <div className="empty">
-            <h2>Nothing needs you right now.</h2>
-            <p>
-              This is what the agent has brought so far and how each one ended. A
-              new request will arrive on its own, and it will wait for you here.
-            </p>
-            <span className="next">
-              Use the box above to ask the assistant to look at something.
-            </span>
-          </div>
-        ) : null}
-
-        <div className="gate-list">
-          {items.map(({ record, entering }) => (
+          {waiting.map(({ record, entering }) => (
             <GateCard
               key={record.id}
               record={record}
@@ -216,6 +218,32 @@ export function GateBoard({
               onDecide={decide}
             />
           ))}
+
+          {settledShown.map(({ record, entering }) => (
+            <GateCard
+              key={record.id}
+              record={record}
+              entering={entering}
+              working={Boolean(overrides[record.id]?.working)}
+              failed={Boolean(overrides[record.id]?.failed)}
+              refText={overrides[record.id]?.ref ?? refs[record.id]}
+              onDecide={decide}
+            />
+          ))}
+
+          {waiting.length === 0 ? (
+            <div className="empty">
+              <h2>{items.length === 0 ? "No requests yet." : "Nothing needs you right now."}</h2>
+              <p>
+                {items.length === 0
+                  ? "When the agent finds something worth buying, it lands here with what it is and what it costs, before any money moves."
+                  : "This is what the agent has brought so far and how each one ended. A new request will arrive on its own, and it will wait for you here."}
+              </p>
+              <span className="next">
+                Use the first column to ask the assistant to look at something.
+              </span>
+            </div>
+          ) : null}
         </div>
       </section>
     </>

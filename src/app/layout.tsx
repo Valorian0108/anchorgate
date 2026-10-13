@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
-import { IBM_Plex_Mono, Newsreader, Schibsted_Grotesk } from "next/font/google";
+import { IBM_Plex_Mono, Newsreader, Sora } from "next/font/google";
 import "./globals.css";
 
-const g = Schibsted_Grotesk({
+// Sora is the interface voice everywhere (canon §1); the serif keeps its
+// ceremony job on the Print screens only.
+const g = Sora({
   subsets: ["latin"],
-  variable: "--font-grotesk",
+  variable: "--font-sora",
   display: "swap",
 });
 
