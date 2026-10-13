@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AnchorGate · Specimen v4 · Icy Glass Gate</title>
+<!--
+  SPECIMEN v4 — the practice page. Not the app.
+  Owner taste calls locked here: Sora (soft) display · serif OFF the Gate ·
+  14px glass panes · two-tone accent device ON.
+  Forced parts: dark navy ground (glass needs something to blur) · light text
+  tiers (contrast math) · solid chrome (the frame stays real) · still backdrop
+  (life comes from instruments, never wallpaper) · paper kept for Print screens.
+  Open this file in a browser to FEEL the direction before any app code changes.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* ground — the night the ice sits in */
+    --ground: #081320;
+    --ground-2: #0E2233;      /* raised, solid chrome */
+    /* ice family — the live accent system */
+    --ice: #7FD1E8;
+    --ice-soft: #BFE9F5;
+    --ice-white: #EAF6FB;
+    /* text tiers on dark (contrast-verified) */
+    --txt-mid: #A9C3D2;
+    --txt-faint: #71899A;
+    /* verdicts, dark-ground variants (meanings unchanged) */
+    --allow-d: #7CC79B;
+    --ask-d: #E3A94F;
+    --deny-d: #E88B84;
+    /* glass */
+    --glass-dense: rgba(234, 246, 251, 0.10);
+    --glass-light: rgba(234, 246, 251, 0.06);
+    --edge: rgba(191, 233, 245, 0.16);
+    --edge-bright: rgba(127, 209, 232, 0.55);
+    /* type */
+    --d: "Sora", sans-serif;
+    --m: "IBM Plex Mono", monospace;
+    /* motion canon (unchanged) */
+    --dur-micro: 120ms;
+    --dur-short: 220ms;
+    --dur-long: 420ms;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ice-white);
+    font-family: var(--d);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  /* ---- Layer 0 + 1: the composed, STILL backdrop ---- */
+  .backdrop {
+    position: fixed; inset: 0; z-index: -1;
+    background:
+      radial-gradient(900px 620px at 18% 8%, rgba(46, 110, 142, 0.42), transparent 62%),
+      radial-gradient(760px 560px at 84% 88%, rgba(31, 80, 110, 0.36), transparent 60%),
+      linear-gradient(180deg, #0A1826 0%, var(--ground) 58%);
+  }
+  /* the grain that gives the frost something to bite */
+  .backdrop::after {
+    content: ""; position: absolute; inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='0.05'/></svg>");
+    opacity: 0.5;
+  }
+
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 48px 72px; }
+  .num { font-variant-numeric: tabular-nums; }
+  a { color: var(--ice); text-decoration: none; }
+  a:hover { color: var(--ice-soft); }
+
+  /* ---- solid chrome: the frame stays real ---- */
+  header {
+    background: var(--ground-2);
+    border-bottom: 1px solid var(--edge);
+  }
+  header .bar {
+    max-width: 1120px; margin: 0 auto; padding: 20px 48px;
+    display: flex; align-items: center; gap: 24px;
+  }
+  .wordmark { display: flex; align-items: center; gap: 10px; }
+  .wordmark svg { width: 20px; height: 20px; color: var(--ice); flex: none; }
+  .wordmark .name {
+    font-family: var(--d); font-weight: 800; font-size: 19px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--ice-white);
+  }
+  nav { margin-left: auto; display: flex; align-items: center; gap: 26px; }
+  nav a { font-family: var(--d); font-size: 13.5px; font-weight: 500; color: var(--txt-mid); }
+  nav a:hover { color: var(--ice-white); }
+  nav .active { color: var(--ice-white); }
+  nav .active::before {
+    content: ""; display: inline-block; width: 6px; height: 6px;
+    background: var(--ice); margin-right: 8px; transform: translateY(-1px);
+    border-radius: 50%;
+  }
+  .away-badge {
+    font-family: var(--m); font-size: 11px; color: var(--ice);
+    border: 1px solid var(--edge-bright); border-radius: 999px;
+    padding: 4px 10px;
+  }
+  .who { font-family: var(--m); font-size: 10.5px; color: var(--txt-faint); }
+  .signout {
+    font-family: var(--d); font-size: 12.5px; font-weight: 500;
+    color: var(--txt-mid); background: transparent;
+    border: 1px solid var(--edge); border-radius: 8px; padding: 6px 12px;
+    cursor: pointer;
+  }
+  .signout:hover { color: var(--ice-white); border-color: var(--edge-bright); }
+
+  /* ---- engine line: the instrument whisper, now breathing ---- */
+  .engine {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 0; border-bottom: 1px solid var(--edge);
+    font-family: var(--m); font-size: 11px; letter-spacing: 0.04em; color: var(--txt-mid);
+  }
+  .engine .dot {
+    width: 6px; height: 6px; background: var(--ice); border-radius: 50%; flex: none;
+    animation: breathe 2.6s var(--ease-inout) infinite;
+  }
+  @keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .engine .tag { color: var(--txt-faint); margin-right: 2px; }
+
+  /* ---- glass panes: tiered, never everything equal ---- */
+  .pane {
+    background: var(--glass-dense);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    border: 1px solid var(--edge);
+    border-radius: 14px;
+    box-shadow: 0 8px 32px rgba(2, 8, 16, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  }
+  .pane-light {
+    background: var(--glass-light);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(191, 233, 245, 0.10);
+    border-radius: 14px;
+    box-shadow: 0 4px 20px rgba(2, 8, 16, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+  /* the single place the frame itself speaks */
+  .pane-focus {
+    border-color: var(--edge-bright);
+    box-shadow: 0 10px 40px rgba(2, 8, 16, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  }
+  /* browsers without backdrop blur get a solid pane, never a half effect */
+  @supports not (backdrop-filter: blur(1px)) {
+    .pane { background: rgba(14, 34, 51, 0.92); }
+    .pane-light { background: rgba(14, 34, 51, 0.86); }
+  }
+
+  /* ---- the anchor wall as a dense pane ---- */
+  .budget { margin-top: 40px; padding: 26px 28px 24px; }
+  .budget-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
+  .budget .spent {
+    font-family: var(--m); font-weight: 500; font-variant-numeric: tabular-nums;
+    font-size: clamp(2.8rem, 9vw, 3.8rem); line-height: 0.95; letter-spacing: -0.02em;
+    color: var(--ice);                 /* two-tone: money is the accent */
+  }
+  .budget .spent .sym { color: var(--ice-soft); }
+  .budget-meta { text-align: right; padding-bottom: 7px; }
+  .budget-meta .of { font-family: var(--m); font-size: 13px; color: var(--txt-mid); }
+  .budget-meta .of .cap { color: var(--ice-white); font-weight: 500; }
+  .budget-meta .pct { font-family: var(--m); font-size: 12px; color: var(--txt-mid); margin-top: 5px; }
+
+  .wall {
+    position: relative; height: 14px; margin-top: 24px;
+    background: rgba(2, 8, 16, 0.5); border-radius: 2px; overflow: hidden;
+  }
+  .wall-fill {
+    position: absolute; inset: 0; border-radius: 2px; transform-origin: left center;
+    background: var(--ice);
+    transform: scaleX(var(--spent-frac, 0));
+    transition: transform var(--dur-long) var(--ease-inout);
+  }
+  .wall-set {
+    position: absolute; inset: 0; border-radius: 2px; opacity: 0.4; transform-origin: left center;
+    background: var(--ice);
+    transform: translateX(calc(var(--spent-frac, 0) * 100%)) scaleX(var(--res-frac, 0));
+    transition: transform var(--dur-long) var(--ease-inout);
+  }
+  .wall-cap { position: absolute; top: -5px; bottom: -5px; right: 0; width: 2px; background: var(--ice-white); }
+
+  .wall-legend {
+    display: flex; flex-wrap: wrap; gap: 22px; margin-top: 14px;
+    font-family: var(--m); font-size: 12px; color: var(--txt-mid); letter-spacing: 0.02em;
+  }
+  .wall-legend b { color: var(--ice-white); font-weight: 500; }
+  .wall-legend .hl { color: var(--ice); }
+
+  .cap-note {
+    margin: 20px 0 0; display: flex; align-items: center; gap: 9px;
+    font-family: var(--d); font-weight: 300; font-size: 16px; color: var(--ice-white);
+  }
+  .cap-note svg { width: 15px; height: 15px; color: var(--ice); flex: none; }
+
+  /* ---- ask box: dense pane ---- */
+  .askbox { margin-top: 26px; padding: 22px 24px; }
+  .askbox label {
+    display: block; font-family: var(--m); font-size: 11px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--txt-mid); margin-bottom: 12px;
+  }
+  .askbox .line { display: flex; gap: 12px; align-items: flex-end; }
+  .askbox input {
+    flex: 1; background: transparent; border: 0;
+    border-bottom: 1px solid var(--edge);
+    color: var(--ice-white); font-family: var(--d); font-size: 15px;
+    padding: 8px 2px; outline: none;
+  }
+  .askbox input::placeholder { color: var(--txt-faint); }
+  .askbox input:focus { border-bottom-color: var(--ice); }
+  .btn-primary {
+    font-family: var(--d); font-weight: 600; font-size: 14px;
+    background: #5FC4E4; color: #06202E;
+    border: 0; border-radius: 8px; padding: 10px 18px; cursor: pointer;
+    transition: background-color var(--dur-micro) var(--ease-out);
+  }
+  .btn-primary:hover { background: var(--ice-soft); }
+  .askbox .hint { font-family: var(--m); font-size: 11px; color: var(--txt-faint); margin-top: 12px; }
+
+  /* ---- gate head: two-tone count ---- */
+  .gate-head {
+    display: flex; align-items: baseline; gap: 14px; margin: 40px 0 16px;
+  }
+  .gate-head h2 {
+    margin: 0; font-family: var(--d); font-weight: 700; font-size: 13px;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--ice-white);
+  }
+  .gate-head .count { font-family: var(--m); font-size: 12px; color: var(--ice); }
+
+  /* ---- decision cards ---- */
+  .glist { display: flex; flex-direction: column; gap: 16px; }
+  .gcard { padding: 22px 24px; }
+  .gcard .top { display: flex; align-items: center; gap: 10px; }
+  .gcard .status {
+    font-family: var(--m); font-size: 11px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--txt-mid);
+  }
+  .gcard .status.wait { color: var(--ice); }
+  .gdot { width: 6px; height: 6px; border-radius: 50%; background: var(--ice); flex: none; }
+  .gdot.pulse { animation: breathe 2.2s var(--ease-inout) infinite; }
+  .gcard .seller {
+    margin-top: 10px; font-family: var(--d); font-weight: 700; font-size: 1.28rem;
+    color: var(--ice-white);
+  }
+  .gcard .what { font-family: var(--d); font-size: 13px; color: var(--txt-mid); margin-top: 2px; }
+  .gcard .why { font-family: var(--m); font-size: 12px; color: var(--txt-faint); margin-top: 8px; }
+  .gcard .row { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-top: 16px; }
+  .gamount { font-family: var(--m); font-weight: 500; font-size: 1.95rem; color: var(--ice); }
+  .actions { display: flex; gap: 10px; align-items: center; }
+  .btn-ghost {
+    font-family: var(--d); font-weight: 500; font-size: 13.5px;
+    background: transparent; color: var(--txt-mid);
+    border: 1px solid var(--edge); border-radius: 8px; padding: 9px 16px; cursor: pointer;
+  }
+  .btn-ghost:hover { color: var(--ice-white); border-color: var(--edge-bright); }
+  .caselink { font-family: var(--m); font-size: 12px; }
+
+  /* settled cards: stamp + receipt, recolored for dark */
+  .gverdict { display: flex; align-items: center; gap: 16px; margin-top: 16px; }
+  .gstamp {
+    font-family: var(--d); font-weight: 700; font-size: 14px; letter-spacing: 0.06em;
+    text-transform: uppercase; padding: 6px 12px;
+    border: 2px double currentColor; transform: rotate(-2deg);
+  }
+  .gstamp.paid { color: var(--allow-d); }
+  .gstamp.declined { color: var(--deny-d); }
+  .greceipt { font-family: var(--m); font-size: 12px; color: var(--txt-mid); }
+
+  footer {
+    background: var(--ground-2); border-top: 1px solid var(--edge);
+    margin-top: 56px;
+  }
+  footer .bar {
+    max-width: 1120px; margin: 0 auto; padding: 18px 48px;
+    font-family: var(--m); font-size: 11px; color: var(--txt-faint);
+    display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap;
+  }
+
+  @media (max-width: 760px) {
+    .wrap, header .bar, footer .bar { padding-left: 20px; padding-right: 20px; }
+    .budget-row, .gcard .row { flex-direction: column; align-items: flex-start; }
+    .budget-meta { text-align: left; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .engine .dot, .gdot.pulse { animation: none; }
+    .wall-fill, .wall-set { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="backdrop" aria-hidden="true"></div>
+
+<header>
+  <div class="bar">
+    <div class="wordmark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="2.5"/><line x1="12" y1="7.5" x2="12" y2="20"/><line x1="8" y1="10" x2="16" y2="10"/><path d="M4 14c0 4 3.5 6 8 6s8-2 8-6"/></svg>
+      <span class="name">AnchorGate</span>
+    </div>
+    <nav>
+      <a href="#" class="active">Gate</a>
+      <a href="#">Rules</a>
+      <a href="#">Record</a>
+    </nav>
+    <span class="away-badge">Gate · 2 new</span>
+    <span class="who">you@example.com</span>
+    <button class="signout">Sign out</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="engine">
+    <span class="dot" aria-hidden="true"></span>
+    <span><span class="tag">engine</span> rules checked fresh every time, never from memory · evaluated <span id="ago">4</span>s ago · your rules owner-3</span>
+  </div>
+
+  <!-- the wall -->
+  <section class="budget pane" id="wall" style="--spent-frac:0; --res-frac:0;">
+    <div class="budget-row">
+      <div class="spent num"><span class="sym">$</span>142.50</div>
+      <div class="budget-meta">
+        <div class="of">of your <span class="cap num">$200</span> monthly limit</div>
+        <div class="pct num">71% used</div>
+      </div>
+    </div>
+    <div class="wall" aria-hidden="true">
+      <div class="wall-fill"></div>
+      <div class="wall-set"></div>
+      <div class="wall-cap"></div>
+    </div>
+    <div class="wall-legend">
+      <span><b class="num">$142.50</b> spent</span>
+      <span><b class="num">$19.99</b> set aside</span>
+      <span class="hl"><b class="num">$37.51</b> left</span>
+    </div>
+    <p class="cap-note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="2.5"/><line x1="12" y1="7.5" x2="12" y2="20"/><line x1="8" y1="10" x2="16" y2="10"/><path d="M4 14c0 4 3.5 6 8 6s8-2 8-6"/></svg>
+      Approval cannot move this line.
+    </p>
+  </section>
+
+  <!-- ask box -->
+  <form class="askbox pane" onsubmit="return false;">
+    <label for="ask">Ask the assistant to look at a purchase</label>
+    <div class="line">
+      <input id="ask" placeholder="for example: a $20 gardening book from Book Depository">
+      <button class="btn-primary" type="submit">Ask the assistant</button>
+    </div>
+    <div class="hint">It only proposes. Nothing is bought until you approve it here.</div>
+  </form>
+
+  <!-- gate head: two-tone count -->
+  <div class="gate-head">
+    <h2>At the gate</h2>
+    <span class="count num">2 waiting on you</span>
+  </div>
+
+  <div class="glist">
+    <!-- needs you: dense pane, bright edge, pulsing dot -->
+    <article class="gcard pane pane-focus">
+      <div class="top">
+        <span class="gdot pulse" aria-hidden="true"></span>
+        <span class="status wait">waiting on you</span>
+      </div>
+      <div class="seller">Notion</div>
+      <div class="what">Team plan · monthly</div>
+      <div class="why">new payee · not in your trusted list</div>
+      <div class="row">
+        <div class="gamount num">$10.00</div>
+        <div class="actions">
+          <button class="btn-primary">Approve</button>
+          <button class="btn-ghost">Decline</button>
+          <a class="caselink" href="#">See the full case</a>
+        </div>
+      </div>
+    </article>
+
+    <article class="gcard pane pane-focus">
+      <div class="top">
+        <span class="gdot pulse" aria-hidden="true"></span>
+        <span class="status wait">waiting on you</span>
+      </div>
+      <div class="seller">Spotify</div>
+      <div class="what">Premium · monthly</div>
+      <div class="why">over your per-purchase comfort line</div>
+      <div class="row">
+        <div class="gamount num">$9.99</div>
+        <div class="actions">
+          <button class="btn-primary">Approve</button>
+          <button class="btn-ghost">Decline</button>
+          <a class="caselink" href="#">See the full case</a>
+        </div>
+      </div>
+    </article>
+
+    <!-- settled: light pane, stamp + receipt -->
+    <article class="gcard pane-light">
+      <div class="top">
+        <span class="status">settled</span>
+      </div>
+      <div class="seller">Book Depository</div>
+      <div class="what">a gardening book · one-time</div>
+      <div class="gverdict">
+        <span class="gstamp paid">Paid</span>
+        <span class="greceipt">you approved · paid once · 64V74017…</span>
+      </div>
+    </article>
+
+    <article class="gcard pane-light">
+      <div class="top">
+        <span class="status">settled</span>
+      </div>
+      <div class="seller">Unknown merchant</div>
+      <div class="what">a gadget · one-time</div>
+      <div class="gverdict">
+        <span class="gstamp declined">Declined</span>
+        <span class="greceipt">you declined · no money moved</span>
+      </div>
+    </article>
+  </div>
+</div>
+
+<footer>
+  <div class="bar">
+    <span>AnchorGate · your agent proposes, you decide</span>
+    <span>specimen v4 · practice page, not the app</span>
+  </div>
+</footer>
+
+<script>
+  // the engine line ticks: "evaluated Ns ago"
+  var ago = 4;
+  var agoEl = document.getElementById("ago");
+  setInterval(function () {
+    ago += 1;
+    if (ago > 59) ago = 0;
+    agoEl.textContent = String(ago);
+  }, 1000);
+
+  // the wall wakes once on arrival (transform only), skipped under reduced motion
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var wall = document.getElementById("wall");
+  if (reduce) {
+    wall.style.setProperty("--spent-frac", "0.71");
+    wall.style.setProperty("--res-frac", "0.10");
+  } else {
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        wall.style.setProperty("--spent-frac", "0.71");
+        wall.style.setProperty("--res-frac", "0.10");
+      });
+    });
+  }
+</script>
+</body>
+</html>

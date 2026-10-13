@@ -7,6 +7,17 @@ they were built and felt, one screen at a time. Where an approved comp or the
 locked v3 specimen differs from an earlier line of this document, the approved
 visual wins and this document records it here.
 
+**Icy-glass direction (owner taste calls locked 13 oct 2026):** the live
+surfaces move to a crafted icy-glass system (§9): Sora as the display/UI voice,
+the serif retired from the Gate, the two-tone accent device on, frost used
+twice per view, and nav as a seamless top bar that sits still at the top of the
+page (owner call 13 oct 2026: nothing follows him down the page). The ground is
+LIGHT ice over a washed harbour line drawing; the v4 dark-navy draft was
+withdrawn the same day because its frost read as a flat dark dashboard. The
+Print screens keep the warm paper and the serif ceremony. Specimen v7
+(`live-instrument.specimen.v7.html`) is the approved Gate cockpit (§10); the
+rebuild follows it exactly, one screen at a time.
+
 **Direction (owner-approved):** *Ledger* base + *print/document* signature +
 a *whisper of instrument* in the data layer. See `DESIGN.md` §7c and
 `design-research/REFERENCE-STUDY.md`.
@@ -19,18 +30,24 @@ a *whisper of instrument* in the data layer. See `DESIGN.md` §7c and
 
 | Voice | Job | Face |
 | --- | --- | --- |
-| **Display / UI grotesque** | headings, navigation, labels | **Schibsted Grotesk** |
-| **Serif** | ceremony: the stamp, statements, the Print page titles | **Newsreader** |
+| **Display / UI** | headings, navigation, labels, buttons | **Sora** (owner pick 13 oct 2026: the softer of the two candidates) |
+| **Serif** | ceremony on the Print screens only: the stamp, statements, the Print page titles | **Newsreader** |
 | **Mono** | data: money, timestamps, rule ids, lifecycle | **IBM Plex Mono** |
 
 All three are free/open (Google Fonts), so no licence risk for the demo.
+Sora replaced Schibsted Grotesk as the interface voice when the live surfaces
+moved to the icy-glass system (§9). The serif keeps its ceremony job but only
+on the Print screens, never on the Gate (owner pick 13 oct 2026).
 
 **Rules**
 - Interface headings are roman. Emphasis = weight or size, never a gradient.
   One ceremonial exception, approved via the comps: the page title on each
   Print screen (Record, case file, Rules, sign-in) sets in Newsreader italic.
-  The wordmark is the grotesk lockup (uppercase, seal blue, 20px, anchor mark)
-  per the locked v3 specimen, not serif.
+  The serif never appears on the Gate (owner pick 13 oct 2026); there the
+  ceremonial line sets in Sora light.
+  The wordmark is the display lockup (uppercase, 20px, anchor mark), not serif:
+  ink with the accent anchor in the floating dock on live, seal blue with the
+  seal anchor on the paper chrome.
 - Weight contrast over bold-everything; large display can run light (à la Stripe).
 - Prose measure 45–75ch. Tabular numerals on every column of figures.
 - Banned: Inter, Roboto, Open Sans, system-default stacks, Space Grotesk.
@@ -60,6 +77,21 @@ All three are free/open (Google Fonts), so no licence risk for the demo.
 **Verdict signals (functional; only inside the stamp / mark):**
 `ALLOW #2F6B4F` · `ASK #A66312` · `DENY #9E2B25`
 
+**Icy palette — the live surfaces only (§9, owner 13 oct 2026; light ice after
+the v4 dark-ground draft was withdrawn):**
+| Token | Value | Use |
+| --- | --- | --- |
+| ground | `#F2F8FC` to `#D8EAF4` | pale ice field, top to bottom |
+| ink | `#12293A` | primary text on light |
+| ink-soft | `#5B7186` | secondary text on light |
+| accent | `#2D9CDB` | fills, bars, the 32px readout; never under white text (3:1) |
+| accent-ink | `#0F6E8C` | small accent text, links, and the primary button fill with white text (5.9:1) |
+| frost | white at 55% plus blur | the top bar and the instrument band |
+| veil | white at 30 to 42% plus light blur | cards and the ask strip |
+
+The warm palette above keeps its territory: the Print screens and every paper
+moment. Two palettes, one product: printed where permanent, icy where live.
+
 **Rules**
 - Accent footprint < ~5% of any view. Accent is emphasis, not fill.
 - No indigo (`#4138D6`), no Stripe violet (`#533AFD`), no purple gradients.
@@ -77,7 +109,9 @@ All three are free/open (Google Fonts), so no licence risk for the demo.
 5. No invented metrics; real data or a clearly-labelled placeholder.
 6. No cliché placeholder names ("Acme", "Nexus"). Use plausible, domain names.
 7. Tokens are locked — no inline hex outside the token block.
-8. No dark "AI-tool" aesthetic by default.
+8. No dark "AI-tool" aesthetic by default. The single exception is the
+   owner-approved icy instrument ground on the live surfaces (§9); the Print
+   screens and the default impression stay light paper.
 9. No icons from third-party icon packages (Google Material icons/symbols,
    Font Awesome, Lucide, etc.) and no icon-font files. The only icons are our
    own inline-SVG stroke set (§5) — our *one, aligned source*.
@@ -90,11 +124,15 @@ All three are free/open (Google Fonts), so no licence risk for the demo.
 the same force as the list above:
 
 12. No animated gradient or aurora backgrounds.
-13. No glassmorphism or frosted translucent cards.
+13. No default glassmorphism. Crafted glass is allowed only under the five
+    conditions of §9 (owned palette, still composed backdrop, tiered panes,
+    solid chrome, contrast-verified). Frosted cards pasted on a flat or
+    moving backdrop remain banned.
 14. No glow, bloom, or neon accents.
 15. No bouncy spring physics on everything.
 16. No particle or confetti celebration.
-17. No floating 3D orbs or blobs.
+17. No floating 3D orbs or blobs. The exception is the static composed
+    backdrop of §9: two soft glows and a grain, fixed, never animated.
 18. No gradient borders on cards.
 19. No animated counter that spins when nothing actually changed. A number
     counts only when a real value changes.
@@ -114,8 +152,9 @@ the same force as the list above:
 **Principles**
 - One dominant element per view; bias the composition (no centred-everything).
 - Hairline rules do the work, not boxes. Let whitespace group.
-- The "list + right-hand KPI rail" dashboard skeleton is the current default —
-  challenge it explicitly when we comp the home screen.
+- The "list + right-hand KPI rail" dashboard skeleton was challenged and
+  rejected for the Gate (13 oct 2026): the approved home is the cockpit of
+  §10, a status strip over an instrument band over an open four-column queue.
 - Mono = data only. Serif = ceremony only. Grotesque = interface.
 
 ---
@@ -152,6 +191,20 @@ the *only* icon source in the build; nothing from external icon packages
   (`design-research/live-instrument.specimen.html`) was built to §7 and audited
   against §3 so the owner could *feel* the direction before any app screen is
   rebuilt. App comps still follow one-screen-at-a-time review.
+- (d) **Owner locked the icy-glass taste calls (13 oct 2026):** Sora as the
+  display voice, the serif off the Gate, rounder panes, and the two-tone
+  accent device on. Specimen v4 (dark navy) was felt and withdrawn: the
+  owner's reference showed ice is light. Specimen v5
+  (`design-research/live-instrument.specimen.v5.html`) carries the light-ice
+  recipe for him to feel. No app code changes until he approves v5; then the
+  Gate is rebuilt first, one screen at a time.
+- (e) **Owner approved the Gate cockpit (13 oct 2026).** Specimen v6 fixed the
+  composition; v7 killed the poster for a cockpit and, after two fix rounds
+  (equal column bottoms, deep-accent button contrast, the seamless static top
+  bar), the owner approved it in full and ordered the whole UI rebuilt to it,
+  homepage and sign-in included. The rebuild follows
+  `design-research/live-instrument.specimen.v7.html` (§10), one screen at a
+  time, keeping every live behavior inside the new skin.
 
 ---
 
@@ -226,7 +279,9 @@ Print screens, which stay printed and still.
   decided box, receipt strip, integrity and decision-order strips, empty
   state, away banner, sign-in notice: paper fill, hairline `line` border,
   **6px radius**. The decision object (the slip, and the needs-you card)
-  carries the heavier `ink` border.
+  carries the heavier `ink` border. On the live surfaces this is superseded by
+  §9 and §10: instrument band 24px, veils 16px, pill buttons, seamless top bar
+  (owner picks 13 oct 2026); the Print screens keep 6px.
 - **Buttons** — one family everywhere: primary is seal fill with paper text at
   6px radius; secondary is hairline or ghost at 6px radius.
 - **Instrument bars** (the wall) keep 2px radius. **Status marks** keep their
@@ -238,3 +293,99 @@ Print screens, which stay printed and still.
 - Print screens keep every hairline ledger row, ruled statement and dark
   receipt strip exactly as comped; they simply wear the shared radii and
   fills, so nothing looks bolted on.
+
+---
+
+## 9. The crafted-glass system (icy instrument ground, 13 oct 2026)
+
+Glassmorphism was banned in §3.13 as a slop detector, not because glass is
+ugly: frosted cards over purple gradients and drifting blobs were the
+signature of mass-produced AI design. The ban is lifted only as a craft
+contract. Five conditions separate the approved glass from the default glass,
+and all five are mandatory:
+
+1. **The palette is ours.** Icy blue on cold navy (§2), never the default
+   purple-blue.
+2. **The backdrop is composed and still.** Layer 0 is a pale ice field;
+   layer 1 is a washed blue-duotone line drawing of our own harbour scene
+   (anchor, chain, hull, masts, gulls) at whisper opacity plus a faint grain,
+   so the frost blurs a picture with real structure. Nothing drifts, nothing
+   animates. Life comes from the instruments on top, never from the wallpaper.
+3. **Glass is tiered and rare.** The instrument band is true frost (white at
+   about 55%, 20 to 24px blur); the top bar is frost too; everything else is a
+   light veil (white at 30 to 42%, 8 to 10px blur) or plain ground. Not
+   everything frosted equally, and most things not at all.
+4. **Frost is rare and the frame stays solid.** Exactly two frosted objects
+   per live view: the seamless top bar and the instrument band. The top bar
+   sits still at the top of the page and scrolls away with it (owner call
+   13 oct 2026); the floating dock is retired. Cards are veils, not glass.
+   The Print screens keep paper chrome.
+5. **Contrast is verified on the worst case.** Every text pair is checked at
+   4.5:1 against text over a glow, not against the easy ground.
+
+**Layers.** 0 ground, 1 composed still backdrop, 2 panes. A `@supports`
+fallback gives browsers without `backdrop-filter` an opaque pane, never a
+half effect.
+
+**Edges and depth.** On light ice the frost edge is a near-white hairline plus
+an inset top highlight; shadows are soft blue, never black. The single special
+mark on live is the thin accent left rule on the needs-you card. Three
+elevations, no more: resting shadow, hover lift, needs-you. No coloured bloom.
+
+**Radii on live.** Instrument band 24px, veils 16px, buttons and top-bar pills
+999px, mark tile 10px, left rules and hairlines square, stamps square. Paper
+keeps §8.
+
+**Type on live.** Sora for display/UI, IBM Plex Mono for data, no serif. The
+two-tone accent device is allowed exactly once per view: one word or figure
+in ice to point the eye (the spent figure, the waiting count), never
+decoration.
+
+**Motion in glass.** The §7 canon stands, plus three clauses: never animate
+`backdrop-filter`; the backdrop never moves; hover on glass is a 2px lift with
+a deeper shadow, never a blur or opacity pump. `prefers-reduced-motion` snaps
+all movement; the blur itself is not motion and stays.
+
+**Verdicts and states.** Meanings are frozen; only values swap. On light ice
+the live surfaces reuse the paper verdict values, which pass contrast on
+white; the Print screens are unchanged. Focus is a 2px accent ring with
+offset, because pale grounds swallow default outlines.
+
+---
+
+## 10. The Gate cockpit (approved composition, specimen v7, 13 oct 2026)
+
+Specimen `design-research/live-instrument.specimen.v7.html` is the locked
+reference for the Gate rebuild. The poster is gone; the Gate is a cockpit:
+
+- **Status strip, not a headline.** One live line under the top bar: a
+  breathing dot, the waiting count in accent-ink, a ticking "evaluated Ns ago",
+  the rules id, and the trust line ("checked fresh every time, never from
+  memory") quiet at the right. No display headline on the Gate.
+- **The budget is a horizontal instrument band (frost 1).** Readout at 32px
+  mono with its unit line under it; the wall carries scale ticks at 25 and 50,
+  an amber caution threshold at 75 explained in words beside it ("cap $200 ·
+  caution from $150 · resets on the 1st"), and the hard cap notch at the end;
+  the legend sits under the bar; "Approval cannot move this line" is a
+  footnote at the right with the anchor mark, set in Sora light.
+- **The queue is the body.** Four equal columns on open ground with thin left
+  rules (accent on needs-you), no boxes. Every item carries a live elapsed
+  time that ages once a minute. Columns stretch to equal height and each
+  column's last element bottom-aligns, so all four end on one edge.
+- **The top bar (frost 2) sits still.** Seamless full-bleed at the top of the
+  page, hairline bottom edge, inner content on the 1200px wrap: mark tile,
+  wordmark, nav pills, then the away capsule, the owner line in mono, and Sign
+  out. It scrolls away with the page (owner call 13 oct 2026: nothing follows
+  him). The floating dock is retired.
+- **Buttons.** One capsule family: 44px, 36px small. Primary is accent-ink
+  fill with white text (5.9:1), hover one step darker; quiet is white with a
+  hairline; the active nav pill is accent-ink. White never sits on the bright
+  accent.
+- **Scale.** Spacing on the 8pt scale (8/16/24/32/48/64/96). Type on live:
+  18 headings, 15 sub, 14 body, 11 mono caps, 22 mono figures, 32 mono
+  readout. Motion stays the §7 canon.
+
+The Print screens (Record, case file) keep the warm paper and the serif
+ceremony unless the owner says otherwise. The entry screens (homepage,
+sign-in) join the ice by his 13 oct 2026 call; whether the sign-in title keeps
+its serif ceremony is logged as an open decision, not assumed.
