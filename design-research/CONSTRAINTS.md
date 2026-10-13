@@ -1,8 +1,11 @@
 # AnchorGate — Design Constraints (Phase 6)
 
-**Status:** DRAFT — awaiting owner approval. This is the gate: no comps until
-this document and the specimen (`design-research/type-color.specimen.html`)
-are approved.
+**Status:** APPROVED (owner, 13 oct 2026). The type faces, the Seal-blue accent,
+the Live Instrument layer (§7) and the first specimen were approved 12 oct
+2026; the screen comps and the unified object language (§8) were approved as
+they were built and felt, one screen at a time. Where an approved comp or the
+locked v3 specimen differs from an earlier line of this document, the approved
+visual wins and this document records it here.
 
 **Direction (owner-approved):** *Ledger* base + *print/document* signature +
 a *whisper of instrument* in the data layer. See `DESIGN.md` §7c and
@@ -17,13 +20,17 @@ a *whisper of instrument* in the data layer. See `DESIGN.md` §7c and
 | Voice | Job | Face |
 | --- | --- | --- |
 | **Display / UI grotesque** | headings, navigation, labels | **Schibsted Grotesk** |
-| **Serif** | ceremony: the stamp, statements, the wordmark | **Newsreader** |
+| **Serif** | ceremony: the stamp, statements, the Print page titles | **Newsreader** |
 | **Mono** | data: money, timestamps, rule ids, lifecycle | **IBM Plex Mono** |
 
 All three are free/open (Google Fonts), so no licence risk for the demo.
 
 **Rules**
-- Headings are roman. Emphasis = weight or size, never italic, never a gradient.
+- Interface headings are roman. Emphasis = weight or size, never a gradient.
+  One ceremonial exception, approved via the comps: the page title on each
+  Print screen (Record, case file, Rules, sign-in) sets in Newsreader italic.
+  The wordmark is the grotesk lockup (uppercase, seal blue, 20px, anchor mark)
+  per the locked v3 specimen, not serif.
 - Weight contrast over bold-everything; large display can run light (à la Stripe).
 - Prose measure 45–75ch. Tabular numerals on every column of figures.
 - Banned: Inter, Roboto, Open Sans, system-default stacks, Space Grotesk.
@@ -136,7 +143,8 @@ the *only* icon source in the build; nothing from external icon packages
 
 - (a) Type faces chosen from the specimen — **done** (Schibsted Grotesk ·
   Newsreader · IBM Plex Mono). Accent chosen — **done** (Seal blue).
-- (b) This document approved — **pending**.
+- (b) This document approved — **done** (13 oct 2026), carrying the §1
+  amendments and the unified object language in §8 below.
 - No comp is produced until (b). After approval, the first comp is **The Gate**
   (home), built strictly to these constraints — one screen, then stop for review.
 - (c) **Owner approved the Live Instrument layer and the first specimen
@@ -204,3 +212,29 @@ nothing is banned.
 
 **The tell audit still runs.**
 - Every living comp is checked against §3 bans 1–19. Any trip is rejected.
+
+---
+
+## 8. One object language across every screen (approved 13 oct 2026)
+
+The Live Instrument layer (§7) rebuilt the Gate; this folds the same face onto
+the Print screens and the entry screens so the whole app reads as one product.
+It changes shapes and fills only. It adds no motion and no numbers to the
+Print screens, which stay printed and still.
+
+- **Boxed objects** — decision cards, ask box, rules editor, decision slip,
+  decided box, receipt strip, integrity and decision-order strips, empty
+  state, away banner, sign-in notice: paper fill, hairline `line` border,
+  **6px radius**. The decision object (the slip, and the needs-you card)
+  carries the heavier `ink` border.
+- **Buttons** — one family everywhere: primary is seal fill with paper text at
+  6px radius; secondary is hairline or ghost at 6px radius.
+- **Instrument bars** (the wall) keep 2px radius. **Status marks** keep their
+  approved radii: the list chip 2px, the Print seal 3px, and the Gate's inline
+  stamp square, exactly as the locked v3 specimen sets it. **Badges** (the away
+  count) keep 999px.
+- **Form fields** stay underline-on-paper with no box, shared by sign-in, the
+  ask box and the rules editor.
+- Print screens keep every hairline ledger row, ruled statement and dark
+  receipt strip exactly as comped; they simply wear the shared radii and
+  fills, so nothing looks bolted on.
