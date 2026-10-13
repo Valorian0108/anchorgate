@@ -329,19 +329,19 @@ nav .active::before {
 .result.nr { color: var(--ink-faint); }
 
 /* decision slip */
-.slip { border: 1px solid var(--ink); padding: 26px 26px 22px; align-self: start; background: var(--paper); }
+.slip { border: 1px solid var(--ink); padding: 26px 26px 22px; align-self: start; background: var(--paper); border-radius: 6px; }
 .slip .slip-title { font-family: var(--g); font-weight: 600; font-size: 16px; letter-spacing: -0.01em; margin: 0 0 6px; }
 .slip .slip-sub { font-family: var(--m); font-size: 11px; color: var(--ink-soft); line-height: 1.7; margin: 0 0 18px; }
 .slip .prime {
   display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;
-  background: var(--seal); color: var(--paper); border: none; border-radius: 2px;
+  background: var(--seal); color: var(--paper); border: none; border-radius: 6px;
   font-family: var(--g); font-weight: 600; font-size: 14.5px; letter-spacing: -0.01em;
   padding: 13px 16px; cursor: pointer; text-align: left;
 }
 .slip .prime:hover { background: var(--seal-bright); }
 .slip .prime .amt { font-family: var(--m); font-weight: 500; font-size: 12.5px; }
 .slip .decline {
-  width: 100%; margin-top: 10px; background: none; border: 1px solid var(--ink); border-radius: 2px;
+  width: 100%; margin-top: 10px; background: none; border: 1px solid var(--ink); border-radius: 6px;
   font-family: var(--g); font-weight: 500; font-size: 13.5px; color: var(--ink); padding: 11px 16px; cursor: pointer;
 }
 .slip .decline:hover { background: var(--surface); }
@@ -354,7 +354,7 @@ nav .active::before {
 .slip .posture .pl .hl { color: var(--seal); }
 
 /* decided / closed box (approved · rejected · denied) */
-.stampbox { border: 1px solid var(--ink); padding: 26px 26px 22px; align-self: start; background: var(--paper); }
+.stampbox { border: 1px solid var(--ink); padding: 26px 26px 22px; align-self: start; background: var(--paper); border-radius: 6px; }
 .stampbox .what { font-family: var(--g); font-weight: 600; font-size: 16px; letter-spacing: -0.01em; }
 .stampbox .rows { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px; }
 .stampbox .pl { display: flex; justify-content: space-between; gap: 12px; font-family: var(--m); font-size: 11px; color: var(--ink-soft); padding: 4px 0; letter-spacing: 0.02em; }
@@ -363,7 +363,7 @@ nav .active::before {
 .stampbox form { margin-top: 18px; }
 .stampbox .prime {
   display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;
-  background: var(--seal); color: var(--paper); border: none; border-radius: 2px;
+  background: var(--seal); color: var(--paper); border: none; border-radius: 6px;
   font-family: var(--g); font-weight: 600; font-size: 14.5px; letter-spacing: -0.01em;
   padding: 13px 16px; cursor: pointer; text-align: left;
 }
@@ -382,7 +382,7 @@ nav .active::before {
 /* receipt strip — the print moment */
 .receipt {
   margin-top: 64px; background: var(--warm-dark); color: var(--dark-ink);
-  padding: 34px 38px 30px;
+  padding: 34px 38px 30px; border-radius: 6px;
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 30px;
 }
 .receipt .rh { grid-column: 1 / -1; font-family: var(--m); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--dark-soft); padding-bottom: 10px; border-bottom: 1px solid var(--dark-line); }
@@ -443,6 +443,7 @@ nav .active::before {
 
 .integrity {
   margin-top: 18px; padding: 14px 16px; border: 1px solid var(--seal); background: var(--seal-tint);
+  border-radius: 6px;
   display: flex; gap: 28px; flex-wrap: wrap;
   font-family: var(--m); font-size: 11px; letter-spacing: 0.03em; color: var(--seal-deep);
 }
@@ -544,6 +545,7 @@ nav .active::before {
 
 .order {
   margin-top: 34px; padding: 18px 20px; border: 1px solid var(--seal); background: var(--seal-tint);
+  border-radius: 6px;
   font-family: var(--m); font-size: 11.5px; letter-spacing: 0.03em; color: var(--seal-deep); line-height: 1.9;
 }
 .order .seq b { color: var(--seal-deep); }
@@ -564,7 +566,7 @@ nav .active::before {
   max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .owner .signout {
-  background: none; border: 1px solid var(--line); border-radius: 2px;
+  background: none; border: 1px solid var(--line); border-radius: 6px;
   font-family: var(--g); font-weight: 500; font-size: 12.5px; color: var(--ink-soft);
   padding: 6px 12px; cursor: pointer;
 }
@@ -632,7 +634,7 @@ nav .active::before {
 .signin .btn {
   width: 100%; margin-top: 20px; border: 0; background: var(--seal); color: #fff;
   font-family: var(--g); font-weight: 600; font-size: 14px; letter-spacing: 0.01em;
-  padding: 13px 0; cursor: pointer; border-radius: 0;
+  padding: 13px 0; cursor: pointer; border-radius: 6px;
 }
 .signin .btn:hover { background: var(--seal-bright); }
 .signin .btn:disabled { opacity: 0.7; cursor: default; }
@@ -645,7 +647,7 @@ nav .active::before {
 .signin .btn-ghost {
   width: 100%; border: 1px solid var(--line); background: transparent; color: var(--ink);
   font-family: var(--g); font-weight: 500; font-size: 13.5px;
-  padding: 12px 0; cursor: pointer; border-radius: 0;
+  padding: 12px 0; cursor: pointer; border-radius: 6px;
 }
 .signin .btn-ghost:hover { border-color: var(--ink); }
 .signin .slip-note {
@@ -722,7 +724,7 @@ nav .active::before {
 .away-banner {
   font-family: var(--m); font-size: 12px; letter-spacing: 0.02em;
   color: var(--seal); background: var(--seal-tint);
-  border-radius: 2px; padding: 9px 12px; margin-top: 14px;
+  border-radius: 6px; padding: 9px 12px; margin-top: 14px;
 }
 
 /* Interactive feedback: hover + press on every control. */
@@ -766,7 +768,7 @@ nav .active::before {
 }
 
 /* Ask the assistant (manual-only proposals). */
-.askbox { margin: 34px 0 0; padding: 20px 22px; border: 1px solid var(--line); background: var(--surface); }
+.askbox { margin: 34px 0 0; padding: 20px 22px; border: 1px solid var(--line); background: var(--paper); border-radius: 6px; }
 .askbox label {
   display: block; font-family: var(--m); font-size: 10.5px; letter-spacing: 0.1em;
   text-transform: uppercase; color: var(--ink-soft); margin-bottom: 10px;
@@ -781,7 +783,7 @@ nav .active::before {
 .askbox input:focus { outline: none; border-bottom-color: var(--seal); }
 .askbox button {
   border: 0; background: var(--seal); color: #fff; font-family: var(--g); font-weight: 600;
-  font-size: 13.5px; padding: 11px 18px; cursor: pointer; border-radius: 0; white-space: nowrap;
+  font-size: 13.5px; padding: 11px 18px; cursor: pointer; border-radius: 6px; white-space: nowrap;
 }
 .askbox button:hover { background: var(--seal-bright); }
 .askbox button:disabled { opacity: 0.7; cursor: default; }
@@ -794,7 +796,7 @@ nav .active::before {
 
 /* Rules editor: the owner's monthly limit, the one number they edit (Option 1:
    auto-approve is off, so there is no second number). */
-.rules-edit { margin: 30px 0 0; padding: 20px 22px; border: 1px solid var(--line); background: var(--surface); }
+.rules-edit { margin: 30px 0 0; padding: 20px 22px; border: 1px solid var(--line); background: var(--paper); border-radius: 6px; }
 .rules-edit .label {
   font-family: var(--m); font-size: 10.5px; letter-spacing: 0.1em;
   text-transform: uppercase; color: var(--ink-soft); margin-bottom: 14px;
@@ -812,7 +814,7 @@ nav .active::before {
 .rules-edit input:focus { outline: none; }
 .rules-edit button {
   border: 0; background: var(--seal); color: #fff; font-family: var(--g); font-weight: 600;
-  font-size: 13.5px; padding: 11px 18px; cursor: pointer; border-radius: 0; white-space: nowrap;
+  font-size: 13.5px; padding: 11px 18px; cursor: pointer; border-radius: 6px; white-space: nowrap;
 }
 .rules-edit button:hover { background: var(--seal-bright); }
 .rules-edit .hint { margin-top: 12px; font-family: var(--m); font-size: 10.5px; letter-spacing: 0.02em; color: var(--ink-faint); }
@@ -820,7 +822,7 @@ nav .active::before {
 .rules-edit .msg.err { color: var(--deny); }
 
 /* Empty state: what is empty, why it matters, one next action. */
-.empty { margin-top: 18px; padding: 26px 24px; border: 1px dashed var(--line); background: var(--paper); }
+.empty { margin-top: 18px; padding: 26px 24px; border: 1px dashed var(--line); background: var(--paper); border-radius: 6px; }
 .empty h2 { font-family: var(--g); font-weight: 600; font-size: 16px; margin: 0 0 6px; }
 .empty p { font-family: var(--g); font-size: 13.5px; line-height: 1.6; color: var(--ink-soft); margin: 0 0 14px; max-width: 52ch; }
 .empty .next { font-family: var(--g); font-weight: 600; font-size: 13px; color: var(--seal); }
