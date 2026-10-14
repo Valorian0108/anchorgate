@@ -287,7 +287,13 @@ the *only* icon source in the build; nothing from external icon packages
   communications for the spending overview need the set-aside segment, the
   caution threshold and the cap notch, which an arc cannot carry; the wall
   stays). The texture exception now measures over silhouette masses at 7%
-  opacity, re-verified by sweep the same day.
+  opacity, re-verified by sweep the same day. A same-day refinement pass on
+  the owner's "name three weakest visual decisions" followed: the empty
+  state lost its dashed placeholder box and wears the column's left rule on
+  open ground; live-surface prose (the ask hints, the sign-in trust lines
+  and slip note) moved from the mono data voice to the interface voice per
+  §4; and the strip's trust line wraps as a deliberate full-width quiet
+  line at 1100px and under instead of orphaning right-aligned.
 
 ---
 
