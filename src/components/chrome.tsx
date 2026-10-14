@@ -18,8 +18,11 @@
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
-/** Layer 1 of the ice ground: our own washed harbour line drawing, still. */
-function HarbourArt() {
+/** Layer 1 of the ice ground: our own washed architectural silhouette,
+ *  still (image-settled 14 oct 2026: the harbour vignette became
+ *  architecture). The masses carry the structure the frost blurs; the fine
+ *  lines keep it linework up close. Presence lives in the CSS (.art, 9%). */
+function ArchitecturalArt() {
   return (
     <svg
       className="art"
@@ -27,46 +30,61 @@ function HarbourArt() {
       preserveAspectRatio="xMidYMid slice"
       fill="none"
       stroke="currentColor"
-      strokeWidth="3"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <line x1="-40" y1="660" x2="1480" y2="660" />
-      <g transform="translate(880,120) scale(16)" strokeWidth="0.13">
-        <circle cx="12" cy="5" r="2.5" />
-        <line x1="12" y1="7.5" x2="12" y2="20" />
-        <line x1="8" y1="10" x2="16" y2="10" />
-        <path d="M4 14c0 4 3.5 6 8 6s8-2 8-6" />
+      <g fill="currentColor" stroke="none">
+        {/* central spire: the mass the instrument band blurs */}
+        <path d="M655 340 L660 96 L665 340 Z" fillOpacity="0.9" />
+        <path d="M614 900 V400 L660 340 L706 400 V900 Z" />
+        <path
+          d="M640 400 h40 v18 h-40 Z M640 448 h40 v18 h-40 Z M640 496 h40 v18 h-40 Z"
+          fillOpacity="0.55"
+        />
+        {/* right tower, conical roof */}
+        <path d="M1046 900 V540 L1092 448 L1138 540 V900 Z" fillOpacity="0.85" />
+        <path d="M1074 560 h36 v16 h-36 Z M1074 604 h36 v16 h-36 Z" fillOpacity="0.5" />
+        {/* left roof plane */}
+        <path d="M0 646 L348 560 V704 L0 768 Z" fillOpacity="0.6" />
+        {/* arcade band across the foot, arches cut out */}
+        <path
+          fillOpacity="0.5"
+          fillRule="evenodd"
+          d="M0 900 V756 H1440 V900 Z
+             M60 900 v-64 a44 44 0 0 1 88 0 v64 Z
+             M260 900 v-64 a44 44 0 0 1 88 0 v64 Z
+             M460 900 v-64 a44 44 0 0 1 88 0 v64 Z
+             M660 900 v-64 a44 44 0 0 1 88 0 v64 Z
+             M860 900 v-64 a44 44 0 0 1 88 0 v64 Z
+             M1060 900 v-64 a44 44 0 0 1 88 0 v64 Z
+             M1260 900 v-64 a44 44 0 0 1 88 0 v64 Z"
+        />
       </g>
-      <path d="M140 -60 C 300 140, 240 300, 420 380 S 700 470, 840 430" />
-      <circle cx="230" cy="80" r="10" />
-      <circle cx="280" cy="180" r="10" />
-      <circle cx="300" cy="280" r="10" />
-      <circle cx="380" cy="350" r="10" />
-      <path d="M250 660 V 350 L 390 312" />
-      <line x1="250" y1="450" x2="340" y2="450" />
-      <path d="M560 660 l 44 62 h 300 l 44 -62" />
-      <line x1="660" y1="660" x2="660" y2="490" />
-      <line x1="820" y1="660" x2="820" y2="520" />
-      <path d="M660 490 l 70 24" />
-      <path d="M820 520 l 56 20" />
-      <path d="M430 220 q 14 -12 28 0" />
-      <path d="M500 190 q 12 -10 24 0" />
-      <path d="M90 660 l 16 -150 h 28 l 16 150" />
-      <line x1="98" y1="580" x2="142" y2="580" />
+      {/* fine structural lines: beams, columns, the finial */}
+      <line x1="84" y1="520" x2="560" y2="520" />
+      <line x1="84" y1="556" x2="520" y2="556" />
+      <line x1="120" y1="520" x2="120" y2="700" />
+      <line x1="212" y1="520" x2="212" y2="700" />
+      <line x1="304" y1="520" x2="304" y2="700" />
+      <line x1="760" y1="470" x2="1010" y2="470" />
+      <line x1="1180" y1="620" x2="1400" y2="620" />
+      <line x1="660" y1="96" x2="660" y2="60" />
+      <circle cx="660" cy="52" r="6" />
     </svg>
   );
 }
 
 /**
- * The ice ground itself: pale field, washed harbour art, finest grain.
- * Fixed behind everything, composed once, never animated. Exported so
- * the signed-out screens (front door, sign-in) paint the same ground.
+ * The ice ground itself: pale field, washed architectural silhouette,
+ * finest grain. Fixed behind everything, composed once, never animated.
+ * Exported so the signed-out screens (front door, sign-in) paint the same
+ * ground.
  */
 export function IceBackdrop() {
   return (
     <div className="ice-backdrop" aria-hidden="true">
-      <HarbourArt />
+      <ArchitecturalArt />
       <div className="grain" />
     </div>
   );

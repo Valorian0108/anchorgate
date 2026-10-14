@@ -12,9 +12,9 @@ import { IceBackdrop } from "@/components/chrome";
  * Static on purpose: it promises nothing it has not read, and it reads
  * nothing. The instrument shown below is a labelled example, not live
  * data. Voice: plain, second person, no em dashes, grandma test.
- * Chrome: the same ice ground and the same seamless top bar as the Gate;
- * the panels here are matte (icy paper), because frost belongs to the
- * live cockpit.
+ * Chrome: the same ice ground and the same seamless top bar as the Gate.
+ * The example band is this page's hero overview panel and wears the true
+ * frost (image-settled 14 oct 2026); everything else here is open ground.
  */
 
 const DEMO_WALL = { "--spent-frac": 0.7125 } as CSSProperties;
@@ -39,7 +39,7 @@ export default function HomePage() {
 
       <main className="wrap home">
         <section className="hero reveal" style={{ "--i": 0 } as CSSProperties}>
-          <span className="cap">AI spending, under your rules</span>
+          <span className="sec">AI spending, under your rules</span>
           <h1>
             The assistant proposes. Your <span className="hook">rules</span>{" "}
             decide.
@@ -66,12 +66,11 @@ export default function HomePage() {
           style={{ "--i": 1 } as CSSProperties}
         >
           <div className="band-head">
-            <span className="cap">How it works</span>
+            <span className="sec">How it works</span>
             <span className="count">three steps · every purchase</span>
           </div>
           <div className="cols cols-3">
             <div className="col">
-              <span className="cap">1 · The assistant proposes</span>
               <h3>Found something worth buying</h3>
               <p className="body">
                 Your AI agent brings the purchase to the gate with the seller,
@@ -80,7 +79,6 @@ export default function HomePage() {
               </p>
             </div>
             <div className="col">
-              <span className="cap">2 · The gate checks your rules</span>
               <h3>Checked fresh, never from memory</h3>
               <p className="body">
                 Valid request, positive amount, right currency, allowed
@@ -89,7 +87,6 @@ export default function HomePage() {
               </p>
             </div>
             <div className="col">
-              <span className="cap">3 · You decide</span>
               <h3>Nothing moves without you</h3>
               <p className="body">
                 What passes the checks waits for your Approve or Decline. Your

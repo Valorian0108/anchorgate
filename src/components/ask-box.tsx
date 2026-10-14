@@ -1,7 +1,8 @@
 "use client";
 
 /**
- * Ask the assistant — the first column of the queue (canon §10).
+ * Ask the assistant — the last column of the queue (canon §10, image-settled
+ * 14 oct 2026: the assistant supports, the money leads).
  *
  * The manual-only proposal entry point, set as an open column like every
  * other: caption, underline field, one capsule button, and the honesty line
@@ -30,8 +31,8 @@ export function AskBox({
   message: { text: string; error: boolean } | null;
 }) {
   return (
-    <form className="col" action={proposeFromGate}>
-      <label className="cap" htmlFor="ask">
+    <form className="col ask" action={proposeFromGate}>
+      <label className="sec" htmlFor="ask">
         Ask the assistant
       </label>
       <input

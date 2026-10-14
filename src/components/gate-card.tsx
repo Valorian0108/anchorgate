@@ -106,7 +106,11 @@ export function GateCard({
         </>
       ) : (
         <>
-          <p className="receiptline">
+          <p
+            className={
+              status.kind === "blocked" ? "receiptline why" : "receiptline"
+            }
+          >
             {status.receipt}
             {refText ? <span> · {refText}</span> : null}
           </p>

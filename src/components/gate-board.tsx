@@ -206,7 +206,7 @@ export function GateBoard({
         aria-label="Requests at the gate"
       >
         <div className="band-head">
-          <span className="cap">At the gate</span>
+          <span className="sec">At the gate</span>
           <span className="count num">
             {waiting.length > 0
               ? `${waiting.length} waiting on you`
@@ -222,8 +222,6 @@ export function GateBoard({
         </div>
 
         <div className="cols">
-          <AskBox message={askMessage} />
-
           {waiting.map(({ record, entering }) => (
             <GateCard
               key={record.id}
@@ -248,6 +246,8 @@ export function GateBoard({
             />
           ))}
 
+          <AskBox message={askMessage} />
+
           {waiting.length === 0 ? (
             <div className="empty">
               <h2>{items.length === 0 ? "No requests yet." : "Nothing needs you right now."}</h2>
@@ -257,7 +257,7 @@ export function GateBoard({
                   : "This is what the agent has brought so far and how each one ended. A new request will arrive on its own, and it will wait for you here."}
               </p>
               <span className="next">
-                Use the first column to ask the assistant to look at something.
+                The last column is the assistant's: ask it to look at anything.
               </span>
             </div>
           ) : null}

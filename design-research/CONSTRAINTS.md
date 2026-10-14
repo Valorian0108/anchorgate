@@ -62,7 +62,13 @@ Sora, with the two-tone accent hook as the ceremonial device.
   amount).
   The wordmark is the display lockup (uppercase, 13px, anchor mark tile),
   ink on the seamless top bar.
-- Weight contrast over bold-everything; large display can run light (à la Stripe).
+- Weight contrast over bold-everything. Display headings set heavy (700) and
+  tight (image-settled 14 oct 2026, §6(i)): confident, never light-on-ice.
+- Two label voices (image-settled 14 oct 2026, §6(i)): the instrument voice
+  (mono, uppercase) is reserved for true metadata (status strip, receipt
+  strip, stamp, register column heads, document refs, chips, the wordmark);
+  content-facing labels (section captions, form fields, the ask label) set
+  in the content voice `.sec` (Sora, sentence case, 13px, ink-soft).
 - Prose measure 45–75ch. Tabular numerals on every column of figures.
 - Banned: Inter, Roboto, Open Sans, system-default stacks, Space Grotesk.
 
@@ -262,6 +268,26 @@ the *only* icon source in the build; nothing from external icon packages
   accent-ink, white-on-button (5.8:1) and the three receipt inks (6.4-13.1:1).
   Small text over a decorative art stroke sits at ≥4.2:1, a texture exception:
   the strokes are blurred at 16% opacity and never carry meaning alone.
+- (i) **Image-settled direction (14 oct 2026, owner: the reference images plus
+  the Architectural Glass brief overwrite earlier calls where they follow the
+  glass brief).** Two reference images (light and dark glass studies) were
+  read as the material vocabulary beside the written brief. Settled: (1) the
+  backdrop's harbour vignette becomes a washed architectural silhouette,
+  crisp at 7% opacity, strongest only where frost blurs it; (2) glass retiers
+  to frost (two objects per view, the front door's example band included) /
+  veil (documents and callouts only) / paper (dense panes, no blur) / open
+  ground (the integrity row loses its box); (3) two label voices, instrument
+  uppercase reserved for metadata, content labels sentence case in Sora;
+  (4) display headings set at weight 700; (5) the ask column moves to the end
+  of the queue row. Considered and refused because the brief or an owner call
+  blocks them: dark mode (the brief is light-mode glass; the dark study only
+  shows the material over a dark ground), a floating bottom dock (the brief
+  preserves the Gate/Rules/Record navigation; the owner retired the dock on
+  13 oct: nothing follows him), and a radial arc gauge (the brief's three
+  communications for the spending overview need the set-aside segment, the
+  caution threshold and the cap notch, which an arc cannot carry; the wall
+  stays). The texture exception now measures over silhouette masses at 7%
+  opacity, re-verified by sweep the same day.
 
 ---
 
@@ -371,16 +397,25 @@ and all five are mandatory:
 1. **The palette is ours.** Icy blue on cold navy (§2), never the default
    purple-blue.
 2. **The backdrop is composed and still.** Layer 0 is a pale ice field;
-   layer 1 is a washed blue-duotone line drawing of our own harbour scene
-   (anchor, chain, hull, masts, gulls) at whisper opacity plus a faint grain,
-   so the frost blurs a picture with real structure. Nothing drifts, nothing
-   animates. Life comes from the instruments on top, never from the wallpaper.
+   layer 1 is a washed blue-duotone architectural silhouette of our own
+   drawing (spires, towers, an arcade band, fine structural lines) at whisper
+   opacity plus a faint grain, so the frost blurs a picture with real
+   structure (image-settled 14 oct 2026, §6(i): the harbour vignette became
+   architecture). Nothing drifts, nothing animates. Life comes from the
+   instruments on top, never from the wallpaper.
 3. **Glass is tiered and rare.** The instrument band is true frost (white at
-   about 55%, 20 to 24px blur); the top bar is frost too; everything else is a
-   light veil (white at 30 to 42%, 8 to 10px blur) or plain ground. Not
-   everything frosted equally, and most things not at all.
+   about 55%, 24 to 32px blur); the top bar is frost too. The light veil
+   (white at 60%, blur 12px) is reserved for documents and callouts: the
+   decision slip, the closed box, the sign-in notice, the away banner, and
+   the front door's example band. Information-dense panes (preamble,
+   decision order, rules editor) sit on the paper tier (white at 86%, no
+   blur), and the integrity row sits open on the ground under hairlines
+   (image-settled 14 oct 2026, §6(i): dense content on opaque surfaces,
+   most things not blurred at all).
 4. **Frost is rare and the frame stays solid.** At most two frosted objects
-   per live view: on the Gate, the seamless top bar and the instrument band.
+   per view: on the Gate, the seamless top bar and the instrument band; on
+   the front door, the seamless top bar and the example band, which is that
+   page's hero overview panel (image-settled 14 oct 2026, §6(i)).
    Every other screen carries the same top bar as shared product chrome (its
    frost is the only one there) and icy-paper panes in the light veil tier
    (white at 60%, blur 12px; owner call 13 oct 2026, third call). True frost
@@ -438,7 +473,10 @@ reference for the Gate rebuild. The poster is gone; the Gate is a cockpit:
 - **The queue is the body.** Four equal columns on open ground with thin left
   rules (accent on needs-you), no boxes. Every item carries a live elapsed
   time that ages once a minute. Columns stretch to equal height and each
-  column's last element bottom-aligns, so all four end on one edge.
+  column's last element bottom-aligns, so all four end on one edge. The
+  requests own the start of the scan and the ask column sits last in the
+  row (image-settled 14 oct 2026, §6(i): the assistant supports, the money
+  leads; supersedes the v7 ask-first order).
 - **The top bar (frost 2) sits still.** Seamless full-bleed at the top of the
   page, hairline bottom edge, inner content on the 1200px wrap: mark tile,
   wordmark, nav pills, then the away capsule, the owner line in mono, and Sign

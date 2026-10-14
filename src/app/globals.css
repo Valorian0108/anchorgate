@@ -32,6 +32,9 @@
   --line: #D8E5EE;           /* ice hairline */
   --pane: rgba(255, 255, 255, 0.60);        /* icy-paper veil panel */
   --pane-edge: rgba(255, 255, 255, 0.85);
+  /* paper tier (image-settled 14 oct 2026): information-dense panes sit
+     near-solid with no blur at all; glass stays rare */
+  --pane-paper: rgba(255, 255, 255, 0.86);
   --warm-dark: #0F2B3D;      /* deep ice: the receipt / print strip */
   /* accent (the one blue) */
   --accent: #2D9CDB;
@@ -116,10 +119,18 @@ a:hover { color: var(--seal-bright); }
 /* the two-tone hook word: one accent word per headline, used sparingly */
 .hook { color: var(--accent-text); }
 
-/* the caption voice (one size, one style, everywhere) */
+/* the caption voice: instrument metadata only (status strip, receipt
+   strip, stamp, register heads, document refs, chips, the wordmark) */
 .cap {
   font-family: var(--m); font-size: var(--t-cap); font-weight: 500;
   letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint);
+}
+
+/* the content voice (image-settled 14 oct 2026): sentence-case Sora for
+   content-facing labels (section captions, form fields, the ask label) */
+.sec {
+  font-family: var(--g); font-size: 13px; font-weight: 600;
+  letter-spacing: 0; color: var(--ink-soft);
 }
 
 .surface-ice { min-height: 100vh; color: var(--ink); }
@@ -136,7 +147,10 @@ a:hover { color: var(--seal-bright); }
 }
 .ice-backdrop .art {
   position: absolute; inset: 0; width: 100%; height: 100%;
-  color: var(--accent); opacity: 0.16; filter: blur(2px);
+  /* architectural silhouette, crisp and washed (image-settled 14 oct 2026):
+     7% keeps the texture exception at 4.2:1 or better for every ink over
+     the darkest ground stop; the frost objects blur it themselves */
+  color: var(--accent); opacity: 0.07;
 }
 .ice-backdrop .grain {
   position: absolute; inset: 0;
@@ -249,11 +263,17 @@ nav a.active { background: var(--accent-ink); color: #fff; }
   padding: var(--s4) var(--s5);
   display: grid; grid-template-columns: auto 1fr auto; gap: var(--s5); align-items: center;
 }
+/* the front door's example band is that page's hero overview panel
+   (image-settled 14 oct 2026): it wears the true frost tier */
 .gauge.demo {
-  background: var(--pane);
-  backdrop-filter: var(--bf-veil);
-  border: 1px solid var(--pane-edge);
-  box-shadow: var(--sh-pane);
+  background: var(--frost);
+  backdrop-filter: var(--bf-band);
+  border: 1px solid var(--frost-edge);
+  box-shadow:
+    0 1px 2px rgba(18,41,58,0.06),
+    var(--sh-2),
+    var(--sh-3),
+    inset 0 1px 0 rgba(255,255,255,0.9);
 }
 .gauge .readout .cap { display: block; margin-bottom: var(--s1); }
 .gauge .spent {
@@ -311,7 +331,7 @@ nav a.active { background: var(--accent-ink); color: #fff; }
 /* ---------------- columns on open ground (the queue, the explainer) ------- */
 .band { margin-top: var(--s6); }
 .band-head { display: flex; align-items: baseline; gap: var(--s2); margin-bottom: var(--s3); flex-wrap: wrap; }
-.band-head .cap { color: var(--ink-soft); }
+.band-head .sec { color: var(--ink-soft); }
 .band-head .count { font-family: var(--m); font-size: var(--t-cap); color: var(--accent-ink); letter-spacing: 0.08em; }
 .band-head .more { margin-left: auto; font-family: var(--m); font-size: 12px; color: var(--accent-ink); }
 .band-head .more:hover { text-decoration: underline; text-underline-offset: 3px; }
@@ -320,7 +340,6 @@ nav a.active { background: var(--accent-ink); color: #fff; }
   align-items: stretch;
 }
 .cols-3 { grid-template-columns: repeat(3, 1fr); }
-.cols-3 .col > .cap { color: var(--accent-ink); }
 .col {
   border-left: 2px solid var(--rule-faint); padding-left: var(--s3);
   display: flex; flex-direction: column; min-width: 0;
@@ -356,7 +375,13 @@ nav a.active { background: var(--accent-ink); color: #fff; }
   color: var(--ink-soft); letter-spacing: 0.02em; line-height: 1.7;
 }
 .col .receiptline.failed { color: var(--deny); }
-.col label.cap { display: block; }
+/* a blocked request states its reason in the content voice, so the reason
+   is scannable at a glance instead of buried in quiet metadata */
+.col .receiptline.why {
+  font-family: var(--g); font-size: 13px; font-weight: 500;
+  letter-spacing: 0; line-height: 1.55; color: var(--ink);
+}
+.col label.sec { display: block; }
 .col input {
   width: 100%; margin-top: var(--s2); background: transparent; border: 0;
   border-bottom: 1px solid rgba(18,41,58,0.25); color: var(--ink);
@@ -411,7 +436,7 @@ nav a.active { background: var(--accent-ink); color: #fff; }
   color: var(--ink-faint); margin-bottom: 12px;
 }
 .page-head h1, .case-head h1, .signin .left h1 {
-  font-family: var(--g); font-weight: 600;
+  font-family: var(--g); font-weight: 700;
   font-size: clamp(30px, 4.6vw, 46px); line-height: 1.08; letter-spacing: -0.02em; margin: 0;
 }
 .page-head .count {
@@ -419,11 +444,11 @@ nav a.active { background: var(--accent-ink); color: #fff; }
   text-transform: uppercase; text-align: right;
 }
 
+/* open on the ground under hairlines (image-settled 14 oct 2026): the row
+   keeps every item and loses the box */
 .integrity {
-  margin-top: 18px; padding: 14px 18px;
-  background: var(--pane); backdrop-filter: var(--bf-veil);
-  border: 1px solid var(--pane-edge); border-radius: 16px;
-  box-shadow: var(--sh-pane);
+  margin-top: 18px; padding: 12px 0;
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
   display: flex; gap: 28px; flex-wrap: wrap;
   font-family: var(--m); font-size: 11px; letter-spacing: 0.03em; color: var(--accent-ink);
 }
@@ -504,7 +529,7 @@ nav a.active { background: var(--accent-ink); color: #fff; }
 /* ---------------- Statute: the rule set ---------------- */
 .preamble {
   margin-top: 22px; max-width: 72ch; padding: 18px 22px;
-  background: var(--pane); backdrop-filter: var(--bf-veil);
+  background: var(--pane-paper);
   border: 1px solid var(--pane-edge); border-radius: 16px;
   box-shadow: var(--sh-pane);
   font-family: var(--g); font-weight: 400; font-size: 15px; line-height: 1.65; color: var(--ink);
@@ -537,7 +562,7 @@ nav a.active { background: var(--accent-ink); color: #fff; }
 
 .order {
   margin-top: 34px; padding: 18px 22px;
-  background: var(--pane); backdrop-filter: var(--bf-veil);
+  background: var(--pane-paper);
   border: 1px solid var(--pane-edge); border-radius: 16px;
   box-shadow: var(--sh-pane);
   font-family: var(--m); font-size: 11.5px; letter-spacing: 0.03em; color: var(--ink-soft); line-height: 1.9;
@@ -549,13 +574,13 @@ nav a.active { background: var(--accent-ink); color: #fff; }
 /* Rules editor: the owner's monthly limit, the one number they edit. */
 .rules-edit {
   margin: 30px 0 0; padding: 22px 24px;
-  background: var(--pane); backdrop-filter: var(--bf-veil);
+  background: var(--pane-paper);
   border: 1px solid var(--pane-edge); border-radius: 16px;
   box-shadow: var(--sh-pane);
 }
 .rules-edit .label {
-  font-family: var(--m); font-size: 10.5px; letter-spacing: 0.1em;
-  text-transform: uppercase; color: var(--ink-soft); margin-bottom: 14px;
+  font-family: var(--g); font-size: 13px; font-weight: 600;
+  letter-spacing: 0; color: var(--ink-soft); margin-bottom: 14px;
 }
 .rules-edit .line { display: flex; gap: 22px; align-items: flex-end; flex-wrap: wrap; }
 .rules-edit .field { display: flex; flex-direction: column; gap: 6px; }
@@ -599,7 +624,7 @@ nav a.active { background: var(--accent-ink); color: #fff; }
 .case-body { display: grid; grid-template-columns: 1fr 340px; gap: 56px; margin-top: 44px; }
 
 .label {
-  font-family: var(--m); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+  font-family: var(--g); font-size: 12.5px; font-weight: 600; letter-spacing: 0;
   color: var(--ink-faint); margin-bottom: 14px;
 }
 
@@ -714,8 +739,8 @@ nav a.active { background: var(--accent-ink); color: #fff; }
 /* ---------------- sign in / create your gate ---------------- */
 .signin .headline {
   margin-top: 48px; border-top: 1px solid rgba(18,41,58,0.4); padding-top: 22px;
-  font-family: var(--m); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
-  color: var(--ink-faint);
+  font-family: var(--g); font-size: 13px; font-weight: 600; letter-spacing: 0;
+  color: var(--ink-soft);
 }
 .signin .split {
   display: grid; grid-template-columns: 1fr 380px; gap: 88px; align-items: start;
@@ -741,13 +766,13 @@ nav a.active { background: var(--accent-ink); color: #fff; }
 
 .signin .slip h2 { font-family: var(--g); font-weight: 600; font-size: 16px; letter-spacing: -0.01em; margin: 0; }
 .signin .slip .sub {
-  font-family: var(--m); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
+  font-family: var(--g); font-size: 12.5px; font-weight: 500; letter-spacing: 0;
   color: var(--ink-faint); margin-top: 4px;
 }
 .signin .field { margin-top: 24px; }
 .signin .field label {
-  display: block; font-family: var(--m); font-size: 10.5px; letter-spacing: 0.1em;
-  text-transform: uppercase; color: var(--ink-soft); margin-bottom: 8px;
+  display: block; font-family: var(--g); font-size: 12.5px; font-weight: 600;
+  letter-spacing: 0; color: var(--ink-soft); margin-bottom: 8px;
 }
 .signin .field input {
   width: 100%; border: 0; border-bottom: 1px solid rgba(18,41,58,0.35); background: transparent;
@@ -767,8 +792,7 @@ nav a.active { background: var(--accent-ink); color: #fff; }
 .signin .btn:disabled { opacity: 0.7; cursor: default; }
 .signin .or {
   display: flex; align-items: center; gap: 12px; margin: 20px 0;
-  font-family: var(--m); font-size: 10px; letter-spacing: 0.12em; color: var(--ink-faint);
-  text-transform: uppercase;
+  font-family: var(--m); font-size: 10.5px; letter-spacing: 0.06em; color: var(--ink-faint);
 }
 .signin .or::before, .signin .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .signin .btn-ghost {
@@ -819,7 +843,7 @@ nav a.active { background: var(--accent-ink); color: #fff; }
 
 /* ---------------- the front door (signed-out homepage at "/") ----------- */
 .hero { padding: var(--s7) 0 0; max-width: 780px; }
-.hero .cap { display: block; margin-bottom: var(--s2); }
+.hero .sec { display: block; margin-bottom: var(--s2); }
 .hero h1 {
   font-family: var(--g); font-weight: 700;
   font-size: clamp(34px, 5vw, 56px); line-height: 1.06; letter-spacing: -0.025em;
@@ -863,7 +887,10 @@ nav a.active { background: var(--accent-ink); color: #fff; }
 .empty h2 { font-family: var(--g); font-weight: 600; font-size: 16px; margin: 0 0 6px; color: var(--ink); }
 .empty p { font-family: var(--g); font-size: 13.5px; line-height: 1.6; color: var(--ink-soft); margin: 0 0 14px; max-width: 52ch; }
 .empty .next { font-family: var(--g); font-weight: 600; font-size: 13px; color: var(--accent-ink); }
-.cols .empty { grid-column: 2 / -1; margin: 0; }
+.cols .empty { grid-column: 1 / -2; margin: 0; }
+/* the ask column sits last in the row (image-settled 14 oct 2026): the
+   requests own the start of the scan */
+.cols .ask { order: 20; }
 
 .note { margin-top: var(--s4); font-family: var(--m); font-size: 10.5px; letter-spacing: 0.06em; color: var(--ink-faint); }
 
@@ -955,8 +982,11 @@ nav a.active { background: var(--accent-ink); color: #fff; }
 @media (max-width: 680px) {
   .wrap { padding: 0 var(--s3) var(--s6); }
   .cols { grid-template-columns: 1fr; }
-  .topbar-in { flex-wrap: wrap; justify-content: center; padding: var(--s1) var(--s3); }
-  .topbar .right { margin-left: 0; width: 100%; justify-content: center; }
+  /* a deliberate two-row bar: identity and sign-out on the first row, the
+     three nav pills as an even row under them */
+  .topbar-in { flex-wrap: wrap; padding: var(--s1) var(--s3); row-gap: 2px; }
+  nav { order: 3; width: 100%; justify-content: space-between; }
+  nav a { flex: 1 1 0; justify-content: center; }
   .strip .trust { margin-left: 0; width: 100%; }
   .hero { padding-top: var(--s6); }
 }
@@ -978,7 +1008,6 @@ nav a.active { background: var(--accent-ink); color: #fff; }
 /* No backdrop-filter anywhere: every glass tier falls back to solid ice,
    never a half effect. */
 @supports not (backdrop-filter: blur(1px)) {
-  .topbar, .gauge:not(.demo) { background: #FBFDFE; }
-  .gauge.demo, .integrity, .preamble, .order, .rules-edit,
+  .topbar, .gauge { background: #FBFDFE; }
   .slip, .stampbox, .signin .notice, .away-banner { background: #F6FAFD; }
 }

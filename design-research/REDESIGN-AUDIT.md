@@ -191,3 +191,40 @@ No photographic background. No accordion. No new dependencies or libraries. No n
 
 1. The three arbitration calls in Part 3 (or one word: "your recommendations", and all three are adopted as written).
 2. The go to start Phase A.
+
+---
+
+## Part 6: Implementation record (14 oct 2026, same day)
+
+The owner settled the arbitrations with two reference images plus the brief
+("if any overwrite what i settled previously, as long as it follows the glass
+brief and this direction, follow it") and ordered the changes made one after
+the other with no commit until all succeed. Implemented and verified:
+
+- Canon amended first (§1 two label voices and heavy display, §9 conditions
+  2/3/4, §10 queue order, new §6(i) log).
+- Glass retiered: paper tier token `--pane-paper` (white 86%, no blur) on the
+  preamble, decision order and rules editor; the integrity row dissolved to
+  an open hairline row; veil kept on slip, stampbox, sign-in notice and away
+  banner; the front door's example band upgraded to true frost as that
+  page's hero overview panel; `@supports` fallback list updated.
+- Backdrop: harbour vignette replaced by an architectural silhouette
+  (spires, tower, arcade band, fine structural lines), crisp at 7% opacity.
+- Labels: content voice `.sec` on band heads, the ask label, form fields,
+  sign-in headline and sub, rules-editor label, case-file section labels;
+  instrument caps kept on strip, receipt, stamp, register heads, refs,
+  chips, gauge caps, wordmark. Front-door column eyebrows removed.
+- Gate: ask column moved last (`order: 20`, empty-state span mirrored, one
+  position-dependent sentence reworded); blocked cards state their reason
+  in the content voice; display headings at weight 700; compact two-row top
+  bar at 680px and under.
+- Refused with reasons (canon §6(i)): dark mode, floating bottom dock,
+  radial arc gauge.
+
+Verification the same day: contrast sweep re-run (every pair passes; the
+texture exception holds at 4.28 or better over the darkest silhouette mass);
+`tsc` clean; 262/262 vitest; production build clean (10 routes); dev-server
+click-through of the front door, Gate, Record and Rules with computed-style
+probes confirming every tier; console clean (no errors, no warnings).
+Narrow widths reviewed statically (no viewport emulation in this
+environment), as before.
