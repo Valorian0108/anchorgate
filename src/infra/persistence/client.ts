@@ -34,7 +34,11 @@ export interface DatabaseHandle {
 
 /** Create a pooled Postgres client for the application runtime. */
 export function createDatabase(connectionString: string): DatabaseHandle {
-  const sql = postgres(connectionString, { prepare: false, max: 10 });
+  // `max: 5` is a deliberate per-instance cap: the runtime connects through
+  // the transaction-mode pooler (port 6543), and a small pool keeps even
+  // several warm server instances far below the pooler's client limit
+  // (session-mode exhaustion caused the 14 oct 2026 outage).
+  const sql = postgres(connectionString, { prepare: false, max: 5 });
   const db = drizzle(sql, { schema });
   return { db, sql };
 }
