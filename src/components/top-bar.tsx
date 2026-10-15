@@ -1,11 +1,11 @@
 /**
- * The seamless ice top bar (canon §10, frost object 2).
+ * The navigation console (canon §6(j), frost object 2).
  *
- * Full-bleed at the top of the page with a hairline bottom edge; its contents
- * sit on the same 1200px wrap as everything below. It sits still: it scrolls
- * away with the page, because nothing follows the owner (owner call
- * 13 oct 2026). Mark tile, wordmark, nav pills, then the away count, the
- * owner line and Sign out.
+ * One floating frost object at the top of the page, on the same 1200px
+ * envelope as everything below, the ice visible all around it. It sits
+ * still: it scrolls away with the page, because nothing follows the owner
+ * (owner call 13 oct 2026). Mark tile, wordmark, the nav keys, then the
+ * away count, the owner line and Sign out.
  */
 
 import { signOut } from "@/app/(auth)/signin/actions";

@@ -158,36 +158,79 @@ a:hover { color: var(--seal-bright); }
   opacity: 0.4;
 }
 
-/* ---------------- the seamless top bar (frost object 2 on the Gate;
-   the same bar, matte-behind, anchors every other screen) ---------------- */
+/* ---------------- the navigation console (art-directed 15 oct 2026, canon
+   §6(j); frost object 2 on the Gate) ----------------
+   One floating frost object over the ice, in the band's material recipe, so
+   bar and band read as family. The ground stays visible all around it; it
+   sits still and scrolls away: nothing follows the owner. */
 .topbar {
-  background: rgba(255, 255, 255, 0.58);
-  backdrop-filter: var(--bf-bar);
-  border-bottom: 1px solid var(--frost-edge);
-  box-shadow: 0 8px 24px rgba(31, 80, 110, 0.10), inset 0 1px 0 rgba(255,255,255,0.9);
+  background: transparent;
+  padding: 0 var(--s5);
 }
 .topbar-in {
-  max-width: 1200px; margin: 0 auto; padding: var(--s1) var(--s5);
+  max-width: 1200px; margin: var(--s2) auto var(--s1);
+  padding: 7px var(--s2);
   display: flex; align-items: center; gap: 4px;
+  background: var(--frost);
+  backdrop-filter: var(--bf-bar);
+  border: 1px solid var(--frost-edge);
+  border-radius: 18px;
+  box-shadow:
+    0 1px 2px rgba(18, 41, 58, 0.06),
+    var(--sh-2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 .topbar .mark {
-  width: 32px; height: 32px; border-radius: 10px; background: #fff;
+  width: 32px; height: 32px; border-radius: 10px; flex: none;
+  background: linear-gradient(180deg, #FFFFFF, #F1F7FB);
+  border: 1px solid rgba(255, 255, 255, 0.9);
   display: flex; align-items: center; justify-content: center;
-  box-shadow: var(--sh-1); flex: none;
+  box-shadow: var(--sh-1), inset 0 1px 0 #fff;
 }
 .topbar .mark svg { width: 17px; height: 17px; color: var(--accent); }
 .topbar .brand {
   font-weight: 800; font-size: 13px; letter-spacing: 0.12em;
   text-transform: uppercase; color: var(--ink); margin: 0 var(--s2) 0 var(--s1);
 }
-nav { margin-left: 0; display: flex; align-items: center; gap: 4px; }
-nav a {
-  display: inline-flex; align-items: center; height: 36px; padding: 0 var(--s2);
-  border-radius: 999px; font-size: 13px; font-weight: 500; color: var(--ink-soft);
+/* the nav is a row of instrument keys on the console. Location is carried
+   by material (a crisp white key), the accent rule under the label (the
+   column-rule motif) and text colour, never by a saturated lozenge: solid
+   accent stays reserved for money movement and the sign-in CTA (§6(j)). */
+nav { margin-left: 0; display: flex; align-items: center; gap: 2px; }
+nav::before {
+  content: ""; width: 1px; height: 20px; flex: none;
+  background: rgba(18, 41, 58, 0.14); margin-right: 10px;
 }
-nav a:hover { background: #fff; color: var(--ink); }
-nav a.active { background: var(--accent-ink); color: #fff; }
+nav a {
+  position: relative;
+  display: inline-flex; align-items: center; height: 34px; padding: 0 14px;
+  border-radius: 10px; font-size: 13px; font-weight: 500; color: var(--ink-soft);
+  transition:
+    background-color var(--dur-micro) var(--ease-out),
+    color var(--dur-micro) var(--ease-out);
+}
+nav a::after {
+  content: ""; position: absolute; left: 14px; right: 14px; bottom: 4px;
+  height: 2px; border-radius: 1px; background: var(--rule-faint);
+  transform: scaleX(0); opacity: 0;
+  transition:
+    transform var(--dur-short) var(--ease-out),
+    opacity var(--dur-short) var(--ease-out),
+    background-color var(--dur-micro) var(--ease-out);
+}
+nav a:hover { background: rgba(255, 255, 255, 0.55); color: var(--ink); }
+nav a:hover::after { transform: scaleX(1); opacity: 1; }
+nav a.active {
+  background: #fff; color: var(--accent-ink); font-weight: 600;
+  box-shadow: 0 1px 2px rgba(18, 41, 58, 0.10);
+}
+nav a.active::after { background: var(--accent-ink); transform: scaleX(1); opacity: 1; }
 .topbar .right { margin-left: auto; display: flex; align-items: center; gap: var(--s2); }
+/* the second drafting tick: the account zone is articulated, not adrift */
+.topbar .right::before {
+  content: ""; width: 1px; height: 20px; flex: none;
+  background: rgba(18, 41, 58, 0.14);
+}
 .topbar .tosignin {
   display: inline-flex; align-items: center; height: 36px; padding: 0 var(--s3);
   border-radius: 999px; background: var(--accent-ink); color: #fff;
@@ -198,7 +241,7 @@ nav a.active { background: var(--accent-ink); color: #fff; }
 
 /* the quiet "N new" count, shown only when arrivals happened away from the Gate */
 .away-badge {
-  display: inline-flex; align-items: center; height: 36px; padding: 0 var(--s2);
+  display: inline-flex; align-items: center; height: 30px; padding: 0 12px;
   border-radius: 999px; background: #fff; border: 1px solid rgba(45,156,219,0.4);
   font-family: var(--m); font-size: var(--t-cap); letter-spacing: 0.04em;
   color: var(--accent-ink); white-space: nowrap;
@@ -208,17 +251,25 @@ nav a.active { background: var(--accent-ink); color: #fff; }
 .owner { display: flex; align-items: center; gap: var(--s2); }
 .owner .who {
   font-family: var(--m); font-size: var(--t-cap); letter-spacing: 0.02em;
-  color: var(--ink-soft); max-width: 220px;
+  color: var(--ink-soft); max-width: 280px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+/* demoted to a utility (§6(j)): Sign out is not a fourth destination. A
+   30px hairline capsule, transparent at rest, white glass on hover. */
 .owner .signout {
-  height: 36px; padding: 0 var(--s2); border-radius: 999px;
-  background: #fff; border: 1px solid rgba(18,41,58,0.12);
-  font-family: var(--g); font-weight: 600; font-size: 13px; color: var(--ink);
-  cursor: pointer;
-  box-shadow: var(--sh-1), 0 6px 18px rgba(18,41,58,0.08);
+  height: 30px; padding: 0 12px; border-radius: 999px;
+  background: transparent; border: 1px solid rgba(18,41,58,0.22);
+  font-family: var(--g); font-weight: 500; font-size: 12px; color: var(--ink-soft);
+  cursor: pointer; box-shadow: none;
+  transition:
+    background-color var(--dur-micro) var(--ease-out),
+    color var(--dur-micro) var(--ease-out),
+    border-color var(--dur-micro) var(--ease-out);
 }
-.owner .signout:hover { border-color: rgba(18,41,58,0.28); color: var(--ink); }
+.owner .signout:hover {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(18,41,58,0.28); color: var(--ink);
+}
 .owner form { display: flex; }
 
 /* ---------------- the engine line (instrument whisper, non-Gate screens) ---- */
@@ -943,6 +994,10 @@ nav a.active { background: var(--accent-ink); color: #fff; }
   /* the trust line becomes a deliberate quiet full-width line instead of
      a right-aligned orphan when the strip wraps */
   .strip .trust { margin-left: 0; width: 100%; }
+  /* the owner email never ellipsises mid-address: below the console's
+     comfortable width it simply does not render (identity decoration,
+     not function) */
+  .owner .who { display: none; }
 }
 @media (max-width: 1000px) {
   .record .colhead { display: none; }
@@ -960,6 +1015,7 @@ nav a.active { background: var(--accent-ink); color: #fff; }
 }
 @media (max-width: 980px) {
   .wrap { padding: 0 24px 56px; }
+  .topbar { padding: 0 24px; } /* the console keeps the content's inset */
   .case-body { grid-template-columns: 1fr; gap: 36px; }
   .receipt { grid-template-columns: repeat(2, 1fr); }
 }
@@ -986,11 +1042,14 @@ nav a.active { background: var(--accent-ink); color: #fff; }
 @media (max-width: 680px) {
   .wrap { padding: 0 var(--s3) var(--s6); }
   .cols { grid-template-columns: 1fr; }
-  /* a deliberate two-row bar: identity and sign-out on the first row, the
-     three nav pills as an even row under them */
-  .topbar-in { flex-wrap: wrap; padding: var(--s1) var(--s3); row-gap: 2px; }
+  /* the console stays one object: identity and sign-out on the first row,
+     the three keys as an even row under them */
+  .topbar { padding: 0 var(--s3); }
+  .topbar-in { flex-wrap: wrap; padding: var(--s1); row-gap: 2px; }
   nav { order: 3; width: 100%; justify-content: space-between; }
   nav a { flex: 1 1 0; justify-content: center; }
+  /* the drafting ticks belong to the one-row composition only */
+  nav::before, .topbar .right::before { display: none; }
   .strip .trust { margin-left: 0; width: 100%; }
   .hero { padding-top: var(--s6); }
 }
@@ -1012,6 +1071,6 @@ nav a.active { background: var(--accent-ink); color: #fff; }
 /* No backdrop-filter anywhere: every glass tier falls back to solid ice,
    never a half effect. */
 @supports not (backdrop-filter: blur(1px)) {
-  .topbar, .gauge { background: #FBFDFE; }
+  .topbar-in, .gauge { background: #FBFDFE; }
   .slip, .stampbox, .signin .notice, .away-banner { background: #F6FAFD; }
 }

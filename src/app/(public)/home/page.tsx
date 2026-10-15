@@ -12,7 +12,7 @@ import { IceBackdrop } from "@/components/chrome";
  * Static on purpose: it promises nothing it has not read, and it reads
  * nothing. The instrument shown below is a labelled example, not live
  * data. Voice: plain, second person, no em dashes, grandma test.
- * Chrome: the same ice ground and the same seamless top bar as the Gate.
+ * Chrome: the same ice ground and the same navigation console as the Gate.
  * The example band is this page's hero overview panel and wears the true
  * frost (image-settled 14 oct 2026); everything else here is open ground.
  */

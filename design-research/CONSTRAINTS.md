@@ -110,7 +110,7 @@ the v4 dark-ground draft was withdrawn):**
 | accent | `#2D9CDB` | fills, bars, dots and rules only; never text, never under white text |
 | accent-text | `#2289C9` | large display text only: the hook words, the 32px readout (clears the 3:1 large floor, §6(h)) |
 | accent-ink | `#0F6E8C` | small accent text, links, and the primary button fill with white text (5.8:1) |
-| frost | white at 55-58% plus blur 24-32px | the top bar and the instrument band |
+| frost | white at 55-58% plus blur 24-32px | the navigation console and the instrument band |
 | veil | white at 60% plus blur 12px | every icy-paper pane (§6(g)) |
 
 The warm palette above is retired (owner call 13 oct 2026: everything joins
@@ -294,6 +294,27 @@ the *only* icon source in the build; nothing from external icon packages
   and slip note) moved from the mono data voice to the interface voice per
   §4; and the strip's trust line wraps as a deliberate full-width quiet
   line at 1100px and under instead of orphaning right-aligned.
+- (j) **Navigation art direction (15 oct 2026, owner brief "Navigation Art
+   Direction Refinement").** The full-bleed seamless plank is replaced by the
+   navigation console: one floating frost object (radius 18px, the band's
+   material recipe) on the 1200px envelope, the ice visible all around it; it
+   still sits still and scrolls away. Drafting-tick dividers articulate the
+   three zones inside it (identity, nav keys, account). Nav links became
+   instrument keys: no fill at rest, a shallow white-glass key on hover, and
+   the active key a crisp white tile with accent-ink text at weight 600 plus
+   a 2px accent rule under the label (the column-rule motif). The saturated
+   accent lozenge is retired: solid accent now appears only on money movement
+   and the sign-in CTA. In the account zone Sign out demoted to a 30px
+   hairline utility capsule, the away badge resized to match, and the owner
+   email hides below 1100px rather than truncating mid-address. The
+   considered alternative, a "Ruled Rail" (keep the full-bleed bar, mark
+   position with the rule alone), was declined: it leaves the silhouette and
+   material untouched, which the brief explicitly asks about; the console
+   follows the glass-inspiration images' composition (one floating object,
+   logo tile, controls) without copying their placement, as the brief
+   directs. Mobile keeps the console one object with the deliberate two-row
+   interior (identity and account, then three even keys). Frost object counts
+   are unchanged.
 
 ---
 
@@ -410,7 +431,8 @@ and all five are mandatory:
    architecture). Nothing drifts, nothing animates. Life comes from the
    instruments on top, never from the wallpaper.
 3. **Glass is tiered and rare.** The instrument band is true frost (white at
-   about 55%, 24 to 32px blur); the top bar is frost too. The light veil
+   about 55%, 24 to 32px blur); the navigation console is frost too
+   (§6(j)). The light veil
    (white at 60%, blur 12px) is reserved for documents and callouts: the
    decision slip, the closed box, the sign-in notice, the away banner, and
    the front door's example band. Information-dense panes (preamble,
@@ -419,15 +441,16 @@ and all five are mandatory:
    (image-settled 14 oct 2026, §6(i): dense content on opaque surfaces,
    most things not blurred at all).
 4. **Frost is rare and the frame stays solid.** At most two frosted objects
-   per view: on the Gate, the seamless top bar and the instrument band; on
-   the front door, the seamless top bar and the example band, which is that
+   per view: on the Gate, the navigation console and the instrument band; on
+   the front door, the navigation console and the example band, which is that
    page's hero overview panel (image-settled 14 oct 2026, §6(i)).
-   Every other screen carries the same top bar as shared product chrome (its
+   Every other screen carries the same console as shared product chrome (its
    frost is the only one there) and icy-paper panes in the light veil tier
    (white at 60%, blur 12px; owner call 13 oct 2026, third call). True frost
-   never appears off the Gate. The top bar
+   never appears off the Gate and front-door views. The console
    sits still at the top of the page and scrolls away with it (owner call
-   13 oct 2026); the floating dock is retired. Cards are veils, not glass.
+   13 oct 2026); the floating dock stays retired (the console never follows
+   the owner; art-directed 15 oct 2026, §6(j)). Cards are veils, not glass.
 5. **Contrast is verified on the worst case.** Every text pair is checked at
    4.5:1 against text over a glow, not against the easy ground.
 
@@ -483,14 +506,17 @@ reference for the Gate rebuild. The poster is gone; the Gate is a cockpit:
   requests own the start of the scan and the ask column sits last in the
   row (image-settled 14 oct 2026, §6(i): the assistant supports, the money
   leads; supersedes the v7 ask-first order).
-- **The top bar (frost 2) sits still.** Seamless full-bleed at the top of the
-  page, hairline bottom edge, inner content on the 1200px wrap: mark tile,
-  wordmark, nav pills, then the away capsule, the owner line in mono, and Sign
-  out. It scrolls away with the page (owner call 13 oct 2026: nothing follows
-  him). The floating dock is retired.
+- **The navigation console (frost 2) sits still.** One floating frost object
+  at the top of the page on the 1200px envelope, radius 18px, the band's
+  material recipe, the ice visible all around it (art-directed 15 oct 2026,
+  §6(j)): mark tile, wordmark, drafting tick, the nav keys, drafting tick,
+  then the away badge, the owner line in mono, and the Sign out utility
+  capsule. It scrolls away with the page (owner call 13 oct 2026: nothing
+  follows him). The floating dock is retired.
 - **Buttons.** One capsule family: 44px, 36px small. Primary is accent-ink
   fill with white text (5.9:1), hover one step darker; quiet is white with a
-  hairline; the active nav pill is accent-ink. White never sits on the bright
+  hairline; the active nav key is a white key with accent-ink text and the
+  accent rule under the label (§6(j)). White never sits on the bright
   accent.
 - **Scale.** Spacing on the 8pt scale (8/16/24/32/48/64/96). Type on live:
   18 headings, 15 sub, 14 body, 11 mono caps, 22 mono figures, 32 mono
@@ -499,10 +525,12 @@ reference for the Gate rebuild. The poster is gone; the Gate is a cockpit:
 Every screen joined the ice by the owner's second call of 13 oct 2026 (§6(f)):
 the Record, case files and Rules are "icy paper" (this cockpit's language with
 veil panes in place of true frost, deepened by the third call, §6(g)), the
-entry screens wear the same top bar and ground, and the front door lives at
+entry screens wear the same navigation console and ground, and the front
+door lives at
 "/" for signed-out visitors (Option A: one address, two doors; the intro page
 itself is the static `/home` route the proxy rewrites to). The sign-in title
 sets in Sora with the accent hook; the serif retired everywhere with the warm
-paper. The front door's instrument band is a veil `.gauge.demo` reproduction
+paper. The front door's instrument band is a true-frost `.gauge.demo`
+reproduction (retiered 14 oct 2026, §6(i))
 labelled "an example · not live data", which keeps §3 ban 5 (no invented
 metrics) honest.
