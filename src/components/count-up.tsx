@@ -40,7 +40,11 @@ export function CountUp({ value, decimals = 2 }: { value: number; decimals?: num
 
     const t0 = performance.now();
     const step = (t: number) => {
-      const p = Math.min((t - t0) / DURATION_MS, 1);
+      // Clamped at both ends: the first frame's timestamp can precede t0
+      // (rAF stamps the frame start), and an unclamped negative progress
+      // dips the money readout below zero for a frame (seen live: $-3.21
+      // flashing inside a 0 -> $106.00 count on 15 oct 2026).
+      const p = Math.max(0, Math.min((t - t0) / DURATION_MS, 1));
       const next = start + delta * easeOutCubic(p);
       shown.current = next;
       setDisplay(next);
