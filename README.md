@@ -12,47 +12,63 @@ Built for the PayPal AI Hackathon, fall 2026.
 
 AI agents can shop now. They can browse, compare, and check out. But nobody sane hands an agent their card and says "be sensible about it." AnchorGate stands between the agent and the money, like a locked gate. The agent can knock all it likes. Your rules open the gate, or your yes opens it. Nothing else does.
 
-## What happens to a purchase
+## The whole machine in one picture
 
-1. **The agent proposes.** A seller, a purpose, a category, an exact amount. Proposing is the only thing an agent can do here. It has no tool that pays for anything.
-2. **The gate checks, in a fixed order.** Is the request complete and sensible? Is the currency one you allowed? Is the kind of purchase one you allowed? Is there room under your monthly limit? These checks are plain code, not AI. No model is ever asked whether its own request should pass.
-3. **One of three things happens.**
-   - **Allowed and paid by your rules.** Only when you switched on AI authorization, and only when the item matches your list exactly: same seller, same purpose, same amount to the cent, and room left in this month's auto budget.
-   - **Refused**, naming the rule that refused it, in plain words. A hard refusal stays refused. No approval button can move it.
-   - **It comes to you.** Everything else waits for a person: you approve and it pays, or you decline.
-4. **Payment runs through PayPal.** Money counts only when PayPal confirms it, and a confirmed payment counts exactly once. A capture still pending is watched until it settles or lets go.
-5. **Everything goes on the record.** Every purchase has a page showing each check that ran, the decision, which version of your rules made it, and the PayPal reference. The checks run when a purchase is suggested, and again right before it pays. Your rules are never remembered from last time. They are read fresh, every time.
+```
+          proposes                 decides                pays
+agent ─────────────▶ THE GATE ─────────────▶ PayPal ─────────────▶ record
+(any, real or        plain code,             capture               every check,
+ simulated)          never a model.          confirmed,            the decision,
+                     Checks, in order:       counted once.         whose rules,
+                     1 valid request                  │            who approved,
+                     2 positive amount                ▼            when.
+                     3 right currency         signed webhook:
+                     4 allowed category       PayPal's signature,
+                     5 room under your        checked against
+                       monthly limit          PayPal's certificate,
+                     6 your approval          stored on the record.
 
-## The rules only you can change
+Three verdicts, and only three:
+  REFUSED             names the rule in plain words; stays refused
+  ASKS YOU            you approve and it pays, or you decline
+  PAID BY YOUR RULES  only with AI authorization on: exact seller,
+                      purpose and price on your list, budget left
+```
 
-On the Rules page you set your monthly limit, the kinds of purchases you allow, and the currency. Until you write your first rule set, nothing can be approved at all. That is deliberate. The gate fails safe.
+Three things the picture cannot say:
 
-**AI authorization** is the optional part, and it is off by default. When you switch it on, you get three things:
+- The agent has no tool that pays for anything. Proposing is the only thing it can do here, and no model is ever asked whether its own request should pass.
+- A payment counts only when PayPal confirms it, and exactly once. A capture still pending is watched until it settles or lets go.
+- Your rules are read fresh at every check, never remembered from last time. Each purchase's record page shows every check that ran, the decision, which version of your rules made it, the PayPal reference, and PayPal's signed proof.
 
-- **Your list.** Exact items at exact prices. "Printer paper, restock, $22.00" pays itself. Printer paper at $22.01 does not. It comes to you showing both numbers.
-- **One auto budget for the month**, always inside your monthly limit. When it runs out, auto-paying stops and the gate asks you again, saying plainly that the budget is why.
-- **A meter**, so you are never surprised. The Rules page shows how much of the budget has been used, and the gate's wall carries the same figure. Switch the feature off and everything returns to asking you. It is one switch.
+## Your rules, and the promises they keep
 
-Only you can save rules. Every decision on record names the version of your rules that made it, so you can always see which rulebook was in force.
+On the Rules page you set your monthly limit, the kinds of purchases you allow, and the currency. Until you set them, nothing can be approved at all. That is deliberate: the gate fails safe. Only you can save rules, and every decision on record names the version of your rules that made it.
 
-## The promises the gate keeps
+**AI authorization** is optional and off by default. Switched on, it gives you three things:
+
+- **Your list.** Exact items at exact prices. "Printer paper, restock, $22.00" pays itself. Printer paper at $22.01 does not; it comes to you showing both numbers.
+- **One auto budget for the month**, always inside your monthly limit. When it runs out, auto-paying stops and the gate says plainly that the budget is why.
+- **A meter**, on the Rules page and on the gate's wall, so you are never surprised. One switch turns everything back to asking you.
+
+The promises:
 
 - Nothing pays itself unless it matches your list to the cent.
-- Every auto-paid purchase is marked, on its card, on its record, and on the wall.
+- Every auto-paid purchase is marked: on its card, on its record, and on the wall.
 - Every refusal and every ask names its reason in plain words. No codes, no shrugs.
-- Money is counted only when the payment is confirmed, and only once.
-- At the top of the gate sits **the wall**: your monthly limit as a hard line, with what is spent, what is set aside for waiting purchases, what is left, and what your rules auto-paid. Approvals cannot move the limit line. Nothing can, except you changing your rules.
+- Money counts only when the payment is confirmed, and only once.
+- The wall at the top of the gate is your monthly limit as a hard line, with what is spent, what is set aside, what is left, and what your rules auto-paid. Approvals cannot move it. Nothing can, except you changing your rules.
 
 ## The demo agent
 
 A built-in agent proposes items from a fixed catalog of fourteen, one at a time: a coffee subscription, printer paper, software seats, all the way up to a team flight. The loop runs from your first minute, with nothing to wire up.
 
-You can also type any purchase into the ask box in your own words. That uses whichever AI model you configure. The model writes the proposal. The decision never involves a model.
+You can also type any purchase into the ask box in your own words. A model writes the proposal. The decision never involves a model.
 
 <!-- TODO before publishing: replace these slots with real screenshots
      1. the gate: the wall on top, a card waiting on you, the ask box
      2. a paid card: "your rules cleared it · paid once" with its PayPal reference
-     3. a record page: every check, the decision, the ALLOWED stamp
+     3. a record page: every check, the decision, the ALLOWED stamp, the signed proof
      4. the Rules page: your limit, your exact-price list, the auto budget meter -->
 
 ## Run it yourself
@@ -60,9 +76,9 @@ You can also type any purchase into the ask box in your own words. That uses whi
 You need, all free tier is fine:
 
 - **Node.js 20** or newer
-- A **Supabase** project. It provides the database (Postgres) and the email plus password sign-in.
-- A **PayPal Developer sandbox app**, for the client ID and secret.
-- Optionally, an API key for any AI model service that speaks the common OpenAI-style API. This powers the ask box. The rest of the app works without it.
+- A **Supabase** project: the database and the sign-in
+- A **PayPal Developer sandbox app**: the client ID and secret
+- Optionally, an API key for any OpenAI-style model service. It powers the ask box; everything else works without it
 
 ```bash
 git clone https://github.com/Valorian0108/anchorgate.git
@@ -78,6 +94,7 @@ Copy `.env.example` to `.env` and fill in:
 | `DATABASE_URL_DIRECT` | Supabase direct connection on port 5432, used once for migrations |
 | `PAYPAL_ENV` | Leave it as `sandbox`. Any other value is refused at startup |
 | `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` | From your PayPal sandbox app |
+| `PAYPAL_WEBHOOK_ID` | From the webhook you register for signed proof of captures |
 | `SUPABASE_URL`, `SUPABASE_ANON_KEY` | From your Supabase project settings |
 | `SESSION_SECRET` | Any long random string |
 | `AGENT_BASE_URL`, `AGENT_API_KEY`, `AGENT_MODEL` | Optional. For the ask box |
@@ -113,6 +130,7 @@ One safety sentence: the PayPal adapter refuses to start against any environment
 
 - **Next.js 16, React 19, TypeScript** for the app
 - **PayPal Server SDK**: orders, captures, and a vaulted sandbox card, with pending captures reconciled until confirmed
+- **PayPal webhook verification**: every capture's signed notification, checked against PayPal's certificate and stored on the record
 - **Postgres** with **Drizzle ORM**, hosted on Supabase
 - **Supabase Auth**: email plus password, with an optional emailed link
 - **Vercel AI SDK**, pointed at any OpenAI-compatible model
