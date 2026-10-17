@@ -28,5 +28,8 @@ next-env.d.ts
 # external design critique dropped into the repo — not part of the project
 gpt powerful model design of ancorgate.txt
 
+# saved hackathon page notes — not part of the project
+PayPal AI Hackathon.txt
+
 # one-time local session helper (never for the repo)
 scripts/mint-session.ts
