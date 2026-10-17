@@ -13,9 +13,11 @@
  * rather than dropped by a 5xx, because the honest state is "PayPal sent this,
  * we could not confirm the signature" and the record page says exactly that.
  *
- * Everything PayPal signed is stored in `transmission` under PayPal's own field
- * names, so anyone (a judge, a curious owner) can copy that object straight
- * back into PayPal's verify-webhook-signature API and check it themselves.
+ * Everything PayPal signed is stored in `transmission`: the six signature
+ * headers under PayPal's own field names plus the raw signed body. Supplying
+ * that body as `webhook_event`, with the registered webhook id, reproduces
+ * PayPal's verify-webhook-signature call exactly, so anyone (a judge, a curious
+ * owner) can re-check a stored event without trusting us.
  */
 
 import { NextResponse, type NextRequest } from "next/server";
@@ -81,10 +83,14 @@ async function verifyWithPayPal(
       transmission_id: transmission.transmission_id,
       transmission_time: transmission.transmission_time,
       webhook_id: webhookId,
-      webhook_event_id: event.id,
+      /* PayPal's verify API takes the whole event object, not an id: these are
+         the only seven fields its schema accepts (see the OpenAPI spec,
+         notifications_webhooks_v1.json), and an unknown or missing one makes it
+         answer INVALID_REQUEST. The parsed object keeps the received key order,
+         which is what the signature was computed over. */
+      webhook_event: event,
       cert_url: transmission.cert_url,
       transmission_sig: transmission.transmission_sig,
-      transmission_body: transmission.transmission_body,
     }),
   });
 
