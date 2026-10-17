@@ -4,10 +4,11 @@
  * Mapped to the acceptance criteria in the project spec (section 11.1). These
  * tests run against the real engine — not a mock — because the engine is pure.
  *
- * Option 1 (owner decision): auto-approve ships OFF, so the product-default
- * fixture (BASE_RULES) asks for everything inside the cap. The dormant
- * auto-approve plumbing stays covered through AUTO_RULES, so a future
- * trust-based mode cannot rot untested.
+ * Trust mode (owner decision, 16 oct 2026): AI authorization ships OFF, so the
+ * product-default fixture (BASE_RULES) asks for everything inside the cap. When
+ * the owner switches it on, their exact-price trust list is the ONE automatic
+ * path (TRUST_RULES): exact match inside the auto budget allows, anything
+ * else asks, and the hard rules still beat the list.
  */
 
 import { describe, expect, it } from "vitest";
@@ -22,19 +23,30 @@ import {
 
 // --- fixtures ---------------------------------------------------------------
 
-/** The product default: auto-approve OFF (Option 1). Everything needs the owner. */
+/** The product default: AI authorization OFF. Everything needs the owner. */
 const BASE_RULES: SpendingRules = {
   ruleVersion: "v1",
   currency: "USD",
-  perPurchaseAutoLimitMinor: 1000, // $10.00 (dormant while auto-approve is off)
+  perPurchaseAutoLimitMinor: 1000, // retired: the engine no longer reads this line
   monthlyCapMinor: 5000, // $50.00
   permittedCategories: ["office", "books", "software"],
   requireApprovalForNewPayee: false,
   autoApproveEnabled: false,
 };
 
-/** The dormant plumbing, exercised: what trust-based auto would switch on. */
-const AUTO_RULES: SpendingRules = { ...BASE_RULES, autoApproveEnabled: true };
+/**
+ * Trust mode, exercised: AI authorization on with one exact-price entry and a
+ * $20.00 auto budget under the $50.00 cap. The default request below is an
+ * exact match for the entry.
+ */
+const TRUST_RULES: SpendingRules = {
+  ...BASE_RULES,
+  autoApproveEnabled: true,
+  autoAllowlist: [
+    { payee: "Acme Supplies", purpose: "Office supplies", amountMinor: 500 },
+  ],
+  autoBudgetMinor: 2000,
+};
 
 const BASE_STATE: SpendingState = {
   spentThisMonthMinor: 0,
@@ -54,22 +66,20 @@ function request(overrides: Partial<PurchaseRequest> = {}): PurchaseRequest {
   };
 }
 
-// --- Option 1: every request needs the owner --------------------------------
+// --- AI authorization off: every request needs the owner ---------------------
 
-describe("Option 1 — auto-approve off (the product default)", () => {
-  it("asks for a small amount far under the per-purchase auto line", () => {
+describe("AI authorization off (the product default)", () => {
+  it("asks for a small amount", () => {
     const result = evaluatePurchase(request(), BASE_RULES, BASE_STATE);
     expect(result.decision).toBe("ASK");
     expect(result.reasonCode).toBe(ReasonCode.APPROVAL_REQUIRED);
     expect(result.ruleVersion).toBe("v1");
   });
 
-  it("asks for an amount exactly at the dormant auto line", () => {
-    const result = evaluatePurchase(
-      request({ amountMinor: 1000 }),
-      BASE_RULES,
-      BASE_STATE,
-    );
+  it("asks even when the purchase would exactly match a trust list entry", () => {
+    // The list means nothing while the toggle is off: the flag is checked
+    // before the list is ever read.
+    const result = evaluatePurchase(request(), { ...TRUST_RULES, autoApproveEnabled: false }, BASE_STATE);
     expect(result.decision).toBe("ASK");
     expect(result.reasonCode).toBe(ReasonCode.APPROVAL_REQUIRED);
   });
@@ -84,7 +94,7 @@ describe("Option 1 — auto-approve off (the product default)", () => {
     expect(result.reasonCode).toBe(ReasonCode.APPROVAL_REQUIRED);
   });
 
-  it("still denies over the cap: Option 1 never softens a hard stop", () => {
+  it("still denies over the cap: the toggle never softens a hard stop", () => {
     const result = evaluatePurchase(
       request({ amountMinor: 6000 }),
       BASE_RULES,
@@ -94,7 +104,7 @@ describe("Option 1 — auto-approve off (the product default)", () => {
     expect(result.reasonCode).toBe(ReasonCode.MONTHLY_CAP_EXCEEDED);
   });
 
-  it("treats rules that omit the flag (saved before Option 1) as off", () => {
+  it("treats rules that omit the flag (saved before trust mode) as off", () => {
     const { autoApproveEnabled: _omit, ...legacyRules } = BASE_RULES;
     const result = evaluatePurchase(request(), legacyRules, BASE_STATE);
     expect(result.decision).toBe("ASK");
@@ -102,65 +112,189 @@ describe("Option 1 — auto-approve off (the product default)", () => {
   });
 });
 
-// --- ALLOW (dormant plumbing: auto-approve explicitly on) --------------------
+// --- Trust mode: the exact-price list is the only automatic path --------------
 
-describe("ALLOW — only with auto-approve enabled", () => {
-  it("allows a valid amount within the per-purchase limit and budget", () => {
-    const result = evaluatePurchase(request(), AUTO_RULES, BASE_STATE);
+describe("trust mode — the trust list decides", () => {
+  it("allows an exact match on the list, inside the auto budget", () => {
+    const result = evaluatePurchase(request(), TRUST_RULES, BASE_STATE);
     expect(result.decision).toBe("ALLOW");
-    expect(result.reasonCode).toBe(ReasonCode.WITHIN_LIMITS);
+    expect(result.reasonCode).toBe(ReasonCode.ON_TRUST_LIST);
     expect(result.ruleVersion).toBe("v1");
   });
 
-  it("allows an amount exactly at the per-purchase limit", () => {
+  it("asks when the amount differs from the listed price, quoting both numbers", () => {
     const result = evaluatePurchase(
-      request({ amountMinor: 1000 }),
-      AUTO_RULES,
+      request({ amountMinor: 501 }),
+      TRUST_RULES,
+      BASE_STATE,
+    );
+    expect(result.decision).toBe("ASK");
+    expect(result.reasonCode).toBe(ReasonCode.AMOUNT_OFF_TRUST_LIST);
+    expect(result.reason).toContain("501");
+    expect(result.reason).toContain("500");
+  });
+
+  it("asks when the payee is not on the list", () => {
+    const result = evaluatePurchase(
+      request({ payee: "Brand New Shop" }),
+      TRUST_RULES,
+      BASE_STATE,
+    );
+    expect(result.decision).toBe("ASK");
+    expect(result.reasonCode).toBe(ReasonCode.NOT_ON_TRUST_LIST);
+  });
+
+  it("asks when the purpose differs, even with the payee on the list", () => {
+    const result = evaluatePurchase(
+      request({ purpose: "Party snacks" }),
+      TRUST_RULES,
+      BASE_STATE,
+    );
+    expect(result.decision).toBe("ASK");
+    expect(result.reasonCode).toBe(ReasonCode.NOT_ON_TRUST_LIST);
+  });
+
+  it("asks for everything when the list is empty", () => {
+    const result = evaluatePurchase(
+      request(),
+      { ...TRUST_RULES, autoAllowlist: [] },
+      BASE_STATE,
+    );
+    expect(result.decision).toBe("ASK");
+    expect(result.reasonCode).toBe(ReasonCode.NOT_ON_TRUST_LIST);
+  });
+
+  it("treats a missing list (rules saved before trust mode) as empty", () => {
+    const { autoAllowlist: _omit, ...legacyAuto } = TRUST_RULES;
+    const result = evaluatePurchase(request(), legacyAuto, BASE_STATE);
+    expect(result.decision).toBe("ASK");
+    expect(result.reasonCode).toBe(ReasonCode.NOT_ON_TRUST_LIST);
+  });
+
+  it("ignores the retired per-purchase line: an exact match above it still allows", () => {
+    const result = evaluatePurchase(
+      request({ amountMinor: 1500 }),
+      {
+        ...TRUST_RULES,
+        autoAllowlist: [
+          { payee: "Acme Supplies", purpose: "Office supplies", amountMinor: 1500 },
+        ],
+      },
       BASE_STATE,
     );
     expect(result.decision).toBe("ALLOW");
+    expect(result.reasonCode).toBe(ReasonCode.ON_TRUST_LIST);
   });
 
-  it("allows a purchase that lands exactly on the monthly cap", () => {
+  it("ignores the retired new-payee flag: the list defines trust", () => {
     const result = evaluatePurchase(
-      request({ amountMinor: 500 }),
-      AUTO_RULES,
-      { spentThisMonthMinor: 4500, knownPayees: [] },
+      request(),
+      { ...TRUST_RULES, requireApprovalForNewPayee: true },
+      BASE_STATE, // "Acme Supplies" is NOT a known payee here
     );
     expect(result.decision).toBe("ALLOW");
+    expect(result.reasonCode).toBe(ReasonCode.ON_TRUST_LIST);
+  });
+
+  it("denies when the list is malformed, rather than loosening", () => {
+    const result = evaluatePurchase(
+      request(),
+      {
+        ...TRUST_RULES,
+        autoAllowlist: [{ payee: "Acme Supplies" }] as never,
+      },
+      BASE_STATE,
+    );
+    expect(result.decision).toBe("DENY");
+    expect(result.reasonCode).toBe(ReasonCode.INVALID_RULES);
   });
 });
 
-// --- ASK --------------------------------------------------------------------
+// --- Trust mode: the auto budget is a second ceiling under the cap ------------
 
-describe("ASK", () => {
-  it("asks when the amount exceeds the per-purchase limit but is within the cap", () => {
-    const result = evaluatePurchase(
-      request({ amountMinor: 1500 }),
-      AUTO_RULES,
-      BASE_STATE,
-    );
+describe("trust mode — the auto budget", () => {
+  it("asks when the auto spending would pass the auto budget", () => {
+    const result = evaluatePurchase(request(), TRUST_RULES, {
+      spentThisMonthMinor: 1600,
+      knownPayees: [],
+      autoSpentThisMonthMinor: 1600,
+    });
     expect(result.decision).toBe("ASK");
-    expect(result.reasonCode).toBe(ReasonCode.PER_PURCHASE_LIMIT_EXCEEDED);
+    expect(result.reasonCode).toBe(ReasonCode.AUTO_BUDGET_USED);
   });
 
-  it("asks for an unseen payee when approval for new payees is required", () => {
-    const result = evaluatePurchase(
-      request({ payee: "Brand New Shop" }),
-      { ...AUTO_RULES, requireApprovalForNewPayee: true },
-      BASE_STATE,
-    );
-    expect(result.decision).toBe("ASK");
-    expect(result.reasonCode).toBe(ReasonCode.APPROVAL_REQUIRED);
-  });
-
-  it("allows a known payee when approval for new payees is required", () => {
-    const result = evaluatePurchase(
-      request({ payee: "Acme Supplies" }),
-      { ...AUTO_RULES, requireApprovalForNewPayee: true },
-      { spentThisMonthMinor: 0, knownPayees: ["Acme Supplies"] },
-    );
+  it("allows a purchase that lands exactly on the auto budget", () => {
+    const result = evaluatePurchase(request(), TRUST_RULES, {
+      spentThisMonthMinor: 1500,
+      knownPayees: [],
+      autoSpentThisMonthMinor: 1500,
+    });
     expect(result.decision).toBe("ALLOW");
+    expect(result.reasonCode).toBe(ReasonCode.ON_TRUST_LIST);
+  });
+
+  it("never auto-pays with a zero auto budget", () => {
+    const result = evaluatePurchase(
+      request(),
+      { ...TRUST_RULES, autoBudgetMinor: 0 },
+      BASE_STATE,
+    );
+    expect(result.decision).toBe("ASK");
+    expect(result.reasonCode).toBe(ReasonCode.AUTO_BUDGET_USED);
+  });
+
+  it("treats a missing auto budget as zero", () => {
+    const { autoBudgetMinor: _omit, ...noBudget } = TRUST_RULES;
+    const result = evaluatePurchase(request(), noBudget, BASE_STATE);
+    expect(result.decision).toBe("ASK");
+    expect(result.reasonCode).toBe(ReasonCode.AUTO_BUDGET_USED);
+  });
+
+  it("counts only the auto figure against the budget, not all spending", () => {
+    // $40 of human-approved spending this month, $0 of it automatic: the auto
+    // budget is untouched, and the purchase still fits under the $50 cap.
+    const result = evaluatePurchase(request(), TRUST_RULES, {
+      spentThisMonthMinor: 4000,
+      knownPayees: [],
+      autoSpentThisMonthMinor: 0,
+    });
+    expect(result.decision).toBe("ALLOW");
+    expect(result.reasonCode).toBe(ReasonCode.ON_TRUST_LIST);
+  });
+});
+
+// --- Trust mode: hard rules still beat the list -------------------------------
+
+describe("trust mode — hard rules beat the list", () => {
+  it("denies an exact match that would exceed the monthly cap", () => {
+    const result = evaluatePurchase(request(), TRUST_RULES, {
+      spentThisMonthMinor: 4600,
+      knownPayees: [],
+      autoSpentThisMonthMinor: 0,
+    });
+    // ($46.00 spent + $5.00 = $51.00 > $50.00 cap)
+    expect(result.decision).toBe("DENY");
+    expect(result.reasonCode).toBe(ReasonCode.MONTHLY_CAP_EXCEEDED);
+  });
+
+  it("denies an exact match in an unpermitted category", () => {
+    const result = evaluatePurchase(
+      request({ category: "gambling" }),
+      TRUST_RULES,
+      BASE_STATE,
+    );
+    expect(result.decision).toBe("DENY");
+    expect(result.reasonCode).toBe(ReasonCode.CATEGORY_NOT_PERMITTED);
+  });
+
+  it("denies an exact match in the wrong currency", () => {
+    const result = evaluatePurchase(
+      request({ currency: "EUR" }),
+      TRUST_RULES,
+      BASE_STATE,
+    );
+    expect(result.decision).toBe("DENY");
+    expect(result.reasonCode).toBe(ReasonCode.CURRENCY_MISMATCH);
   });
 });
 

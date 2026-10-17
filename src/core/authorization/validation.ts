@@ -7,7 +7,12 @@
  * engine can deny it.
  */
 
-import type { PurchaseRequest, SpendingRules, SpendingState } from "./types";
+import type {
+  AutoAllowlistEntry,
+  PurchaseRequest,
+  SpendingRules,
+  SpendingState,
+} from "./types";
 
 export type ParseResult<T> =
   | { ok: true; value: T }
@@ -80,6 +85,8 @@ export function parseRules(input: unknown): ParseResult<SpendingRules> {
     permittedCategories,
     requireApprovalForNewPayee,
     autoApproveEnabled,
+    autoAllowlist,
+    autoBudgetMinor,
   } = input;
 
   if (!isNonEmptyString(ruleVersion)) return { ok: false, reason: "ruleVersion is required." };
@@ -96,11 +103,50 @@ export function parseRules(input: unknown): ParseResult<SpendingRules> {
   if (typeof requireApprovalForNewPayee !== "boolean") {
     return { ok: false, reason: "requireApprovalForNewPayee must be a boolean." };
   }
-  // Optional at the boundary: rule sets saved before Option 1 do not carry the
-  // flag. Anything other than an explicit `true` fails safe to false, so a
+  // Optional at the boundary: rule sets saved before trust mode do not carry
+  // the flag. Anything other than an explicit `true` fails safe to false, so a
   // missing or malformed flag means auto-approve OFF (every request asks).
   if (autoApproveEnabled !== undefined && typeof autoApproveEnabled !== "boolean") {
     return { ok: false, reason: "autoApproveEnabled must be a boolean when present." };
+  }
+  // The trust list is optional at the boundary: missing means an EMPTY list,
+  // so nothing matches and everything asks. When present, every entry must be
+  // complete (a partial entry could never match safely, and silently dropping
+  // it would hide a mistake): payee and purpose non-empty, amount a positive
+  // integer in minor units. A malformed list fails the whole parse, which
+  // denies everything, matching the philosophy for every other rules field.
+  const allowlist: AutoAllowlistEntry[] = [];
+  if (autoAllowlist !== undefined) {
+    if (!Array.isArray(autoAllowlist)) {
+      return { ok: false, reason: "autoAllowlist must be an array when present." };
+    }
+    for (const entry of autoAllowlist) {
+      if (!isRecord(entry)) {
+        return { ok: false, reason: "Every trust-list entry must be an object." };
+      }
+      if (!isNonEmptyString(entry.payee)) {
+        return { ok: false, reason: "Trust-list entries need a payee." };
+      }
+      if (!isNonEmptyString(entry.purpose)) {
+        return { ok: false, reason: "Trust-list entries need a purpose." };
+      }
+      if (!isSafeInteger(entry.amountMinor) || entry.amountMinor <= 0) {
+        return {
+          ok: false,
+          reason: "Trust-list amounts must be positive integers in minor units.",
+        };
+      }
+      allowlist.push({
+        payee: entry.payee,
+        purpose: entry.purpose,
+        amountMinor: entry.amountMinor,
+      });
+    }
+  }
+  // Missing budget means 0: auto-approve can be switched on with no budget,
+  // and then nothing auto-pays. The safe direction.
+  if (autoBudgetMinor !== undefined && !isNonNegativeSafeInteger(autoBudgetMinor)) {
+    return { ok: false, reason: "autoBudgetMinor must be a non-negative integer when present." };
   }
 
   return {
@@ -113,6 +159,8 @@ export function parseRules(input: unknown): ParseResult<SpendingRules> {
       permittedCategories,
       requireApprovalForNewPayee,
       autoApproveEnabled: autoApproveEnabled === true,
+      autoAllowlist: allowlist,
+      autoBudgetMinor: autoBudgetMinor ?? 0,
     },
   };
 }
@@ -122,7 +170,7 @@ export function parseState(input: unknown): ParseResult<SpendingState> {
     return { ok: false, reason: "Spending state must be an object." };
   }
 
-  const { spentThisMonthMinor, knownPayees } = input;
+  const { spentThisMonthMinor, knownPayees, autoSpentThisMonthMinor } = input;
 
   if (!isNonNegativeSafeInteger(spentThisMonthMinor)) {
     return { ok: false, reason: "spentThisMonthMinor must be a non-negative integer." };
@@ -130,6 +178,24 @@ export function parseState(input: unknown): ParseResult<SpendingState> {
   if (!isStringArray(knownPayees)) {
     return { ok: false, reason: "knownPayees must be an array of strings." };
   }
+  // Optional: states computed before trust mode carry no auto figure. Missing
+  // means 0, which can only make the auto budget check stricter, never looser.
+  if (
+    autoSpentThisMonthMinor !== undefined &&
+    !isNonNegativeSafeInteger(autoSpentThisMonthMinor)
+  ) {
+    return {
+      ok: false,
+      reason: "autoSpentThisMonthMinor must be a non-negative integer when present.",
+    };
+  }
 
-  return { ok: true, value: { spentThisMonthMinor, knownPayees } };
+  return {
+    ok: true,
+    value: {
+      spentThisMonthMinor,
+      knownPayees,
+      autoSpentThisMonthMinor: autoSpentThisMonthMinor ?? 0,
+    },
+  };
 }

@@ -33,9 +33,10 @@ import * as schema from "./schema";
 const MIGRATIONS = { migrationsFolder: "./drizzle" };
 
 /**
- * The product default (Option 1): auto-approve OFF. Rules round-trip through
- * the real stores with the flag false — it has no column yet, and parseRules
- * fails it safe to false on every read.
+ * The product default: AI authorization OFF. The trust fields ride along even
+ * while the toggle is off — the round-trip tests below prove the columns from
+ * migration 0006 store and read back exactly, and every proposal test still
+ * runs on the off-by-default policy.
  */
 const RULES: SpendingRules = {
   ruleVersion: "v1",
@@ -45,6 +46,10 @@ const RULES: SpendingRules = {
   permittedCategories: ["office", "books"],
   requireApprovalForNewPayee: false,
   autoApproveEnabled: false,
+  autoAllowlist: [
+    { payee: "Acme Supplies", purpose: "Office supplies", amountMinor: 500 },
+  ],
+  autoBudgetMinor: 2000,
 };
 
 const STATE: SpendingState = { spentThisMonthMinor: 0, knownPayees: [] };
@@ -175,11 +180,24 @@ describe("DrizzleSpendingRulesStore", () => {
 
   it("replaces the active rules on save (one set per person)", async () => {
     const store = new DrizzleSpendingRulesStore(db, OWNER);
-    const updated: SpendingRules = { ...RULES, ruleVersion: "v2", monthlyCapMinor: 9000 };
+    // Save twice on purpose: the first save INSERTs, the second hits the
+    // on-conflict UPDATE path. The upsert's set clause once omitted the trust
+    // fields, so a re-save silently kept the values from the first insert
+    // (found in local verification, 16 oct 2026). Every column must be
+    // replaced, so the second save changes all of them.
+    await store.save(RULES);
+    const updated: SpendingRules = {
+      ...RULES,
+      ruleVersion: "v2",
+      monthlyCapMinor: 9000,
+      autoApproveEnabled: true,
+      autoAllowlist: [
+        { payee: "Notion Team", purpose: "workspace", amountMinor: 1200 },
+      ],
+      autoBudgetMinor: 3000,
+    };
     await store.save(updated);
-    const loaded = await store.getActive();
-    expect(loaded?.ruleVersion).toBe("v2");
-    expect(loaded?.monthlyCapMinor).toBe(9000);
+    expect(await store.getActive()).toEqual(updated);
   });
 });
 

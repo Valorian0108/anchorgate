@@ -76,6 +76,39 @@ describe("gateCardStatus", () => {
   });
 });
 
+describe("gateCardStatus under trust mode", () => {
+  it("says who decided on a paid card: the rules, when no approval exists", () => {
+    const status = gateCardStatus(makeRecord("EXECUTED", ReasonCode.ON_TRUST_LIST));
+    expect(status.kind).toBe("paid");
+    expect(status.receipt).toBe("your rules cleared it · paid once");
+  });
+
+  it("says who decided on a paid card: the owner, when an approval exists", () => {
+    const record = makeRecord("EXECUTED");
+    record.approval = {
+      approvedBy: "owner@example.com",
+      approvedAt: "2026-10-12T12:05:00.000Z",
+    };
+    expect(gateCardStatus(record).receipt).toBe("you approved · paid once");
+  });
+
+  it("reads a cleared-but-unpaid record as cleared, never as paid", () => {
+    const status = gateCardStatus(makeRecord("AUTHORIZED", ReasonCode.ON_TRUST_LIST));
+    expect(status.kind).toBe("cleared");
+    expect(status.mark).toBe("Cleared");
+    expect(status.tone).toBe("allow");
+    expect(status.stamp).toEqual({ text: "Cleared", tone: "allow" });
+    expect(status.receipt).toBe("your rules cleared it · not paid yet");
+  });
+
+  it("keeps a settling auto-paid card honest about who cleared it", () => {
+    const status = gateCardStatus(
+      makeRecord("PENDING_SETTLEMENT", ReasonCode.ON_TRUST_LIST),
+    );
+    expect(status.receipt).toBe("your rules cleared it · waiting for it to settle");
+  });
+});
+
 describe("sourcePhrase", () => {
   it("says the agent brought catalog items, and that the owner asked for the rest", () => {
     expect(sourcePhrase(CATALOG_AGENT_ID)).toBe("brought by your agent");

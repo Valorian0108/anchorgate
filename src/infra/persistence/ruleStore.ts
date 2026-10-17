@@ -40,6 +40,11 @@ export class DrizzleSpendingRulesStore implements SpendingRulesStore {
       .values(row)
       .onConflictDoUpdate({
         target: [spendingRules.ownerId, spendingRules.id],
+        // EVERY column of the row must appear here: on conflict the insert
+        // values are ignored and only this set is written. A column missing
+        // from the set keeps its old value on every re-save (found in local
+        // verification, 16 oct 2026: the trust fields saved on fresh rows but
+        // silently never updated existing ones).
         set: {
           ruleVersion: row.ruleVersion,
           currency: row.currency,
@@ -47,6 +52,9 @@ export class DrizzleSpendingRulesStore implements SpendingRulesStore {
           monthlyCapMinor: row.monthlyCapMinor,
           permittedCategories: row.permittedCategories,
           requireApprovalForNewPayee: row.requireApprovalForNewPayee,
+          autoApproveEnabled: row.autoApproveEnabled,
+          autoAllowlist: row.autoAllowlist,
+          autoBudgetMinor: row.autoBudgetMinor,
           updatedAt: row.updatedAt,
         },
       });

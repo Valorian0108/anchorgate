@@ -16,7 +16,7 @@ import {
   ReasonCode,
   type SpendingRules,
 } from "../core/authorization";
-import { InMemoryPurchaseStore, type PurchaseRecord } from "../core/purchases";
+import { InMemoryPurchaseStore } from "../core/purchases";
 import { InMemorySpendingStore } from "../core/spending";
 import { AgentConfigError, readAgentConfig, readAgentEndpoint } from "./config";
 import { describeRules, ProposalService } from "./proposal";
@@ -24,19 +24,16 @@ import { createPurchaseTools, PROPOSE_PURCHASE_TOOL } from "./tools";
 
 const NOW = new Date("2026-10-09T12:00:00.000Z");
 
-/** The product default (Option 1): auto-approve OFF — every proposal needs the owner. */
+/** The product default: AI authorization OFF — every proposal needs the owner. */
 const RULES: SpendingRules = {
   ruleVersion: "test-1",
   currency: "USD",
-  perPurchaseAutoLimitMinor: 1000, // $10.00 (dormant while auto-approve is off)
+  perPurchaseAutoLimitMinor: 1000, // retired: the engine no longer reads this line
   monthlyCapMinor: 5000, // $50.00 hard cap
   permittedCategories: ["software", "office"],
   requireApprovalForNewPayee: false,
   autoApproveEnabled: false,
 };
-
-/** Dormant plumbing exercised: what a future trust-based auto would switch on. */
-const AUTO_RULES: SpendingRules = { ...RULES, autoApproveEnabled: true };
 
 const INPUT = {
   payee: "Acme Software",
@@ -44,6 +41,16 @@ const INPUT = {
   category: "software",
   amountMinor: 500,
   currency: "USD",
+};
+
+/** Trust mode exercised: AI authorization ON with one exact-price entry. */
+const TRUST_RULES: SpendingRules = {
+  ...RULES,
+  autoApproveEnabled: true,
+  autoAllowlist: [
+    { payee: INPUT.payee, purpose: INPUT.purpose, amountMinor: INPUT.amountMinor },
+  ],
+  autoBudgetMinor: 2000,
 };
 
 function makeService(rules: SpendingRules | null = RULES) {
@@ -62,7 +69,7 @@ function makeService(rules: SpendingRules | null = RULES) {
 }
 
 describe("ProposalService (deterministic)", () => {
-  it("Option 1: ASKs the owner for every proposal, even a small in-limit one", async () => {
+  it("with AI authorization off, ASKs the owner for every proposal, even a small one", async () => {
     const { service, purchases } = makeService();
     const result = await service.propose(INPUT);
     expect(result.decision.decision).toBe("ASK");
@@ -71,11 +78,19 @@ describe("ProposalService (deterministic)", () => {
     expect(await purchases.getById(result.record!.id)).not.toBeNull();
   });
 
-  it("ASKs when the amount is above the automatic per-purchase limit (auto-approve on)", async () => {
-    const { service } = makeService(AUTO_RULES);
+  it("ALLOWs an exact trust-list match and files it AUTHORIZED (AI authorization on)", async () => {
+    const { service } = makeService(TRUST_RULES);
+    const result = await service.propose(INPUT);
+    expect(result.decision.decision).toBe("ALLOW");
+    expect(result.decision.reasonCode).toBe(ReasonCode.ON_TRUST_LIST);
+    expect(result.record?.status).toBe("AUTHORIZED");
+  });
+
+  it("ASKs when the amount differs from the price on the trust list (AI authorization on)", async () => {
+    const { service } = makeService(TRUST_RULES);
     const result = await service.propose({ ...INPUT, amountMinor: 1500 });
     expect(result.decision.decision).toBe("ASK");
-    expect(result.decision.reasonCode).toBe(ReasonCode.PER_PURCHASE_LIMIT_EXCEEDED);
+    expect(result.decision.reasonCode).toBe(ReasonCode.AMOUNT_OFF_TRUST_LIST);
     expect(result.record?.status).toBe("PENDING_APPROVAL");
   });
 
@@ -132,41 +147,21 @@ describe("ProposalService (deterministic)", () => {
     expect(result.decision.reasonCode).toBe(ReasonCode.MONTHLY_CAP_EXCEEDED);
   });
 
-  it("requires approval for a first-time payee when configured (auto-approve on)", async () => {
-    const { service } = makeService({
-      ...AUTO_RULES,
-      requireApprovalForNewPayee: true,
-    });
-    const result = await service.propose(INPUT);
+  it("ASKs for a payee that is not on the trust list (AI authorization on)", async () => {
+    const { service } = makeService(TRUST_RULES);
+    const result = await service.propose({ ...INPUT, payee: "Brand New Shop" });
     expect(result.decision.decision).toBe("ASK");
-    expect(result.decision.reasonCode).toBe(ReasonCode.APPROVAL_REQUIRED);
+    expect(result.decision.reasonCode).toBe(ReasonCode.NOT_ON_TRUST_LIST);
   });
 
-  it("treats a previously approved payee as known (auto-approve on)", async () => {
-    const { service, purchases } = makeService({
-      ...AUTO_RULES,
+  it("ignores the retired new-payee flag: an exact list match still ALLOWs (AI authorization on)", async () => {
+    const { service } = makeService({
+      ...TRUST_RULES,
       requireApprovalForNewPayee: true,
     });
-    const prior: PurchaseRecord = {
-      id: "prior-1",
-      request: {
-        id: "prior-1",
-        agentId: "test-agent",
-        payee: INPUT.payee,
-        purpose: "earlier purchase",
-        category: "software",
-        amountMinor: 100,
-        currency: "USD",
-      },
-      fingerprint: "not-inspected-by-this-test",
-      status: "APPROVED",
-      createdAt: NOW.toISOString(),
-      evaluations: [],
-    };
-    await purchases.save(prior);
-
     const result = await service.propose(INPUT);
     expect(result.decision.decision).toBe("ALLOW");
+    expect(result.decision.reasonCode).toBe(ReasonCode.ON_TRUST_LIST);
   });
 
   it("records an informational PROPOSED event", async () => {
@@ -197,8 +192,9 @@ describe("agent tool set", () => {
       context: {},
     })) as { decision: string; requestId: string; decidedBy: string };
 
-    // Option 1: the one tool the agent has can only ever come back ASK or DENY
-    // with the shipped default rules — never a self-approved ALLOW.
+    // With the shipped default rules (AI authorization off), the one tool the
+    // agent has can only ever come back ASK or DENY — never a self-approved
+    // ALLOW.
     expect(result.decision).toBe("ASK");
     expect(await purchases.getById(result.requestId)).not.toBeNull();
     expect(result.decidedBy).toContain("deterministic");
@@ -241,14 +237,24 @@ describe("describeRules", () => {
     expect(text).toContain("NEVER override");
   });
 
-  it("tells the model plainly that nothing is automatic (Option 1)", () => {
+  it("tells the model plainly that nothing is automatic while AI authorization is off", () => {
     expect(describeRules(RULES)).toContain("Auto-approve is OFF");
     expect(describeRules(RULES)).toContain("nothing is paid automatically");
   });
 
-  it("describes the auto line only when auto-approve is enabled", () => {
-    expect(describeRules(AUTO_RULES)).toContain("Automatic per-purchase limit");
-    expect(describeRules(AUTO_RULES)).not.toContain("Auto-approve is OFF");
+  it("describes the trust list entry by entry when AI authorization is on", () => {
+    const text = describeRules(TRUST_RULES);
+    expect(text).toContain("AI authorization is ON");
+    expect(text).toContain("Acme Software · A one-year license · 5.00 USD");
+    expect(text).toContain("Auto budget for the month: 20.00 USD");
+    expect(text).toContain("Anything not on that list, at a different price");
+    expect(text).not.toContain("Auto-approve is OFF");
+  });
+
+  it("tells the model an empty trust list still waits for the owner", () => {
+    const text = describeRules({ ...TRUST_RULES, autoAllowlist: [] });
+    expect(text).toContain("trust list is empty");
+    expect(text).toContain("still waits for the owner");
   });
 
   it("says nothing can be authorized when there are no rules", () => {

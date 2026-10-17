@@ -23,12 +23,17 @@
  *
  * Informational kinds record lifecycle without affecting any total:
  *   PROPOSED, AUTHORIZED, PENDING_APPROVAL, APPROVED, REJECTED, DENIED,
- *   SUBMITTED, CAPTURE_PENDING, CAPTURE_FAILED, CANCELLED.
+ *   AUTO_APPROVED, SUBMITTED, CAPTURE_PENDING, CAPTURE_FAILED, CANCELLED.
  *
  * Money-affecting kinds:
  *   CAPTURE_VERIFIED -> counts toward completed spending (exactly once).
  *   RESERVED         -> holds budget for an in-flight payment.
  *   RELEASED         -> frees a previously held reservation.
+ *
+ * `AUTO_APPROVED` (trust mode, 16 oct 2026) marks a request the owner's rules
+ * cleared automatically. It never counts as spending; it is how the monthly
+ * auto budget is derived (verified captures of marked requests) and how the
+ * audit trail can say "your rules cleared this" forever after.
  */
 export type SpendingEventKind =
   | "PROPOSED"
@@ -37,6 +42,7 @@ export type SpendingEventKind =
   | "APPROVED"
   | "REJECTED"
   | "DENIED"
+  | "AUTO_APPROVED"
   | "SUBMITTED"
   | "RESERVED"
   | "RELEASED"
@@ -53,6 +59,7 @@ export const SPENDING_EVENT_KINDS: readonly SpendingEventKind[] = [
   "APPROVED",
   "REJECTED",
   "DENIED",
+  "AUTO_APPROVED",
   "SUBMITTED",
   "RESERVED",
   "RELEASED",

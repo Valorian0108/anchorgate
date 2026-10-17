@@ -182,9 +182,9 @@ export function toSpendingRow(
 }
 
 /**
- * Values to write for one person's active rules row. `autoApproveEnabled` has
- * no column yet (Option 1 ships auto-approve OFF for everyone); it is dropped
- * here and fails safe to false on every read.
+ * Values to write for one person's active rules row. Trust mode (16 oct 2026)
+ * persists the toggle, the exact-price list, and the monthly auto budget; a
+ * rule set saved without them writes the safe values (off, empty, zero).
  */
 export function toRulesRow(
   rules: SpendingRules,
@@ -200,6 +200,9 @@ export function toRulesRow(
     monthlyCapMinor: rules.monthlyCapMinor,
     permittedCategories: rules.permittedCategories,
     requireApprovalForNewPayee: rules.requireApprovalForNewPayee,
+    autoApproveEnabled: rules.autoApproveEnabled,
+    autoAllowlist: [...(rules.autoAllowlist ?? [])],
+    autoBudgetMinor: rules.autoBudgetMinor ?? 0,
     updatedAt,
   };
 }
@@ -208,10 +211,10 @@ export function toRulesRow(
  * Rebuild rules from a row and re-validate them. Stored rules that no longer
  * parse fail loudly rather than feeding the engine something malformed.
  *
- * `autoApproveEnabled` is intentionally absent from the parse input: the flag
- * has no column, so parseRules defaults it to false (auto-approve OFF) for
- * every stored rule set, including sets saved before Option 1. The future
- * trust-based auto work adds the column and passes the stored value here.
+ * The stored trust-mode values are passed through to `parseRules`, which
+ * normalizes and validates them like every other field. Rows written before
+ * trust mode carry the column defaults (off, empty list, zero budget), which
+ * parse to exactly the behavior those rule sets always had.
  */
 export function toSpendingRules(row: RulesRow): SpendingRules {
   const parsed = parseRules({
@@ -221,6 +224,9 @@ export function toSpendingRules(row: RulesRow): SpendingRules {
     monthlyCapMinor: row.monthlyCapMinor,
     permittedCategories: row.permittedCategories,
     requireApprovalForNewPayee: row.requireApprovalForNewPayee,
+    autoApproveEnabled: row.autoApproveEnabled,
+    autoAllowlist: row.autoAllowlist,
+    autoBudgetMinor: row.autoBudgetMinor,
   });
   if (!parsed.ok) {
     throw new Error(`Stored spending rules are invalid: ${parsed.reason}`);

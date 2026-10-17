@@ -28,19 +28,26 @@ import { InMemorySpendingStore } from "../core/spending";
 import type { PaymentGateway, PaymentInstruction, PaymentOutcome } from "../core/execution";
 import { PurchaseService } from "./purchaseService";
 
-/** The product default (Option 1): auto-approve OFF — service flows run on reality. */
+/** The product default: AI authorization OFF — service flows run on reality. */
 const RULES: SpendingRules = {
   ruleVersion: "v1",
   currency: "USD",
-  perPurchaseAutoLimitMinor: 1000, // dormant while auto-approve is off
+  perPurchaseAutoLimitMinor: 1000, // retired: the engine no longer reads this line
   monthlyCapMinor: 5000,
   permittedCategories: ["office", "books"],
   requireApprovalForNewPayee: false,
   autoApproveEnabled: false,
 };
 
-/** For seeding legacy AUTHORIZED records, as older rules would have produced. */
-const AUTO_RULES: SpendingRules = { ...RULES, autoApproveEnabled: true };
+/** For seeding AUTHORIZED records: the trust list clears the default request. */
+const TRUST_RULES: SpendingRules = {
+  ...RULES,
+  autoApproveEnabled: true,
+  autoAllowlist: [
+    { payee: "Acme Supplies", purpose: "Office supplies", amountMinor: 500 },
+  ],
+  autoBudgetMinor: 2000,
+};
 
 const NOW = new Date("2026-10-09T12:00:00.000Z");
 const EMPTY_STATE: SpendingState = { spentThisMonthMinor: 0, knownPayees: [] };
@@ -225,16 +232,16 @@ describe("PurchaseService approval", () => {
 
   it("cannot approve a request that is not awaiting approval", async () => {
     const harness = makeHarness();
-    // Seed a legacy AUTHORIZED record, as older rules would have produced.
-    await seed(harness, { amountMinor: 500 }, { rules: AUTO_RULES });
+    // Seed an AUTHORIZED record: the trust list cleared it, no human decided.
+    await seed(harness, { amountMinor: 500 }, { rules: TRUST_RULES });
     const outcome = await harness.service.approve("req-1", "owner@example.com");
     expect(outcome.ok).toBe(false);
     expect(outcome.record.status).toBe("AUTHORIZED");
   });
 
-  it("Option 1: a small request waits for the owner, and paying before approval blocks", async () => {
+  it("with AI authorization off, a small request waits for the owner, and paying before approval blocks", async () => {
     const harness = makeHarness({ outcomes: [captured(500)] });
-    await seed(harness, { amountMinor: 500 }); // auto-approve off -> PENDING_APPROVAL
+    await seed(harness, { amountMinor: 500 }); // AI authorization off -> PENDING_APPROVAL
     expect((await harness.purchases.getById("req-1"))?.status).toBe("PENDING_APPROVAL");
 
     // Money must not move before the owner decides.
@@ -285,15 +292,13 @@ describe("PurchaseService payment", () => {
     expect((await harness.service.budget()).spentThisMonthMinor).toBe(0);
   });
 
-  it("lets an approval satisfy the new-payee rule, then pays", async () => {
-    // Auto-approve on, so this proves it is the new-payee rule doing the ASK.
-    const rules: SpendingRules = {
-      ...AUTO_RULES,
-      requireApprovalForNewPayee: true,
-    };
+  it("lets an approval satisfy a trust-list ask, then pays", async () => {
+    // AI authorization on with an empty list: the ask comes from the trust
+    // list, and the owner's approval is what unlocks the payment.
+    const rules: SpendingRules = { ...TRUST_RULES, autoAllowlist: [] };
     const harness = makeHarness({ rules, outcomes: [captured(500)] });
 
-    // A brand-new payee under a low amount: ASK because the payee is unknown.
+    // An off-list purchase: ASK because nothing matches the list.
     await seed(harness, { amountMinor: 500 }, { rules });
     expect((await harness.purchases.getById("req-1"))?.status).toBe("PENDING_APPROVAL");
 
@@ -334,7 +339,7 @@ describe("PurchaseService payment", () => {
 describe("PurchaseService ledger reads", () => {
   it("returns every event oldest-first, and one request's events alone", async () => {
     const harness = makeHarness({ outcomes: [captured(500)] });
-    await seed(harness, { amountMinor: 500 }); // Option 1: PENDING_APPROVAL
+    await seed(harness, { amountMinor: 500 }); // AI authorization off: PENDING_APPROVAL
     await harness.service.approve("req-1", "owner@example.com");
     await harness.service.pay("req-1");
 

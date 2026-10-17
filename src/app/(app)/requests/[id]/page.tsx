@@ -22,12 +22,35 @@ const REASON_POSITION: Partial<Record<ReasonCode, number>> = {
   CURRENCY_MISMATCH: 3,
   CATEGORY_NOT_PERMITTED: 4,
   MONTHLY_CAP_EXCEEDED: 5,
-  // Option 1: every ask lands on the "your approval" step (6). The two
-  // historical ask reasons (over the old auto line, a first-time seller) map
-  // to the same row, so case files from before the change still read true.
+  // Every ask lands on the "your approval" step (6): the standing ask while AI
+  // authorization is off, and the three trust-list asks when it is on. The two
+  // historical ask reasons (over the retired auto line, a first-time seller)
+  // map to the same row, so case files from before trust mode still read true.
+  // ALLOW codes (ON_TRUST_LIST, WITHIN_LIMITS) stay out of this map on
+  // purpose: a cleared purchase shows every row passed.
   PER_PURCHASE_LIMIT_EXCEEDED: 6,
   APPROVAL_REQUIRED: 6,
+  NOT_ON_TRUST_LIST: 6,
+  AMOUNT_OFF_TRUST_LIST: 6,
+  AUTO_BUDGET_USED: 6,
 };
+
+/**
+ * The step-6 detail for an ASK. The trust-list reasons say which one it was;
+ * everything else keeps the standing line.
+ */
+function askDetailFor(reasonCode: ReasonCode | null): string {
+  switch (reasonCode) {
+    case "NOT_ON_TRUST_LIST":
+      return "needed · not on your trust list";
+    case "AMOUNT_OFF_TRUST_LIST":
+      return "needed · the price differs from your list";
+    case "AUTO_BUDGET_USED":
+      return "needed · your auto budget is used up";
+    default:
+      return "needed · nothing is paid without you";
+  }
+}
 
 interface Row {
   rule: string;
@@ -61,6 +84,11 @@ async function buildRows(args: {
   }
 
   const failing = reasonCode ? (REASON_POSITION[reasonCode] ?? null) : null;
+  // Cleared by the owner's trust list under trust mode (16 oct 2026): the
+  // latest ruling says so, and no human approval exists. Such a record shows
+  // step 6 satisfied by the list itself, never worded as a human decision.
+  const trustCleared =
+    !record.approval && ruling?.decision.reasonCode === "ON_TRUST_LIST";
   const bench = (idx: number): Row["verdict"] => {
     if (failing === null) return "pass";
     if (idx < failing) return "pass";
@@ -88,17 +116,21 @@ async function buildRows(args: {
       verdict: bench(5),
     },
     {
-      rule: "Your approval",
+      rule: trustCleared ? "Your list, not your approval" : "Your approval",
       det: record.approval
         ? `given by ${record.approval.approvedBy} · ${fmtClock(record.approval.approvedAt)}`
-        : failing === 6
-          ? "needed · nothing is paid without you"
-          : "not needed at the time · older rules cleared it",
+        : trustCleared
+          ? "not needed · it matched your trust list at the exact price"
+          : failing === 6
+            ? askDetailFor(reasonCode)
+            : "not needed at the time · older rules cleared it",
       // An ASK means the engine stopped at this step and handed it to a
       // person. Once the approval is on record the row is satisfied, so it
       // must not keep saying "needs you" next to its own "given by" detail:
-      // a row may never contradict its verdict.
-      verdict: record.approval ? "pass" : bench(6),
+      // a row may never contradict its verdict. A trust-list clear satisfies
+      // the row the same way: it was the owner's own decision, made in
+      // advance, at an exact price.
+      verdict: record.approval || trustCleared ? "pass" : bench(6),
     },
   ];
 
@@ -108,7 +140,9 @@ async function buildRows(args: {
 const H = {
   PENDING_APPROVAL: "This purchase is <pay>waiting on you.</pay>",
   APPROVED: "You approved this. <pay>It is on the record.</pay>",
-  AUTHORIZED: "Cleared by older rules. <pay>The gate asks you first now.</pay>",
+  // True for both readings of this state: a trust-list clear whose payment
+  // did not go through, and an older record cleared by the retired auto line.
+  AUTHORIZED: "Your rules cleared this. <pay>It has not been paid.</pay>",
   PENDING_SETTLEMENT: "Paying now. <pay>Confirming with PayPal.</pay>",
   EXECUTED: "<pay>Paid, and on the record.</pay>",
   REJECTED: "You declined this. <pay>Nothing was paid.</pay>",
@@ -185,6 +219,12 @@ export default async function RequestDetailPage({
   const captureEvent: SpendingEvent | undefined = events.find(
     (e) => e.kind === "CAPTURE_VERIFIED",
   );
+  // The trust-mode mark: recorded the moment the owner's rules cleared this
+  // purchase, immutable thereafter. Its presence is how every line below can
+  // say "your rules" instead of guessing from record shapes.
+  const autoEvent: SpendingEvent | undefined = events.find(
+    (e) => e.kind === "AUTO_APPROVED",
+  );
   const pendingEvent: SpendingEvent | undefined = [...events]
     .reverse()
     .find((e) => e.kind === "CAPTURE_PENDING");
@@ -210,8 +250,11 @@ export default async function RequestDetailPage({
   const day = fileDay(record.createdAt);
   // The stamp, though, carries the decision day: it is earned "the moment you
   // decide", so a paid stamp must show when it was allowed, not when the
-  // agent filed the proposal. The filing day stays on the case reference.
-  const stampDay = fileDay(approval?.approvedAt ?? record.createdAt);
+  // agent filed the proposal. An auto-paid purchase was decided at its
+  // pre-payment re-check. The filing day stays on the case reference.
+  const stampDay = fileDay(
+    approval?.approvedAt ?? preExecEval?.evaluatedAt ?? record.createdAt,
+  );
 
   const headline = H[record.status as keyof typeof H] ?? H.PENDING_APPROVAL;
   const status = record.status;
@@ -253,7 +296,11 @@ export default async function RequestDetailPage({
             </>
           ) : status === "EXECUTED" ? (
             <>
-              <span className="waiting num">you approved <span className="open-allow">{approval ? fmtClock(approval.approvedAt) : ""}</span> · by {approval?.approvedBy ?? "owner"}</span>
+              {approval ? (
+                <span className="waiting num">you approved <span className="open-allow">{fmtClock(approval.approvedAt)}</span> · by {approval.approvedBy}</span>
+              ) : (
+                <span className="waiting num">your rules cleared it · <span className="open-allow">exact price on your list</span></span>
+              )}
               <span className="waiting num">paid {fmtClock(captureEvent?.occurredAt ?? record.createdAt)} · confirmed</span>
             </>
           ) : (
@@ -283,6 +330,9 @@ export default async function RequestDetailPage({
             {rejection ? (
               <div className="frow"><span className="k">declined by</span><span className="v num">{rejection.rejectedBy} · {fmtClock(rejection.rejectedAt)}</span></div>
             ) : null}
+            {autoEvent && !approval ? (
+              <div className="frow"><span className="k">cleared by</span><span className="v num">your rules · trust list · {fmtClock(autoEvent.occurredAt)}</span></div>
+            ) : null}
             {captureRefEvent ? (
               <div className="frow">
                 <span className="k">payment ref</span>
@@ -304,7 +354,7 @@ export default async function RequestDetailPage({
           {/* the check */}
           <section className="check">
             <div className="label">
-              The checks · run again when you approve, and again before it pays
+              The checks · run when it is suggested, and again before it pays
             </div>
 
             {rows.map((row) => (
@@ -371,8 +421,17 @@ export default async function RequestDetailPage({
               </div>
               <div className="what">Nothing else to do.</div>
               <div className="rows allowrows">
-                <div className="pl num"><span>approved by</span><b>{approval?.approvedBy ?? "owner"} · {approval ? fmtClock(approval.approvedAt) : ""}</b></div>
-                <div className="pl num"><span>checked when you approved</span><b>yes</b></div>
+                {approval ? (
+                  <>
+                    <div className="pl num"><span>approved by</span><b>{approval.approvedBy} · {fmtClock(approval.approvedAt)}</b></div>
+                    <div className="pl num"><span>checked when you approved</span><b>yes</b></div>
+                  </>
+                ) : (
+                  <>
+                    <div className="pl num"><span>cleared by</span><b>your rules · exact price on your list</b></div>
+                    <div className="pl num"><span>checked when it arrived</span><b>yes</b></div>
+                  </>
+                )}
                 <div className="pl num"><span>checked before paying</span><b>{preExecEval ? "yes" : "not needed"}</b></div>
                 <div className="pl num"><span>paid and confirmed</span><b>{captureEvent ? fmtClock(captureEvent.occurredAt) : "pending"}</b></div>
                 <div className="pl num"><span>counted once</span><b>yes</b></div>
@@ -407,10 +466,19 @@ export default async function RequestDetailPage({
             </div>
           ) : status === "AUTHORIZED" ? (
             <div className="stampbox">
-              <div className="what">Cleared by older rules.</div>
+              <div className="what">
+                {autoEvent ? "Your rules cleared this." : "Cleared by older rules."}
+              </div>
               <div className="rows">
-                <div className="pl num"><span>why it sits here</span><b>older rules let small purchases through without asking</b></div>
-                <div className="pl num"><span>the gate now</span><b>every purchase waits for you</b></div>
+                <div className="pl num">
+                  <span>why it sits here</span>
+                  <b>
+                    {autoEvent
+                      ? (captureFailedEvent?.note ?? "the payment did not go through")
+                      : "older rules let small purchases through without asking"}
+                  </b>
+                </div>
+                <div className="pl num"><span>money</span><b>nothing moved · not paid</b></div>
                 <div className="pl num"><span>counted</span><b>set aside · not paid</b></div>
               </div>
               <form action={payRequest}>
@@ -418,12 +486,14 @@ export default async function RequestDetailPage({
                 <PendingButton
                   className="prime"
                   busy="Checking…"
-                  idle="Send it to your decision"
+                  idle={autoEvent ? "Try the payment again" : "Run the checks again"}
                 />
               </form>
               <div className="note">
-                Pressing this runs the checks again. Today&apos;s rules ask for your
-                approval, so it moves to &ldquo;waiting on you&rdquo; and no money moves.
+                Pressing this runs the checks again at the rules in force now. If
+                your rules still clear it, the payment is tried again; if not, it
+                moves to &ldquo;waiting on you&rdquo;. No money moves unless the
+                checks pass.
               </div>
               <Link href="/" className="rec">Back to your purchases →</Link>
             </div>
@@ -505,10 +575,12 @@ export default async function RequestDetailPage({
           </div>
         ) : status === "AUTHORIZED" ? (
           <div className="st">
-            <div className="sn">03 · Cleared by older rules</div>
+            <div className="sn">03 · {autoEvent ? "Cleared by your rules" : "Cleared by older rules"}</div>
             <div className="sv askb">
-              no decision was asked for at the time · the gate asks you first now
-              <time>waiting for a re-check</time>
+              {autoEvent
+                ? "the payment did not go through · no money moved"
+                : "no decision was asked for at the time"}
+              <time>{autoEvent ? "not paid" : "waiting for a re-check"}</time>
             </div>
           </div>
         ) : status === "EXECUTED" ? (
@@ -583,7 +655,11 @@ export default async function RequestDetailPage({
           ) : status === "DENIED" ? (
             <>Your rules refused it. No person and no app moved it.</>
           ) : status === "AUTHORIZED" ? (
-            <>Older rules cleared this one without asking. The gate asks you first now, so nothing moves until you decide.</>
+            <>
+              {autoEvent
+                ? "Your rules cleared this one, and no money moved. Nothing is paid until the checks pass again."
+                : "Older rules cleared this one without asking. Nothing moves until the checks pass again at the rules in force now."}
+            </>
           ) : (
             <>You approved it, and your word is on it. The stamp is earned once PayPal confirms the payment.</>
           )}
@@ -601,7 +677,7 @@ function stateWordLine(status: RequestStatus): string {
   switch (status) {
     case "PENDING_APPROVAL": return "waiting on you";
     case "APPROVED": return "paying";
-    case "AUTHORIZED": return "cleared by older rules";
+    case "AUTHORIZED": return "cleared, not paid";
     case "PENDING_SETTLEMENT": return "confirming";
     case "EXECUTED": return "paid";
     case "REJECTED": return "you said no";

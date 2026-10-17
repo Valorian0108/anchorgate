@@ -1,17 +1,16 @@
 /**
- * Rules editing from the Rules page: parse the amount the owner types and
+ * Rules editing from the Rules page: parse the amounts the owner types and
  * advance the rule version on save.
  *
- * The page collects ONE number now (Option 1: auto-approve is off, so there
- * is no auto line to set). The pair guardrail below stays as dormant, tested
- * plumbing for the day trust-based auto returns.
- *
- * Pure and unit-tested. The server action composes these with the durable
- * store; the engine is never involved here (it re-reads the saved rules fresh
- * on the next decision).
+ * The page collects the monthly limit and, under trust mode (owner decision,
+ * 16 oct 2026), the AI authorization section: the toggle, the exact prices of
+ * the listed items, and the one auto budget number. The helpers here are pure
+ * and unit-tested; the server actions compose them with the durable store, and
+ * the engine is never involved here (it re-reads the saved rules fresh on the
+ * next decision).
  */
 
-import type { SpendingRules } from "@/core/authorization";
+import type { AutoAllowlistEntry, SpendingRules } from "@/core/authorization";
 
 /**
  * The categories a brand-new gate starts with. The monthly limit is the only
@@ -31,16 +30,14 @@ export const STARTING_CATEGORIES: readonly string[] = [
 
 /**
  * The first rule set for a brand-new person, built from their monthly limit.
- * `autoMinor` seeds the dormant auto line; the Rules page collects one number
- * now, so the action passes 0, the safest value it could ever have.
- * Version "owner-1": the first set is not a bump of anything. New sellers
- * always need approval (fail-safe on), and the currency is USD, matching the
- * sandbox the whole product runs on.
+ * `autoMinor` seeds the retired per-purchase line; the action passes 0, the
+ * safest value it could ever have. Version "owner-1": the first set is not a
+ * bump of anything. New sellers always need approval (fail-safe on), and the
+ * currency is USD, matching the sandbox the whole product runs on.
  *
- * Option 1 (owner decision): auto-approve starts OFF, so every request inside
- * the cap needs the owner. The auto number is still stored — dormant plumbing
- * for a future trust-based auto mode — but the engine ignores it while the
- * flag is false.
+ * Trust mode (owner decision, 16 oct 2026) still starts OFF: a brand-new
+ * person's list is empty, the auto budget is zero, and every request inside
+ * the cap needs the owner until they switch AI authorization on themselves.
  */
 export function startingRules(capMinor: number, autoMinor: number): SpendingRules {
   return {
@@ -51,6 +48,8 @@ export function startingRules(capMinor: number, autoMinor: number): SpendingRule
     permittedCategories: [...STARTING_CATEGORIES],
     requireApprovalForNewPayee: true,
     autoApproveEnabled: false,
+    autoAllowlist: [],
+    autoBudgetMinor: 0,
   };
 }
 
@@ -84,14 +83,58 @@ export function nextRuleVersion(version: string): string {
 }
 
 /**
- * The guardrail between the auto line and the monthly cap, in plain words.
- * Null when the pair is sensible. Dormant under Option 1 (the Rules page no
- * longer collects an auto line); kept and tested for a future trust-based
- * auto mode. Mirrors the command-line rule setter.
+ * The guardrail between the retired auto line and the monthly cap, in plain
+ * words. Null when the pair is sensible. Trust mode (16 oct 2026) replaced
+ * this line with the exact-price list, so the Rules page no longer collects it
+ * and the engine no longer reads it; kept and tested as the ancestor of
+ * `trustProblem`, which is the live guardrail.
  */
 export function ruleEditProblem(autoMinor: number, capMinor: number): string | null {
   if (autoMinor > capMinor) {
     return "Your auto-approve line cannot sit above your monthly limit.";
+  }
+  return null;
+}
+
+/** The guardrail sentences, exported so the Rules page shows the same words. */
+export const TRUST_BUDGET_OVER_CAP =
+  "Your auto budget cannot sit above your monthly limit.";
+export const TRUST_ITEM_OVER_CAP =
+  "A price on your list cannot sit above your monthly limit.";
+
+/**
+ * One trust-list row from the Rules form. The seller and purpose come from the
+ * catalog (never from form text); only the price is typed. Returns null when
+ * the price does not parse, with the same strictness as the monthly limit.
+ */
+export function buildTrustEntry(
+  payee: string,
+  purpose: string,
+  amountText: string,
+): AutoAllowlistEntry | null {
+  const amountMinor = parseMoneyToMinor(amountText);
+  if (amountMinor === null) return null;
+  return { payee, purpose, amountMinor };
+}
+
+/**
+ * The guardrails between the trust list, the auto budget, and the monthly
+ * cap. Null when the set is sensible; otherwise the problem as a stable code
+ * (for the redirect) and the plain sentence (for the page), so the sentence
+ * exists in exactly one place.
+ */
+export function trustProblem(
+  budgetMinor: number,
+  entries: readonly AutoAllowlistEntry[],
+  capMinor: number,
+): { code: "budget-over-cap" | "item-over-cap"; message: string } | null {
+  if (budgetMinor > capMinor) {
+    return { code: "budget-over-cap", message: TRUST_BUDGET_OVER_CAP };
+  }
+  for (const entry of entries) {
+    if (entry.amountMinor > capMinor) {
+      return { code: "item-over-cap", message: TRUST_ITEM_OVER_CAP };
+    }
   }
   return null;
 }

@@ -27,8 +27,15 @@ function SubmitButton() {
 
 export function AskBox({
   message,
+  trustOn = false,
 }: {
   message: { text: string; error: boolean } | null;
+  /**
+   * AI authorization on: the honesty lines must not claim every purchase
+   * waits, because an exact list match pays on its own. Off (the default)
+   * keeps the standing lines verbatim.
+   */
+  trustOn?: boolean;
 }) {
   return (
     <form className="col ask" action={proposeFromGate}>
@@ -46,10 +53,14 @@ export function AskBox({
       <div className="actions">
         <SubmitButton />
       </div>
-      <p className="hint">It only proposes. Nothing is bought until you approve.</p>
+      <p className="hint">
+        {trustOn
+          ? "It only proposes. Your rules decide: the exact items on your list can pay on their own, and everything else waits for you."
+          : "It only proposes. Nothing is bought until you approve."}
+      </p>
       <p className="hint">
         The order it checks: 1 valid request · 2 positive amount · 3 right currency · 4 allowed
-        category · 5 monthly limit · 6 your approval. See{" "}
+        category · 5 monthly limit · 6 {trustOn ? "your list, then you" : "your approval"}. See{" "}
         <Link href="/statute">your rules</Link>.
       </p>
       {message ? (

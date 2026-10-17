@@ -316,6 +316,40 @@ the *only* icon source in the build; nothing from external icon packages
    interior (identity and account, then three even keys). Frost object counts
    are unchanged.
 
+- (k) **Trust mode: AI authorization (16 oct 2026, owner decision, plan-first
+   at `design-research/TRUST-MODE-PLAN.md`).** The owner chose an exact-price
+   trust list over the retired auto line: a toggle on the Rules page (**off by
+   default**, and off for the judge account), a list built only from the 14
+   catalog items where each entry is (seller, purpose, exact price), and one
+   monthly auto budget that must sit at or under the monthly cap. The list is
+   the ONLY automatic path, and it lives at step 6 of the engine's documented
+   order — shape, amount, currency, category and the hard cap all run first
+   and can never be loosened by the list; a malformed list denies everything
+   (INVALID_RULES). Matching is exact on all three fields (the same seller and
+   purpose may be listed at more than one exact price); a price mismatch asks
+   with both numbers, never auto-pays and never auto-declines. New engine
+   vocabulary: ON_TRUST_LIST (ALLOW), NOT_ON_TRUST_LIST, AMOUNT_OFF_TRUST_LIST
+   and AUTO_BUDGET_USED (ASK). The old per-purchase line and new-payee flag
+   are retired to dormant: stored, parsed, ignored by the engine, with their
+   historical codes (PER_PURCHASE_LIMIT_EXCEEDED, WITHIN_LIMITS) still
+   readable in old case files. An AUTO_APPROVED ledger event (id
+   `auto-approved:<recordId>`, written before the payment) marks every
+   auto-cleared purchase immutably; it is informational and counts as no
+   spending — the auto budget counts only this month's CAPTURE_VERIFIED
+   events on marked requests, so pending or failed captures never eat it.
+   Copy promises: AUTHORIZED everywhere reads "Your rules cleared this. It
+   has not been paid." (the old "older rules" claim became false and is
+   retired); a paid card always says WHO decided ("you approved · paid once"
+   versus "your rules cleared it · paid once", never the same); the ask box
+   gained the honest outcomes paid (only with a real capture, reference shown
+   when there is one) and stalled ("the payment did not go through. No money
+   moved."), and a trust-reason ask names its reason in the sentence. The
+   Rules form can only pick catalog identities — seller and purpose come from
+   CATALOG, never from form text — switching the toggle off keeps the list and
+   budget stored, and every save bumps the rule version. Migration 0006 is
+   additive-only (three columns, safe defaults false/[]/0) and is applied to
+   the live database BEFORE the code that reads it is pushed.
+
 ---
 
 ## 7. The Live Instrument layer (positive spec, owner-approved 12 oct 2026)

@@ -237,6 +237,26 @@ describe("utcMonthPeriod", () => {
   });
 });
 
+// --- the trust-mode marker (16 oct 2026) -------------------------------------
+
+describe("AUTO_APPROVED marker", () => {
+  it("is accepted by the ledger and counts as nothing spent", async () => {
+    const ledger = new SpendingLedger(new InMemorySpendingStore());
+    const outcome = await ledger.record(
+      event("AUTO_APPROVED", 500, { id: "auto-approved:req-1" }),
+    );
+    expect(outcome.recorded).toBe(true);
+    expect(await ledger.capturedMinor()).toBe(0);
+  });
+
+  it("is not a reservation either: the marker is pure history", () => {
+    const summary = summarizeSpending([event("AUTO_APPROVED", 500, { id: "a" })]);
+    expect(summary.capturedMinor).toBe(0);
+    expect(summary.reservedMinor).toBe(0);
+    expect(summary.committedMinor).toBe(0);
+  });
+});
+
 // --- durability is a property of the store, not the logic -------------------
 
 describe("state is reconstructed from persisted events (design for 11.2)", () => {

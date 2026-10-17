@@ -18,22 +18,27 @@ import {
 import { InMemoryPurchaseStore } from "./store";
 
 /**
- * Mechanics fixture: auto-approve ON. The lifecycle module's job (status
- * transitions, re-checks, fingerprints) is independent of the Option 1 policy;
- * the Option 1 behavior itself is proven in dedicated tests below and in the
- * engine tests.
+ * Mechanics fixture: AI authorization ON with a trust list (trust mode, owner
+ * decision, 16 oct 2026). The lifecycle module's job (status transitions,
+ * re-checks, fingerprints) is independent of the policy; the policy itself is
+ * proven in dedicated tests below and in the engine tests. The default request
+ * is an exact match for the listed entry.
  */
 const RULES: SpendingRules = {
   ruleVersion: "v1",
   currency: "USD",
-  perPurchaseAutoLimitMinor: 1000,
+  perPurchaseAutoLimitMinor: 1000, // retired: the engine no longer reads this line
   monthlyCapMinor: 5000,
   permittedCategories: ["office", "books"],
   requireApprovalForNewPayee: false,
   autoApproveEnabled: true,
+  autoAllowlist: [
+    { payee: "Acme Supplies", purpose: "Office supplies", amountMinor: 500 },
+  ],
+  autoBudgetMinor: 2000,
 };
 
-/** The product default (Option 1): auto-approve OFF, every request needs you. */
+/** The product default: AI authorization OFF, every request needs you. */
 const STRICT_RULES: SpendingRules = { ...RULES, autoApproveEnabled: false };
 
 const STATE: SpendingState = { spentThisMonthMinor: 0, knownPayees: [] };
@@ -75,7 +80,7 @@ describe("proposePurchase", () => {
     expect(outcome.record?.status).toBe("DENIED");
   });
 
-  it("Option 1: with auto-approve off, even a small in-limit request is PENDING_APPROVAL", () => {
+  it("with AI authorization off, even an exact trust-list match is PENDING_APPROVAL", () => {
     const outcome = proposePurchase(request(), STRICT_RULES, STATE, NOW);
     expect(outcome.record?.status).toBe("PENDING_APPROVAL");
     expect(outcome.decision.decision).toBe("ASK");
@@ -202,15 +207,17 @@ describe("revalidateBeforeExecution", () => {
 
   it("downgrades an AUTHORIZED request to PENDING_APPROVAL if rules tighten", () => {
     const record = proposePurchase(request({ amountMinor: 500 }), RULES, STATE, NOW).record!;
-    const tightened = { ...RULES, perPurchaseAutoLimitMinor: 100 };
+    // The auto budget shrank below the listed price: the exact match no
+    // longer clears automatically and drops back to the owner.
+    const tightened = { ...RULES, autoBudgetMinor: 100 };
     const outcome = revalidateBeforeExecution(record, tightened, STATE, LATER);
     expect(outcome.ok).toBe(false);
     expect(outcome.record.status).toBe("PENDING_APPROVAL");
   });
 
-  it("downgrades a legacy AUTHORIZED request when auto-approve has since been switched off", () => {
-    // Option 1 retroactive protection: a record authorized under older rules
-    // cannot ride them to execution; the current rules ask for the owner.
+  it("downgrades an AUTHORIZED request when AI authorization has since been switched off", () => {
+    // Retroactive protection: a record the trust list cleared cannot ride the
+    // old rules to execution; the current rules ask for the owner.
     const record = proposePurchase(request({ amountMinor: 500 }), RULES, STATE, NOW).record!;
     expect(record.status).toBe("AUTHORIZED");
     const outcome = revalidateBeforeExecution(record, STRICT_RULES, STATE, LATER);

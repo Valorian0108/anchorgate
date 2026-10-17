@@ -24,7 +24,7 @@ const RULES: SpendingRules = {
   monthlyCapMinor: 10000,
   permittedCategories: ["books", "software"],
   requireApprovalForNewPayee: true,
-  autoApproveEnabled: false, // Option 1 default; the front door never reaches it
+  autoApproveEnabled: false, // product default; the front door never reaches it
 };
 
 const INPUT = {
@@ -75,16 +75,31 @@ describe("frontDoorReason", () => {
 
 describe("askPathFor and reasonFromSlug", () => {
   it("round-trips every outcome through short URL codes", () => {
-    const filed = (decision: "ALLOW" | "ASK" | "DENY"): AskOutcome => ({
-      kind: "filed",
-      decision,
-      reasonCode: ReasonCode.WITHIN_LIMITS,
-    });
+    const filed = (
+      decision: "ALLOW" | "ASK" | "DENY",
+      reasonCode: ReasonCode = ReasonCode.WITHIN_LIMITS,
+    ): AskOutcome => ({ kind: "filed", decision, reasonCode });
     expect(askPathFor({ kind: "empty" })).toBe("/?ask=empty");
     expect(askPathFor({ kind: "error" })).toBe("/?ask=error");
     expect(askPathFor({ kind: "clarify" })).toBe("/?ask=clarify");
     expect(askPathFor(filed("ALLOW"))).toBe("/?ask=allow");
-    expect(askPathFor(filed("ASK"))).toBe("/?ask=needs");
+    // The standing ask keeps its bare code; a trust reason rides along so the
+    // gate sentence can name it.
+    expect(askPathFor(filed("ASK", ReasonCode.APPROVAL_REQUIRED))).toBe("/?ask=needs");
+    expect(askPathFor(filed("ASK", ReasonCode.AUTO_BUDGET_USED))).toBe(
+      "/?ask=needs&why=auto-budget-used",
+    );
+    expect(askPathFor(filed("ASK", ReasonCode.AMOUNT_OFF_TRUST_LIST))).toBe(
+      "/?ask=needs&why=amount-off-trust-list",
+    );
+    expect(askPathFor({ kind: "paid" })).toBe("/?ask=paid");
+    expect(askPathFor({ kind: "paid", ref: "CAP-1" })).toBe("/?ask=paid&ref=CAP-1");
+    // A shortRef-style display ellipsis must never reach the redirect header
+    // raw (x-action-redirect is ASCII): it travels percent-encoded.
+    expect(askPathFor({ kind: "paid", ref: "0YK41054…" })).toBe(
+      "/?ask=paid&ref=0YK41054%E2%80%A6",
+    );
+    expect(askPathFor({ kind: "stalled" })).toBe("/?ask=stalled");
     expect(
       askPathFor({ kind: "filed", decision: "DENY", reasonCode: ReasonCode.MONTHLY_CAP_EXCEEDED }),
     ).toBe("/?ask=blocked&why=monthly-cap-exceeded");
@@ -100,6 +115,12 @@ describe("askPathFor and reasonFromSlug", () => {
     expect(reasonFromSlug("monthly-cap-exceeded")).toBe(
       ReasonCode.MONTHLY_CAP_EXCEEDED,
     );
+    expect(reasonFromSlug("on-trust-list")).toBe(ReasonCode.ON_TRUST_LIST);
+    expect(reasonFromSlug("not-on-trust-list")).toBe(ReasonCode.NOT_ON_TRUST_LIST);
+    expect(reasonFromSlug("amount-off-trust-list")).toBe(
+      ReasonCode.AMOUNT_OFF_TRUST_LIST,
+    );
+    expect(reasonFromSlug("auto-budget-used")).toBe(ReasonCode.AUTO_BUDGET_USED);
     expect(reasonFromSlug("nonsense")).toBeNull();
     expect(reasonFromSlug(undefined)).toBeNull();
   });
@@ -108,7 +129,7 @@ describe("askPathFor and reasonFromSlug", () => {
 describe("askMessageFor", () => {
   it("says what happened when something was filed", () => {
     expect(askMessageFor("allow", undefined)?.text).toBe(
-      "Added below. Your rules cleared it, so it is ready to pay when you press pay.",
+      "Added below. Your rules cleared it.",
     );
     expect(askMessageFor("needs", undefined)?.text).toBe(
       "Added below. It needs your okay before any money moves.",
@@ -116,6 +137,36 @@ describe("askMessageFor", () => {
     expect(askMessageFor("blocked", "monthly-cap-exceeded")?.text).toBe(
       "Added below. Your rules blocked it: over monthly limit.",
     );
+  });
+
+  it("names the trust-list reason right in the ask sentence", () => {
+    expect(askMessageFor("needs", "not-on-trust-list")?.text).toBe(
+      "Added below. It needs your okay: not on your list.",
+    );
+    expect(askMessageFor("needs", "amount-off-trust-list")?.text).toBe(
+      "Added below. It needs your okay: price differs from your list.",
+    );
+    expect(askMessageFor("needs", "auto-budget-used")?.text).toBe(
+      "Added below. It needs your okay: auto budget used up.",
+    );
+    // The standing ask keeps the shipped sentence, not "your okay needed".
+    expect(askMessageFor("needs", "approval-required")?.text).toBe(
+      "Added below. It needs your okay before any money moves.",
+    );
+  });
+
+  it("claims a payment only when a capture is real", () => {
+    expect(askMessageFor("paid", undefined)?.text).toBe(
+      "Your rules cleared this at the exact price on your list, and it is paid.",
+    );
+    expect(askMessageFor("paid", undefined, "CAP-1")?.text).toBe(
+      "Your rules cleared this at the exact price on your list, and it is paid. Reference CAP-1.",
+    );
+    const stalled = askMessageFor("stalled", undefined);
+    expect(stalled?.text).toBe(
+      "Your rules cleared it, but the payment did not go through. No money moved.",
+    );
+    expect(stalled?.error).toBe(true);
   });
 
   it("says so plainly when nothing was filed, and marks it as a refusal", () => {

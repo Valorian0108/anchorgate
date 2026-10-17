@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import { decideFromGate, type GateDecisionResult } from "@/app/(app)/actions";
 import type { PurchaseRecord } from "@/core/purchases";
@@ -69,6 +69,7 @@ export function GateBoard({
   askMessage,
   evaluatedAt,
   ruleVersion,
+  trustOn = false,
 }: {
   records: PurchaseRecord[];
   /** Short capture reference per request id, for the settled cards. */
@@ -81,8 +82,10 @@ export function GateBoard({
   /** When the engine last evaluated anything, for the strip's live tick. */
   evaluatedAt: string | null;
   ruleVersion: string | null;
+  /** AI authorization on: the ask box's honesty lines change with it. */
+  trustOn?: boolean;
 }) {
-  const { arrivals, unseen, markSeen, setGatePresent } = useFeed();
+  const { arrivals, arrivalRefs, unseen, markSeen, setGatePresent } = useFeed();
   const [awayCount, setAwayCount] = useState(0);
   const [visible, setVisible] = useState(true);
   const [overrides, setOverrides] = useState<Record<string, Override>>({});
@@ -109,6 +112,20 @@ export function GateBoard({
     setAwayCount(unseen);
     markSeen();
   }, [visible, unseen, markSeen]);
+
+  // An arrival trust mode settled: the wall moves the moment its verified
+  // capture lands, same as a decision taken on this screen. Applied once per
+  // record; the server-rendered totals cannot include a payment that settled
+  // after the page was rendered.
+  const wallApplied = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    for (const record of arrivals) {
+      if (record.status !== "EXECUTED") continue;
+      if (wallApplied.current.has(record.id)) continue;
+      wallApplied.current.add(record.id);
+      setSpent((value) => value + record.request.amountMinor);
+    }
+  }, [arrivals]);
 
   const items = useMemo(() => {
     const byId = new Map<string, PurchaseRecord>();
@@ -229,7 +246,7 @@ export function GateBoard({
               entering={entering}
               working={Boolean(overrides[record.id]?.working)}
               failed={Boolean(overrides[record.id]?.failed)}
-              refText={overrides[record.id]?.ref ?? refs[record.id]}
+              refText={overrides[record.id]?.ref ?? arrivalRefs[record.id] ?? refs[record.id]}
               onDecide={decide}
             />
           ))}
@@ -241,12 +258,12 @@ export function GateBoard({
               entering={entering}
               working={Boolean(overrides[record.id]?.working)}
               failed={Boolean(overrides[record.id]?.failed)}
-              refText={overrides[record.id]?.ref ?? refs[record.id]}
+              refText={overrides[record.id]?.ref ?? arrivalRefs[record.id] ?? refs[record.id]}
               onDecide={decide}
             />
           ))}
 
-          <AskBox message={askMessage} />
+          <AskBox message={askMessage} trustOn={trustOn} />
 
           {waiting.length === 0 ? (
             <div className="empty">

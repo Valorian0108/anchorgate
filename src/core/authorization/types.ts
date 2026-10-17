@@ -36,12 +36,28 @@ export enum ReasonCode {
   CATEGORY_NOT_PERMITTED = "CATEGORY_NOT_PERMITTED",
   /** The purchase would exceed the (hard) monthly cap. */
   MONTHLY_CAP_EXCEEDED = "MONTHLY_CAP_EXCEEDED",
-  /** The purchase is above the automatic per-purchase limit. */
+  /**
+   * The purchase is above the automatic per-purchase limit.
+   * Historical: only records judged before trust mode (16 oct 2026) carry this
+   * code. The per-purchase auto line is retired; the trust list replaced it.
+   */
   PER_PURCHASE_LIMIT_EXCEEDED = "PER_PURCHASE_LIMIT_EXCEEDED",
   /** Another configured approval condition applies. */
   APPROVAL_REQUIRED = "APPROVAL_REQUIRED",
-  /** The purchase satisfies all automatic checks. */
+  /**
+   * The purchase satisfies all automatic checks.
+   * Historical: only records judged before trust mode (16 oct 2026) carry this
+   * code. The trust path returns ON_TRUST_LIST instead.
+   */
   WITHIN_LIMITS = "WITHIN_LIMITS",
+  /** The purchase exactly matches an entry on the owner's trust list. */
+  ON_TRUST_LIST = "ON_TRUST_LIST",
+  /** No entry on the trust list has this payee and purpose; the owner must decide. */
+  NOT_ON_TRUST_LIST = "NOT_ON_TRUST_LIST",
+  /** The payee and purpose are listed, but the amount differs from the listed price. */
+  AMOUNT_OFF_TRUST_LIST = "AMOUNT_OFF_TRUST_LIST",
+  /** The monthly auto budget has no room for this purchase; the owner must decide. */
+  AUTO_BUDGET_USED = "AUTO_BUDGET_USED",
 }
 
 /**
@@ -65,6 +81,23 @@ export interface PurchaseRequest {
 }
 
 /**
+ * One exact purchase the owner's trust list clears automatically.
+ *
+ * Matching is exact on all three fields: the same payee, the same purpose, and
+ * the same price to the minor unit. A near miss is not a match; it asks. The
+ * entries come from the catalog through the Rules page, so payee and purpose
+ * are the catalog's own verbatim strings.
+ */
+export interface AutoAllowlistEntry {
+  /** Merchant / payee, matched verbatim against the request. */
+  payee: string;
+  /** Purpose, matched verbatim against the request. */
+  purpose: string;
+  /** The exact price the owner set, in minor units. */
+  amountMinor: number;
+}
+
+/**
  * The user-configured rules that limit what the agent may spend.
  */
 export interface SpendingRules {
@@ -72,22 +105,39 @@ export interface SpendingRules {
   ruleVersion: string;
   /** Currency these rules are denominated in. */
   currency: string;
-  /** At or below this amount, no approval is needed (if all else passes). */
+  /**
+   * Retired (trust mode, 16 oct 2026): the engine no longer reads this line.
+   * Still stored and parsed so historical rule sets round-trip unchanged.
+   */
   perPurchaseAutoLimitMinor: number;
   /** Hard monthly ceiling. Approval may never override this. */
   monthlyCapMinor: number;
   /** Only these categories may be paid. An empty list permits nothing. */
   permittedCategories: string[];
-  /** When true, an unseen payee always requires human approval. */
+  /**
+   * Retired (trust mode, 16 oct 2026): the trust list defines trusted payees;
+   * the engine no longer reads this flag. Still stored and parsed.
+   */
   requireApprovalForNewPayee: boolean;
   /**
-   * Option 1 (owner decision): when false, EVERY request inside the hard cap
-   * requires the owner's approval and the per-purchase auto line is dormant.
-   * Kept as plumbing so a future trust-based auto mode can switch it on.
-   * Not persisted yet: rules read back from storage always parse to false
-   * until the trust-based work adds a column, which is the safe direction.
+   * Trust mode (owner decision, 16 oct 2026): when false (the default, and
+   * what every rule set parses to unless the owner switched it on), EVERY
+   * request inside the hard cap asks. When true, the trust list below is the
+   * one and only automatic path.
    */
   autoApproveEnabled: boolean;
+  /**
+   * The owner's exact-price trust list. Optional on the interface: a missing
+   * list means an EMPTY list, so nothing ever matches and everything asks.
+   * `parseRules` normalizes it to a present array on every parsed value.
+   */
+  autoAllowlist?: readonly AutoAllowlistEntry[];
+  /**
+   * The monthly ceiling for AUTOMATIC spending, a second limit under the hard
+   * cap. Optional: missing means 0, and a zero budget auto-pays nothing.
+   * Counted only from confirmed payments of auto-approved requests.
+   */
+  autoBudgetMinor?: number;
 }
 
 /**
@@ -101,6 +151,11 @@ export interface SpendingState {
   spentThisMonthMinor: number;
   /** Payees the user has previously approved or paid. */
   knownPayees: string[];
+  /**
+   * Verified captures this monthly period that belong to requests the owner's
+   * rules cleared automatically. Optional: missing means 0, the safe direction.
+   */
+  autoSpentThisMonthMinor?: number;
 }
 
 /**

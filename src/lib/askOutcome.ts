@@ -3,10 +3,11 @@
  *
  * The box must never lie and never stay silent. Every ask ends in one of a
  * small set of outcomes (filed and allowed, filed and needs you, filed and
- * blocked, not filed at all, assistant asked for more detail, assistant
+ * blocked, auto-paid by the owner's trust list, cleared but the payment did
+ * not go through, not filed at all, assistant asked for more detail, assistant
  * unreachable), and each outcome maps to one honest sentence built from the
- * engine's own reason codes. The outcome travels back to the Gate as two short
- * URL codes (`ask`, `why`), never as free text.
+ * engine's own reason codes. The outcome travels back to the Gate as short
+ * URL codes (`ask`, `why`, `ref`), never as free text.
  */
 
 import {
@@ -22,8 +23,12 @@ export type AskOutcome =
   | { kind: "empty" }
   | { kind: "error" }
   | { kind: "clarify" }
-  | { kind: "filed"; decision: AuthorizationDecision; reasonCode: ReasonCode }
-  | { kind: "unfiled"; reasonCode: ReasonCode };
+  | { kind: "filed"; decision: AuthorizationDecision; reasonCode: ReasonCode; requestId?: string }
+  | { kind: "unfiled"; reasonCode: ReasonCode }
+  /** Trust mode: the rules cleared it and the capture is done (or settling). */
+  | { kind: "paid"; ref?: string }
+  /** Trust mode: the rules cleared it but the provider did not take the payment. */
+  | { kind: "stalled" };
 
 /** Every reason code the engine can produce, for slug round-tripping. */
 const REASON_CODES: ReasonCode[] = [
@@ -37,6 +42,10 @@ const REASON_CODES: ReasonCode[] = [
   ReasonCode.PER_PURCHASE_LIMIT_EXCEEDED,
   ReasonCode.APPROVAL_REQUIRED,
   ReasonCode.WITHIN_LIMITS,
+  ReasonCode.ON_TRUST_LIST,
+  ReasonCode.NOT_ON_TRUST_LIST,
+  ReasonCode.AMOUNT_OFF_TRUST_LIST,
+  ReasonCode.AUTO_BUDGET_USED,
 ];
 
 /** Reverse of `reasonSlug`, for the `why` URL code. Unknown slugs give null. */
@@ -97,9 +106,24 @@ export function askPathFor(outcome: AskOutcome): string {
       return "/?ask=error";
     case "clarify":
       return "/?ask=clarify";
+    case "paid":
+      // The ref can carry the display ellipsis (shortRef), which is not
+      // header-safe: redirect URLs travel as x-action-redirect, so the value
+      // is percent-encoded. Search params decode it back automatically.
+      return outcome.ref
+        ? `/?ask=paid&ref=${encodeURIComponent(outcome.ref)}`
+        : "/?ask=paid";
+    case "stalled":
+      return "/?ask=stalled";
     case "filed":
       if (outcome.decision === "ALLOW") return "/?ask=allow";
-      if (outcome.decision === "ASK") return "/?ask=needs";
+      if (outcome.decision === "ASK") {
+        // The standing ask keeps its bare code (pinned). A trust-mode reason
+        // rides along on `why`, so the gate can name it in the sentence.
+        return outcome.reasonCode === ReasonCode.APPROVAL_REQUIRED
+          ? "/?ask=needs"
+          : `/?ask=needs&why=${reasonSlug(outcome.reasonCode)}`;
+      }
       return `/?ask=blocked&why=${reasonSlug(outcome.reasonCode)}`;
     case "unfiled":
       return `/?ask=unfiled&why=${reasonSlug(outcome.reasonCode)}`;
@@ -110,6 +134,7 @@ export function askPathFor(outcome: AskOutcome): string {
 export function askMessageFor(
   ask: string | undefined,
   why: string | undefined,
+  ref?: string | undefined,
 ): { text: string; error: boolean } | null {
   const code = reasonFromSlug(why);
   switch (ask) {
@@ -126,18 +151,43 @@ export function askMessageFor(
         error: false,
       };
     case "allow":
-      // Unreachable while auto-approve is off (Option 1): every filed request
-      // comes back "needs". Kept honest anyway for a future trust-based mode:
-      // even then, "allowed" only ever meant ready to pay, never paid.
+      // Rare now: a filed ALLOW is normally settled into "paid" or "stalled"
+      // by trust mode before the redirect. If it ever shows, it says only
+      // what is true: the rules cleared it. Never "ready to pay when you
+      // press pay", because a cleared record is not something the Gate pays.
       return {
-        text: "Added below. Your rules cleared it, so it is ready to pay when you press pay.",
+        text: "Added below. Your rules cleared it.",
         error: false,
       };
-    case "needs":
+    case "paid":
+      // Trust mode: the exact item at the exact listed price, inside the auto
+      // budget. The sentence claims a payment only when a capture is real.
+      return {
+        text: ref
+          ? `Your rules cleared this at the exact price on your list, and it is paid. Reference ${ref}.`
+          : "Your rules cleared this at the exact price on your list, and it is paid.",
+        error: false,
+      };
+    case "stalled":
+      return {
+        text: "Your rules cleared it, but the payment did not go through. No money moved.",
+        error: true,
+      };
+    case "needs": {
+      // The standing sentence stays exactly as shipped. A trust-mode reason
+      // (off-list, price mismatch, budget used up) replaces the tail, so the
+      // ask explains itself right at the gate.
+      if (code && code !== ReasonCode.APPROVAL_REQUIRED) {
+        return {
+          text: `Added below. It needs your okay: ${reasonPhrase(code)}.`,
+          error: false,
+        };
+      }
       return {
         text: "Added below. It needs your okay before any money moves.",
         error: false,
       };
+    }
     case "blocked":
       return {
         text: code

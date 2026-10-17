@@ -17,12 +17,15 @@ import {
   bigint,
   boolean,
   index,
+  jsonb,
   pgTable,
   primaryKey,
   serial,
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
+
+import type { AutoAllowlistEntry } from "../../core/authorization";
 
 /**
  * One proposed purchase and its current lifecycle state.
@@ -122,6 +125,16 @@ export const spendingRules = pgTable(
     monthlyCapMinor: bigint("monthly_cap_minor", { mode: "number" }).notNull(),
     permittedCategories: text("permitted_categories").array().notNull(),
     requireApprovalForNewPayee: boolean("require_approval_for_new_payee").notNull(),
+    /**
+     * Trust mode (owner decision, 16 oct 2026). The toggle ships OFF; the
+     * column default keeps every existing and future row off until the owner
+     * switches it on from the Rules page.
+     */
+    autoApproveEnabled: boolean("auto_approve_enabled").notNull().default(false),
+    /** The owner's exact-price trust list. Empty means nothing auto-clears. */
+    autoAllowlist: jsonb("auto_allowlist").notNull().$type<AutoAllowlistEntry[]>().default([]),
+    /** Monthly ceiling for automatic spending, under the hard cap. 0 auto-pays nothing. */
+    autoBudgetMinor: bigint("auto_budget_minor", { mode: "number" }).notNull().default(0),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull(),
   },
   (table) => [primaryKey({ columns: [table.ownerId, table.id] })],

@@ -28,9 +28,11 @@ function outcomeText(record: PurchaseRecord): string {
     case "APPROVED":
       return "paying";
     case "AUTHORIZED":
-      // Legacy state: older rules cleared it without asking. It cannot pay
-      // like this anymore; the gate re-checks and asks first.
-      return "from older rules · needs a re-check";
+      // Cleared by the rules and not paid: under trust mode this is the brief
+      // state between an auto-clear and its capture, and where a record rests
+      // if the provider declined. Older records were cleared by the retired
+      // auto line. Same honest words for both.
+      return "cleared by your rules · not paid";
     case "PENDING_SETTLEMENT":
       return "confirming";
     case "EXECUTED":
@@ -98,22 +100,28 @@ function Trail({ record }: { record: PurchaseRecord }) {
     );
   }
 
-  // Legacy trail: the rules allowed it at proposal, back when small purchases
-  // could skip the owner. Option 1 ended that, so this branch only ever
-  // describes older records, and it says so plainly. If one was later demoted
-  // and approved by hand, the approval is shown too.
+  // A trail the rules allowed at proposal: under trust mode (16 oct 2026)
+  // that is the owner's exact-price list clearing it, and it says so; older
+  // records were cleared by the retired auto line and keep their honest
+  // "within your limits". If one was later demoted and approved by hand, the
+  // approval is shown too, and an auto-paid purchase is never worded as if
+  // the owner pressed the button.
+  const allowedPhrase =
+    first?.decision.reasonCode === "ON_TRUST_LIST" ? "on your list" : "within your limits";
   return (
     <>
-      <span className="g">allowed</span> · within your limits
+      <span className="g">allowed</span> · {allowedPhrase}
       {record.approval ? (
         <> → <span className="g">you approved</span> {fmtClock(record.approval.approvedAt)}</>
       ) : null}{" "}
       · {record.status === "EXECUTED"
-        ? "paid"
+        ? record.approval
+          ? "paid"
+          : "paid by your rules"
         : record.status === "PENDING_SETTLEMENT"
           ? "confirming"
           : record.status === "AUTHORIZED"
-            ? "from older rules · needs a re-check"
+            ? "cleared · not paid yet"
             : stateWord(record.status)}
     </>
   );

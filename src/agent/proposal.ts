@@ -137,23 +137,49 @@ export function describeRules(rules: SpendingRules | null): string {
     rules.permittedCategories.length > 0
       ? rules.permittedCategories.join(", ")
       : "(none)";
-  // Honest in both modes: with auto-approve off (Option 1, the shipped
-  // default) the model is told plainly that nothing is paid automatically,
-  // so it can never imply to a person that a small purchase "just went through".
-  const approvalLine = rules.autoApproveEnabled
-    ? `- Automatic per-purchase limit: ${formatMinor(rules.perPurchaseAutoLimitMinor, rules.currency)} ` +
-      "(above this, human approval is required)"
-    : "- Auto-approve is OFF: every proposal waits for the owner's approval; " +
-      "nothing is paid automatically";
   return [
     `- Currency: ${rules.currency}`,
-    approvalLine,
+    // Honest in both modes: with AI authorization off (the shipped default)
+    // the model is told plainly that nothing is paid automatically. With it
+    // on, the model is told the exact list and budget, entry by entry, so it
+    // can never imply that something clears which is not on that list, and a
+    // filed ask for a listed item carries the exact strings the engine
+    // matches on.
+    ...autoModeLines(rules),
     `- Hard monthly cap: ${formatMinor(rules.monthlyCapMinor, rules.currency)} ` +
       "(approval can NEVER override this)",
     `- Permitted categories: ${categories}`,
-    `- A first-time payee requires approval: ${rules.requireApprovalForNewPayee ? "yes" : "no"}`,
     `- Rule version: ${rules.ruleVersion}`,
   ].join("\n");
+}
+
+/** The honest auto-mode lines for the model's instructions (trust mode). */
+function autoModeLines(rules: SpendingRules): string[] {
+  if (!rules.autoApproveEnabled) {
+    return [
+      "- Auto-approve is OFF: every proposal waits for the owner's approval; " +
+        "nothing is paid automatically",
+    ];
+  }
+  const entries = rules.autoAllowlist ?? [];
+  if (entries.length === 0) {
+    return [
+      "- AI authorization is ON but the trust list is empty: every proposal " +
+        "still waits for the owner",
+    ];
+  }
+  return [
+    "- AI authorization is ON. These exact purchases clear automatically " +
+      "(seller, purpose, price):",
+    ...entries.map(
+      (entry) =>
+        `  - ${entry.payee} · ${entry.purpose} · ` +
+        `${formatMinor(entry.amountMinor, rules.currency)}`,
+    ),
+    `- Auto budget for the month: ${formatMinor(rules.autoBudgetMinor ?? 0, rules.currency)}`,
+    "- Anything not on that list, at a different price, or after the budget " +
+      "runs out waits for the owner",
+  ];
 }
 
 /** Format integer minor units for display. Falls back to raw units on error. */

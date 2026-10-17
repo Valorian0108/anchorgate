@@ -6,13 +6,15 @@
  * The "Ask the assistant" box. The owner types what they want looked at; we run
  * the proposal-only agent and return to the Gate with an honest outcome code:
  * what was filed, what was blocked, and what could not be filed at all. The
- * agent can only PROPOSE; the deterministic engine still decides, and nothing
- * is paid here.
+ * agent can only PROPOSE; the deterministic engine still decides. Under trust
+ * mode (owner decision, 16 oct 2026) a filed request the owner's exact-price
+ * list cleared is settled before the redirect, and the outcome code says
+ * plainly whether it was paid, queued, or cleared but not paid.
  *
- * The Rules editor. The owner edits their monthly limit, the one money amount
- * the Rules page collects (Option 1: auto-approve is off, so there is no
- * second number to set). A save advances the rule version, and the outcome
- * travels back as an honest one-line code.
+ * The Rules editor. The owner edits their monthly limit and the AI
+ * authorization section (toggle, listed items at exact prices, one auto
+ * budget). A save advances the rule version, and the outcome travels back as
+ * an honest one-line code.
  */
 
 import { InvalidToolInputError } from "ai";
@@ -20,16 +22,31 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { PROPOSE_PURCHASE_TOOL, type AgentRunResult } from "@/agent";
+import { CATALOG } from "@/agent/catalog";
 import {
   ReasonCode,
   type AuthorizationDecision,
+  type AutoAllowlistEntry,
   type SpendingRules,
 } from "@/core/authorization";
 import { verifyOwner } from "@/lib/auth/dal";
 import { askPathFor, frontDoorReason, type AskOutcome } from "@/lib/askOutcome";
 import { shortRef } from "@/lib/format";
-import { nextRuleVersion, parseMoneyToMinor, startingRules } from "@/lib/rulesEdit";
-import { getAgent, getActiveRules, getService, saveRules, surfaceNextCatalog } from "@/lib/service";
+import {
+  buildTrustEntry,
+  nextRuleVersion,
+  parseMoneyToMinor,
+  startingRules,
+  trustProblem,
+} from "@/lib/rulesEdit";
+import {
+  getAgent,
+  getActiveRules,
+  getService,
+  saveRules,
+  settleAutoAuthorized,
+  surfaceNextCatalog,
+} from "@/lib/service";
 import type { PurchaseRecord } from "@/core/purchases";
 
 /** The verdict payload the propose tool returns (to the model, and to us). */
@@ -60,6 +77,7 @@ function outcomeFromRun(run: AgentRunResult, rules: SpendingRules | null): AskOu
         kind: "filed",
         decision: output.decision ?? "DENY",
         reasonCode,
+        requestId: output.requestId,
       };
     }
     return { kind: "unfiled", reasonCode };
@@ -101,18 +119,82 @@ export async function proposeFromGate(formData: FormData): Promise<void> {
       : { kind: "error" };
   }
 
+  // Trust mode: a filed ALLOW means the owner's list cleared this ask. Settle
+  // it now and report what actually happened (paid with a reference, queued
+  // because the rules changed, or cleared but not paid), never what was about
+  // to happen. Settlement failures are honest outcomes, not outages: the
+  // record stays cleared-but-unpaid and the box says exactly that.
+  if (outcome.kind === "filed" && outcome.decision === "ALLOW" && outcome.requestId) {
+    outcome = await settleFiledAllow(owner.userId, outcome.requestId);
+  }
+
   redirect(askPathFor(outcome));
 }
 
 /**
- * Save the owner's monthly limit, the only number the Rules page collects.
- * Every failure path is a plain sentence on the Rules page; nothing is saved
- * unless the amount parses.
+ * Settle a filed ALLOW under trust mode and translate the settled record into
+ * the honest ask-box outcome. Never throws.
+ */
+async function settleFiledAllow(userId: string, requestId: string): Promise<AskOutcome> {
+  try {
+    const service = getService(userId);
+    const record = await service.get(requestId);
+    if (!record) {
+      return { kind: "stalled" };
+    }
+    if (record.status !== "AUTHORIZED") {
+      // Something already moved it (a second tab, a re-gate). Report the
+      // record as it stands rather than guessing.
+      return outcomeForSettled(record);
+    }
+    const settled = await settleAutoAuthorized(userId, record);
+    return outcomeForSettled(settled.record, settled.ref);
+  } catch {
+    return { kind: "stalled" };
+  }
+}
+
+/** The honest ask-box outcome for a record the rules cleared, after settlement. */
+function outcomeForSettled(record: PurchaseRecord, ref?: string): AskOutcome {
+  switch (record.status) {
+    case "EXECUTED":
+      return { kind: "paid", ...(ref ? { ref } : {}) };
+    case "PENDING_SETTLEMENT":
+      return { kind: "paid" };
+    case "PENDING_APPROVAL": {
+      // The pre-execution gate re-checked against the rules now in force and
+      // dropped it into the queue: report the engine's current reason.
+      const latest = record.evaluations.at(-1);
+      return {
+        kind: "filed",
+        decision: "ASK",
+        reasonCode: latest?.decision.reasonCode ?? ReasonCode.APPROVAL_REQUIRED,
+      };
+    }
+    case "DENIED": {
+      const latest = record.evaluations.at(-1);
+      return {
+        kind: "filed",
+        decision: "DENY",
+        reasonCode: latest?.decision.reasonCode ?? ReasonCode.MONTHLY_CAP_EXCEEDED,
+      };
+    }
+    default:
+      // Still AUTHORIZED: the provider declined or errored. Cleared, not paid,
+      // and no money moved.
+      return { kind: "stalled" };
+  }
+}
+
+/**
+ * Save the owner's monthly limit. Every failure path is a plain sentence on
+ * the Rules page; nothing is saved unless the amount parses.
  *
- * Option 1: auto-approve is off, so there is no second number. An existing
- * set keeps its dormant auto line untouched (the engine ignores it while the
- * flag is false); a first set starts that dormant line at zero, the safest
- * value it could ever have.
+ * The AI authorization section has its own form and its own action
+ * (`updateTrust`); a save here leaves the toggle, the list, and the auto
+ * budget exactly as they are. An existing set keeps its retired per-purchase
+ * line untouched (the engine no longer reads it); a first set starts that line
+ * at zero, the safest value it could ever have.
  */
 export async function updateRules(formData: FormData): Promise<void> {
   const owner = await verifyOwner();
@@ -142,15 +224,84 @@ export async function updateRules(formData: FormData): Promise<void> {
 }
 
 /**
+ * Save the AI authorization section: the toggle, the exact prices of the
+ * listed items, and the one auto budget number.
+ *
+ * SECURITY: item identities (seller, purpose) come from the catalog constant
+ * itself, never from form text. A crafted POST can pick catalog items and
+ * prices for the signed-in person's own rules, but it cannot smuggle an
+ * arbitrary seller onto the list. The monthly limit is left untouched. A save
+ * advances the rule version; every failure path is a plain one-line code on
+ * the Rules page, and nothing is saved unless every amount parses and the
+ * guardrails pass.
+ */
+export async function updateTrust(formData: FormData): Promise<void> {
+  const owner = await verifyOwner();
+
+  const current = await getActiveRules(owner.userId);
+  if (!current) {
+    redirect("/statute?saved=norules");
+  }
+
+  // Switching off keeps the list and the budget stored, so switching back on
+  // does not make anyone retype them. The engine ignores both while the flag
+  // is off, which is the whole guarantee.
+  if (formData.get("auto") !== "on") {
+    await saveRules(owner.userId, {
+      ...current,
+      autoApproveEnabled: false,
+      ruleVersion: nextRuleVersion(current.ruleVersion),
+    });
+    redirect("/statute?saved=trust-off");
+  }
+
+  const budgetMinor = parseMoneyToMinor(String(formData.get("auto-budget") ?? ""));
+  if (budgetMinor === null) {
+    redirect("/statute?saved=bad-budget");
+  }
+
+  const entries: AutoAllowlistEntry[] = [];
+  for (const item of CATALOG) {
+    if (formData.get(`auto-item-${item.id}`) !== "on") continue;
+    const entry = buildTrustEntry(
+      item.payee,
+      item.purpose,
+      String(formData.get(`auto-amount-${item.id}`) ?? ""),
+    );
+    if (entry === null) {
+      redirect("/statute?saved=bad-item");
+    }
+    entries.push(entry);
+  }
+
+  const problem = trustProblem(budgetMinor, entries, current.monthlyCapMinor);
+  if (problem) {
+    redirect(`/statute?saved=${problem.code}`);
+  }
+
+  await saveRules(owner.userId, {
+    ...current,
+    autoApproveEnabled: true,
+    autoAllowlist: entries,
+    autoBudgetMinor: budgetMinor,
+    ruleVersion: nextRuleVersion(current.ruleVersion),
+  });
+  redirect("/statute?saved=trust-on");
+}
+
+/**
  * The live feed's heartbeat.
  *
  * The Gate calls this about every thirty seconds. It files at most one catalog
  * request per person per window (enforced on the server), and returns the new
  * record so the Gate can show it arrive without a reload, or null when nothing
- * is due. It never touches money: the request lands as ASK and still waits for
- * the owner, exactly like a typed ask.
+ * is due. The catalog itself never touches money: the engine rules on every
+ * arrival exactly like a typed ask. Under trust mode an exact match on the
+ * owner's list is settled before this returns, so the result then carries the
+ * settled record and the short capture reference: the arrival shows as paid,
+ * not waiting.
  */
-export async function surfaceNextFromGate(): Promise<PurchaseRecord | null> {
+export async function surfaceNextFromGate(): Promise<GateDecisionResult | null> {
   const owner = await verifyOwner();
   return surfaceNextCatalog(owner.userId);
 }
@@ -159,7 +310,8 @@ export async function surfaceNextFromGate(): Promise<PurchaseRecord | null> {
 export type GateDecision = "approve" | "decline";
 
 /**
- * What a Gate decision returns to the card.
+ * What a Gate decision returns to the card. The same shape carries a feed
+ * arrival that trust mode settled before returning it.
  *
  * `record` is the request after the decision, so the card shows exactly what
  * happened (paid, blocked, or declined) without guessing. `ref` is the short

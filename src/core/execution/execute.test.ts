@@ -34,21 +34,29 @@ import type {
 } from "./types";
 
 /**
- * Mechanics fixture: auto-approve ON, so these tests can exercise the
- * AUTHORIZED path of the execution boundary. Option 1 enforcement at the money
- * boundary has its own dedicated tests below.
+ * Mechanics fixture: AI authorization ON with a trust list (trust mode, owner
+ * decision, 16 oct 2026), so these tests can exercise the AUTHORIZED path of
+ * the execution boundary. The default request is an exact match for the first
+ * entry; 900 is listed too, so the exact-amount test can use a second price.
+ * Money-boundary enforcement ("nothing spends without the owner unless the
+ * list clears it") has its own dedicated tests below.
  */
 const RULES: SpendingRules = {
   ruleVersion: "v1",
   currency: "USD",
-  perPurchaseAutoLimitMinor: 1000,
+  perPurchaseAutoLimitMinor: 1000, // retired: the engine no longer reads this line
   monthlyCapMinor: 5000,
   permittedCategories: ["office", "books"],
   requireApprovalForNewPayee: false,
   autoApproveEnabled: true,
+  autoAllowlist: [
+    { payee: "Acme Supplies", purpose: "Office supplies", amountMinor: 500 },
+    { payee: "Acme Supplies", purpose: "Office supplies", amountMinor: 900 },
+  ],
+  autoBudgetMinor: 2000,
 };
 
-/** The product default (Option 1): auto-approve OFF, every request needs you. */
+/** The product default: AI authorization OFF, every request needs you. */
 const STRICT_RULES: SpendingRules = { ...RULES, autoApproveEnabled: false };
 
 const EMPTY_STATE: SpendingState = { spentThisMonthMinor: 0, knownPayees: [] };
@@ -174,7 +182,7 @@ describe("executeAuthorizedPurchase", () => {
     expect(await ledger.capturedMinor()).toBe(1500);
   });
 
-  it("Option 1: pays an APPROVED request with auto-approve off — the owner is the gate", async () => {
+  it("pays an APPROVED request with AI authorization off — the owner is the gate", async () => {
     const pending = proposePurchase(request({ amountMinor: 500 }), STRICT_RULES, EMPTY_STATE, NOW)
       .record!;
     expect(pending.status).toBe("PENDING_APPROVAL");
@@ -223,7 +231,9 @@ describe("executeAuthorizedPurchase", () => {
   it("downgrades to pending when rules tighten before execution, without paying", async () => {
     const record = proposePurchase(request({ amountMinor: 500 }), RULES, EMPTY_STATE, NOW)
       .record!;
-    const tightened: SpendingRules = { ...RULES, perPurchaseAutoLimitMinor: 100 };
+    // The auto budget shrank below the listed price between proposal and
+    // execution: the exact match no longer clears and drops back to the owner.
+    const tightened: SpendingRules = { ...RULES, autoBudgetMinor: 100 };
     const gateway = new FakeGateway([captured()]);
 
     const outcome = await executeAuthorizedPurchase({
@@ -240,10 +250,10 @@ describe("executeAuthorizedPurchase", () => {
     expect(gateway.calls).toHaveLength(0);
   });
 
-  it("Option 1: never pays a legacy AUTHORIZED record once auto-approve is off", async () => {
-    // The strongest form of "nothing spends without you": a record that was
-    // auto-authorized under older rules is stopped at the money boundary when
-    // the current rules require the owner, and no provider call happens.
+  it("never pays an AUTHORIZED record once AI authorization is switched off", async () => {
+    // The strongest form of "nothing spends without you": a record the trust
+    // list cleared is stopped at the money boundary when the current rules
+    // require the owner, and no provider call happens.
     const record = proposePurchase(request({ amountMinor: 500 }), RULES, EMPTY_STATE, NOW)
       .record!;
     expect(record.status).toBe("AUTHORIZED");

@@ -43,10 +43,13 @@ export interface GateCardStatus {
 /**
  * How a request reads as a card.
  *
- * Under Option 1 everything arrives as `PENDING_APPROVAL`, so a needs-you card
- * is the common case. The settled readings are the real ones: `PAID` only when
- * a capture was verified, `BLOCKED` only when a rule refused it, and a plain
- * `DECLINED` when the owner said no and no money moved.
+ * With AI authorization off (the default) everything arrives as
+ * `PENDING_APPROVAL`, so a needs-you card is the common case. The settled
+ * readings are the real ones: `PAID` only when a capture was verified,
+ * `BLOCKED` only when a rule refused it, and a plain `DECLINED` when the owner
+ * said no and no money moved. A paid card always says WHO decided: an approval
+ * on the record means the owner pressed approve; no approval means the owner's
+ * trust list cleared it (trust mode, 16 oct 2026). The two never read the same.
  */
 export function gateCardStatus(record: PurchaseRecord): GateCardStatus {
   switch (record.status) {
@@ -65,7 +68,9 @@ export function gateCardStatus(record: PurchaseRecord): GateCardStatus {
         mark: "Paid, settling",
         tone: "allow",
         stamp: { text: "Paid", tone: "allow" },
-        receipt: "paid · waiting for it to settle",
+        receipt: record.approval
+          ? "paid · waiting for it to settle"
+          : "your rules cleared it · waiting for it to settle",
       };
     case "EXECUTED":
       return {
@@ -73,7 +78,9 @@ export function gateCardStatus(record: PurchaseRecord): GateCardStatus {
         mark: "Paid",
         tone: "allow",
         stamp: { text: "Paid", tone: "allow" },
-        receipt: "you approved · paid once",
+        receipt: record.approval
+          ? "you approved · paid once"
+          : "your rules cleared it · paid once",
       };
     case "REJECTED":
       return {
@@ -95,12 +102,16 @@ export function gateCardStatus(record: PurchaseRecord): GateCardStatus {
       };
     }
     case "AUTHORIZED":
+      // Cleared by the rules and not paid: under trust mode this is the brief
+      // state between an auto-clear and its capture, and where a record rests
+      // if the provider declined the payment. No money moved either way until
+      // a capture is verified, and the card never claims otherwise.
       return {
         kind: "cleared",
-        mark: "Cleared by older rules",
+        mark: "Cleared",
         tone: "allow",
         stamp: { text: "Cleared", tone: "allow" },
-        receipt: "older rules · the gate asks you first now",
+        receipt: "your rules cleared it · not paid yet",
       };
   }
 }

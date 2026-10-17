@@ -11,12 +11,12 @@ export const dynamic = "force-dynamic";
 export default async function GatePage({
   searchParams,
 }: {
-  searchParams: Promise<{ ask?: string; why?: string }>;
+  searchParams: Promise<{ ask?: string; why?: string; ref?: string }>;
 }) {
   const owner = await verifyOwner();
 
-  const { ask, why } = await searchParams;
-  const message = askMessageFor(ask, why);
+  const { ask, why, ref } = await searchParams;
+  const message = askMessageFor(ask, why, ref);
 
   const service = getService(owner.userId);
   const budget = await service.budget();
@@ -62,6 +62,7 @@ export default async function GatePage({
         askMessage={message}
         evaluatedAt={evaluatedAt}
         ruleVersion={budget.rules?.ruleVersion ?? null}
+        trustOn={budget.rules?.autoApproveEnabled ?? false}
       />
 
       <div className="note">

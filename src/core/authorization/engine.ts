@@ -6,17 +6,22 @@
  * AI, the network, the database, or the UI. It does not "ask the model" whether
  * a purchase is allowed. The AI may *propose*; only this code *decides*.
  *
- * Decision order (approved):
+ * Decision order (approved; trust mode 16 oct 2026):
  *   1. Validate the request (malformed/missing fails safe -> DENY)
  *   2. Reject zero / negative amounts
  *   3. Reject a currency that does not match the configured rules
  *   4. Reject a category that is not explicitly permitted
  *   5. Reject if it would exceed the HARD monthly cap (approval cannot override)
- *   6. ASK unless the rules explicitly enable auto-approve. Option 1 (owner
- *      decision): auto-approve ships OFF, so every request inside the cap needs
- *      the owner. When it IS enabled, ASK if above the per-purchase auto line
- *      or another approval condition applies.
- *   7. Otherwise (auto-approve enabled, every soft check passed) ALLOW
+ *   6. ASK unless the rules explicitly enable auto-approve. The toggle ships
+ *      OFF, so by default every request inside the cap needs the owner. When
+ *      it IS on, the owner's exact-price trust list is the one automatic path:
+ *      ASK when the seller/purpose is not listed, when the price differs from
+ *      the listed price, or when the monthly auto budget has no room.
+ *   7. Otherwise (exact list match, inside the auto budget) ALLOW
+ *
+ * Retired: the per-purchase auto line and the new-payee check. Their reason
+ * codes (PER_PURCHASE_LIMIT_EXCEEDED, and APPROVAL_REQUIRED for unseen payees)
+ * survive only on historical records; the trust list replaced both.
  *
  * The strictest answer always wins: DENY > ASK > ALLOW.
  */
@@ -135,11 +140,9 @@ export function evaluatePurchase(
     );
   }
 
-  // 6. Human approval. Option 1 (owner decision): auto-approve is OFF unless
-  //    the rules explicitly enable it, so every request that passes the hard
-  //    checks still waits for the owner. Nothing spends without a human. The
-  //    auto line and known-payee checks below are the dormant plumbing for a
-  //    future trust-based auto mode; they only run when the flag is on.
+  // 6. Human approval. Auto-approve is OFF unless the rules explicitly enable
+  //    it (trust mode, owner decision 16 oct 2026: the toggle ships off), so
+  //    every request that passes the hard checks still waits for the owner.
   if (!cfg.autoApproveEnabled) {
     return ask(
       ReasonCode.APPROVAL_REQUIRED,
@@ -148,29 +151,60 @@ export function evaluatePurchase(
     );
   }
 
-  // 6a. (Auto-approve enabled only.) Above the per-purchase auto line: ASK.
-  if (req.amountMinor > cfg.perPurchaseAutoLimitMinor) {
+  // Trust mode (owner decision 16 oct 2026): the owner's exact-price list is
+  // the ONE automatic path. The old per-purchase auto line and new-payee check
+  // are retired; their reason codes survive only on historical records.
+
+  // 6a. The seller and purpose must both appear on the trust list. A missing
+  //     list parses to empty, so nothing matches and everything asks.
+  const allowlist = cfg.autoAllowlist ?? [];
+  const candidates = allowlist.filter(
+    (item) => item.payee === req.payee && item.purpose === req.purpose,
+  );
+  if (candidates.length === 0) {
     return ask(
-      ReasonCode.PER_PURCHASE_LIMIT_EXCEEDED,
-      `Amount ${req.amountMinor} exceeds the automatic per-purchase limit of ` +
-        `${cfg.perPurchaseAutoLimitMinor}; human approval required.`,
+      ReasonCode.NOT_ON_TRUST_LIST,
+      `"${req.payee}" for "${req.purpose}" is not on the owner's trust list; ` +
+        "human approval required.",
       ruleVersion,
     );
   }
 
-  // 6b. (Auto-approve enabled only.) An unseen payee: ASK.
-  if (cfg.requireApprovalForNewPayee && !spent.knownPayees.includes(req.payee)) {
+  // 6b. The price must match a listed price exactly (the same seller and
+  //     purpose may be listed at more than one exact price). A different
+  //     amount is never auto-declined and never auto-paid: it asks, with both
+  //     numbers.
+  const entry = candidates.find((item) => item.amountMinor === req.amountMinor);
+  if (!entry) {
     return ask(
-      ReasonCode.APPROVAL_REQUIRED,
-      `Payee "${req.payee}" has not been seen before; human approval required.`,
+      ReasonCode.AMOUNT_OFF_TRUST_LIST,
+      `"${req.payee}" for "${req.purpose}" arrived at ${req.amountMinor} minor units, ` +
+        `but the trust list says ${candidates[0]!.amountMinor}; human approval required.`,
       ruleVersion,
     );
   }
 
-  // 7. Passed every check (reachable only with auto-approve explicitly on).
+  // 6c. The auto budget is a second ceiling under the hard cap, counted only
+  //     from confirmed payments of earlier auto-approved requests. A missing
+  //     budget figure parses to 0, and a zero budget auto-pays nothing.
+  const autoBudget = cfg.autoBudgetMinor ?? 0;
+  const autoSpent = spent.autoSpentThisMonthMinor ?? 0;
+  if (autoSpent + req.amountMinor > autoBudget) {
+    return ask(
+      ReasonCode.AUTO_BUDGET_USED,
+      `The monthly auto budget has no room for ${req.amountMinor} minor units ` +
+        `(budget ${autoBudget}, already auto-spent ${autoSpent}); human approval required.`,
+      ruleVersion,
+    );
+  }
+
+  // 7. On the list, at the exact price, inside the auto budget, and inside
+  //    every hard check above. This is the only way a purchase clears without
+  //    the owner.
   return allow(
-    ReasonCode.WITHIN_LIMITS,
-    "Within the automatic per-purchase limit and the monthly budget.",
+    ReasonCode.ON_TRUST_LIST,
+    `"${req.payee}" for "${req.purpose}" at ${req.amountMinor} minor units exactly matches ` +
+      "the trust list, inside the auto budget and the monthly cap.",
     ruleVersion,
   );
 }

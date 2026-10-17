@@ -11,18 +11,31 @@ import type { Evaluation, RequestStatus } from "@/core/purchases";
 
 /** The one-line "what happened and why" for a decision, in plain words. */
 export function checkText(decision: AuthorizationDecision, reasonCode: ReasonCode): string {
-  // ALLOW only exists on records ruled by older rules (auto-approve is off
-  // now), and even then it only ever meant "ready to pay", never "paid".
-  if (decision === "ALLOW") return "Within your limits.";
+  // ALLOW is live again under trust mode (16 oct 2026): a request the owner's
+  // exact-price list cleared. It still only ever means "cleared", never "paid".
+  // Older WITHIN_LIMITS records keep their honest generic line.
+  if (decision === "ALLOW") {
+    if (reasonCode === "ON_TRUST_LIST") {
+      return "It matches your trust list exactly, so your rules cleared it.";
+    }
+    return "Within your limits.";
+  }
   if (decision === "ASK") {
     switch (reasonCode) {
       case "APPROVAL_REQUIRED":
-        // Option 1: the standing reason everything asks. Older files where it
-        // meant "first-time seller" stay true: it needed their okay then too.
+        // The standing reason everything asks while AI authorization is off
+        // (the default). Older files where it meant "first-time seller" stay
+        // true: it needed their okay then too.
         return "It needs your okay before anything happens.";
       case "PER_PURCHASE_LIMIT_EXCEEDED":
-        // Only records ruled before Option 1 can carry this code.
+        // Only records ruled before trust mode can carry this code.
         return "Over the auto-approve line in force at the time, so it needed your okay.";
+      case "NOT_ON_TRUST_LIST":
+        return "It is not on your trust list, so it needs your okay.";
+      case "AMOUNT_OFF_TRUST_LIST":
+        return "The price differs from the one on your trust list, so it needs your okay.";
+      case "AUTO_BUDGET_USED":
+        return "Your auto budget for the month is used up, so it needs your okay.";
       default:
         return "It needs your okay before anything happens.";
     }
@@ -52,11 +65,20 @@ export function checkText(decision: AuthorizationDecision, reasonCode: ReasonCod
 export function reasonPhrase(reasonCode: ReasonCode): string {
   switch (reasonCode) {
     case "APPROVAL_REQUIRED":
-      // Option 1: every purchase asks, so this code now means simply that.
+      // AI authorization off (the default): every purchase asks, so this code
+      // means simply that.
       return "your okay needed";
     case "PER_PURCHASE_LIMIT_EXCEEDED":
-      // Only pre-Option-1 records carry this code.
+      // Only records ruled before trust mode carry this code.
       return "over the old auto line";
+    case "ON_TRUST_LIST":
+      return "on your list";
+    case "NOT_ON_TRUST_LIST":
+      return "not on your list";
+    case "AMOUNT_OFF_TRUST_LIST":
+      return "price differs from your list";
+    case "AUTO_BUDGET_USED":
+      return "auto budget used up";
     case "MONTHLY_CAP_EXCEEDED":
       return "over monthly limit";
     case "CATEGORY_NOT_PERMITTED":
@@ -86,9 +108,11 @@ export function checkTextForStatus(status: RequestStatus): string {
     case "APPROVED":
       return "You said yes. Getting ready to pay.";
     case "AUTHORIZED":
-      // Legacy state: older rules cleared small purchases without asking.
-      // Today's gate re-checks them and asks, so they never pay like this.
-      return "Cleared by older rules. The gate asks you first now.";
+      // Cleared by the rules, not paid. Under trust mode this is the brief
+      // state between an auto-clear and its capture, and where a record rests
+      // if the provider declined; older records were cleared by the retired
+      // auto line. Either reading is the same honest sentence.
+      return "Your rules cleared this. It has not been paid.";
     case "PENDING_SETTLEMENT":
       return "Paid, waiting for it to settle.";
     case "EXECUTED":
@@ -106,7 +130,7 @@ export function stateWord(status: RequestStatus): string {
     case "PENDING_APPROVAL":
       return "waiting on you";
     case "AUTHORIZED":
-      return "from older rules";
+      return "cleared, not paid";
     case "APPROVED":
       return "paying";
     case "PENDING_SETTLEMENT":

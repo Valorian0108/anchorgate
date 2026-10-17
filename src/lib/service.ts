@@ -31,6 +31,8 @@ import {
   SdkVaultPort,
 } from "@/infra/paypal";
 import { PurchaseService } from "@/services";
+import { SpendingLedger } from "@/core/spending";
+import { shortRef } from "@/lib/format";
 import {
   CATALOG_AGENT_ID,
   catalogArrivalDue,
@@ -153,17 +155,21 @@ export async function getAgent(userId: string): Promise<PurchaseAgent> {
  * The live Gate feed's one server-side step. It reads the person's own records
  * and rules, refuses when nothing is due (so a reload or a second tab can never
  * double-file), picks the next item deterministically, and files it through the
- * same `ProposalService` as everything else. The engine still decides: under
- * Option 1 that means ASK, and the catalog can never approve or pay.
+ * same `ProposalService` as everything else. The engine still decides, and the
+ * catalog itself can never approve, pay, or widen a rule. Under trust mode
+ * (owner decision, 16 oct 2026) an item that exactly matches the owner's list,
+ * inside the auto budget, comes back already cleared by the engine; it is then
+ * settled through the same re-gated payment path as everything else, so the
+ * Gate shows the arrival as it truly is.
  *
- * Returns the new record, or null when no rules are set, no item is permitted,
- * the owner is already behind on several, or the last arrival was too recent to
- * be due.
+ * Returns the new record (with its short capture reference when trust mode
+ * settled it), or null when no rules are set, no item is permitted, the owner
+ * is already behind on several, or the last arrival was too recent to be due.
  */
 export async function surfaceNextCatalog(
   userId: string,
   now: Date = new Date(),
-): Promise<PurchaseRecord | null> {
+): Promise<AutoSettleResult | null> {
   const s = storesFor(userId);
 
   const rules = await s.rules.getActive();
@@ -183,7 +189,69 @@ export async function surfaceNextCatalog(
   });
 
   const result = await surfaceCatalogPurchase({ proposals, seed: userId, proposedCount });
-  return result?.record ?? null;
+  const record = result?.record ?? null;
+  if (!record) return null;
+
+  // Cleared by the owner's trust list: settle it now (mark, re-gate, capture),
+  // and hand back the settled record plus its reference, so the Gate shows the
+  // arrival as it truly is: paid, not waiting.
+  if (record.status === "AUTHORIZED") {
+    return settleAutoAuthorized(userId, record);
+  }
+  return { record };
+}
+
+/** The result of settling a purchase the owner's rules just cleared. */
+export interface AutoSettleResult {
+  /** The record after settlement: paid, settling, queued, denied, or still cleared. */
+  record: PurchaseRecord;
+  /** The short capture reference, present only when a capture was verified. */
+  ref?: string;
+}
+
+/**
+ * Settle a purchase the engine cleared automatically (status `AUTHORIZED`).
+ *
+ * Two steps, in this order:
+ *   1. Mark it in the ledger with an informational `AUTO_APPROVED` event
+ *      (idempotent by request id). This is the immutable record that the
+ *      owner's rules cleared it, and it is how the monthly auto budget is
+ *      computed from then on.
+ *   2. Run the existing payment path, which re-runs the deterministic gate
+ *      immediately before the provider is touched. If the rules changed
+ *      between proposal and payment, the record drops back into the owner's
+ *      queue (or is denied) instead of paying; if the provider declines, the
+ *      record stays cleared-but-unpaid and every screen says so honestly.
+ *
+ * This function contains no policy: the engine decided before it was called,
+ * and the engine decides again inside `pay`.
+ */
+export async function settleAutoAuthorized(
+  userId: string,
+  record: PurchaseRecord,
+): Promise<AutoSettleResult> {
+  if (record.status !== "AUTHORIZED") {
+    return { record };
+  }
+
+  const s = storesFor(userId);
+  const ledger = new SpendingLedger(s.spending);
+  await ledger.record({
+    id: `auto-approved:${record.id}`,
+    requestId: record.id,
+    kind: "AUTO_APPROVED",
+    amountMinor: record.request.amountMinor,
+    currency: record.request.currency,
+    occurredAt: new Date().toISOString(),
+    note: "Cleared automatically under the owner's trust list.",
+  });
+
+  const paid = await getService(userId).pay(record.id, { reconcilePending: true });
+  const capture = paid.outcome.capture;
+  return {
+    record: paid.outcome.record,
+    ...(capture ? { ref: shortRef(capture.providerCaptureId) } : {}),
+  };
 }
 
 /** PayPal's standard Sandbox test card (Visa, always approves, no 3DS). */

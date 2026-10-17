@@ -11,7 +11,7 @@ import {
   type ReactNode,
 } from "react";
 
-import { surfaceNextFromGate } from "@/app/(app)/actions";
+import { surfaceNextFromGate, type GateDecisionResult } from "@/app/(app)/actions";
 import type { PurchaseRecord } from "@/core/purchases";
 
 /** How often the Gate asks the feed for the next item (the server enforces the real gap). */
@@ -20,6 +20,8 @@ const POLL_MS = 30_000;
 interface FeedValue {
   /** Requests that arrived this session, newest first. */
   arrivals: PurchaseRecord[];
+  /** Short capture references for arrivals trust mode settled, by request id. */
+  arrivalRefs: Record<string, string>;
   /** How many arrived while the person was not looking at the Gate. */
   unseen: number;
   /** Called when the Gate is back in view: the arrivals are now seen. */
@@ -78,6 +80,7 @@ export function useFeed(): FeedValue {
  */
 export function FeedProvider({ children }: { children: ReactNode }) {
   const [arrivals, setArrivals] = useState<PurchaseRecord[]>([]);
+  const [arrivalRefs, setArrivalRefs] = useState<Record<string, string>>({});
   const [unseen, setUnseen] = useState(0);
   const gatePresent = useRef(false);
   const baseTitle = useRef<string | null>(null);
@@ -86,17 +89,24 @@ export function FeedProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     const tick = async () => {
-      let record: PurchaseRecord | null = null;
+      let result: GateDecisionResult | null = null;
       try {
-        record = await surfaceNextFromGate();
+        result = await surfaceNextFromGate();
       } catch {
         return;
       }
-      if (cancelled || !record) return;
+      if (cancelled || !result) return;
+      const record = result.record;
+      const ref = result.ref;
 
       setArrivals((prev) =>
         prev.some((r) => r.id === record.id) ? prev : [record, ...prev],
       );
+      // An arrival trust mode settled carries its capture reference: show it
+      // on the card right away, exactly like a decision taken on this screen.
+      if (ref) {
+        setArrivalRefs((prev) => ({ ...prev, [record.id]: ref }));
+      }
       if (document.hidden || !gatePresent.current) {
         setUnseen((n) => n + 1);
       }
@@ -149,8 +159,8 @@ export function FeedProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ arrivals, unseen, markSeen, setGatePresent }),
-    [arrivals, unseen, markSeen, setGatePresent],
+    () => ({ arrivals, arrivalRefs, unseen, markSeen, setGatePresent }),
+    [arrivals, arrivalRefs, unseen, markSeen, setGatePresent],
   );
 
   return <FeedContext.Provider value={value}>{children}</FeedContext.Provider>;

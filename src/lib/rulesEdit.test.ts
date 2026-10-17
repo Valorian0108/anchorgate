@@ -1,18 +1,23 @@
 /**
  * The Rules editor's pure helpers. These pin the owner-facing contract: what
  * counts as a typed amount, how the rule version advances on save, and the
- * guardrail between the auto line and the cap. Under Option 1 the Rules page
- * collects one number, so the guardrail and the auto argument are dormant
- * plumbing, still tested for the day trust-based auto returns.
+ * guardrails between the trust list, the auto budget, and the monthly cap.
+ * The Rules page collects the monthly limit and, under trust mode (owner
+ * decision, 16 oct 2026), the AI authorization section; every guardrail
+ * sentence lives here once, so the page and the redirect can never disagree.
  */
 
 import { describe, expect, it } from "vitest";
 
 import {
+  buildTrustEntry,
   nextRuleVersion,
   parseMoneyToMinor,
   ruleEditProblem,
   startingRules,
+  TRUST_BUDGET_OVER_CAP,
+  TRUST_ITEM_OVER_CAP,
+  trustProblem,
 } from "./rulesEdit";
 
 describe("parseMoneyToMinor", () => {
@@ -78,8 +83,11 @@ describe("startingRules", () => {
     expect(rules.requireApprovalForNewPayee).toBe(true);
   });
 
-  it("Option 1: starts with auto-approve off, so every request needs the owner", () => {
-    expect(startingRules(50000, 5000).autoApproveEnabled).toBe(false);
+  it("starts with AI authorization off, an empty list, and a zero budget", () => {
+    const rules = startingRules(50000, 5000);
+    expect(rules.autoApproveEnabled).toBe(false);
+    expect(rules.autoAllowlist).toEqual([]);
+    expect(rules.autoBudgetMinor).toBe(0);
   });
 
   it("hands back a fresh category list each time, so saves never share state", () => {
@@ -87,5 +95,49 @@ describe("startingRules", () => {
     const b = startingRules(100, 50);
     a.permittedCategories.push("mutated");
     expect(b.permittedCategories).not.toContain("mutated");
+  });
+});
+
+describe("buildTrustEntry", () => {
+  it("builds an entry from a catalog identity and a typed price", () => {
+    expect(buildTrustEntry("Acme Supplies", "Office supplies", "12.50")).toEqual({
+      payee: "Acme Supplies",
+      purpose: "Office supplies",
+      amountMinor: 1250,
+    });
+  });
+
+  it("refuses a price that does not parse, with the same strictness as the cap", () => {
+    expect(buildTrustEntry("Acme Supplies", "Office supplies", "abc")).toBeNull();
+    expect(buildTrustEntry("Acme Supplies", "Office supplies", "0")).toBeNull();
+    expect(buildTrustEntry("Acme Supplies", "Office supplies", "-3")).toBeNull();
+    expect(buildTrustEntry("Acme Supplies", "Office supplies", "1.234")).toBeNull();
+  });
+});
+
+describe("trustProblem", () => {
+  const ENTRY = { payee: "Acme Supplies", purpose: "Office supplies", amountMinor: 500 };
+
+  it("accepts a budget and prices at or under the monthly cap", () => {
+    expect(trustProblem(1000, [ENTRY], 5000)).toBeNull();
+    expect(trustProblem(5000, [{ ...ENTRY, amountMinor: 5000 }], 5000)).toBeNull();
+    expect(trustProblem(0, [], 5000)).toBeNull();
+  });
+
+  it("refuses a budget above the cap, with the pinned sentence and code", () => {
+    const problem = trustProblem(5001, [], 5000);
+    expect(problem?.code).toBe("budget-over-cap");
+    expect(problem?.message).toBe(TRUST_BUDGET_OVER_CAP);
+  });
+
+  it("refuses a listed price above the cap", () => {
+    const problem = trustProblem(0, [{ ...ENTRY, amountMinor: 5001 }], 5000);
+    expect(problem?.code).toBe("item-over-cap");
+    expect(problem?.message).toBe(TRUST_ITEM_OVER_CAP);
+  });
+
+  it("checks the budget first when both numbers are over the cap", () => {
+    const problem = trustProblem(6000, [{ ...ENTRY, amountMinor: 7000 }], 5000);
+    expect(problem?.code).toBe("budget-over-cap");
   });
 });
