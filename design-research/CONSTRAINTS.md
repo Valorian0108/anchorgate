@@ -349,6 +349,19 @@ the *only* icon source in the build; nothing from external icon packages
    budget stored, and every save bumps the rule version. Migration 0006 is
    additive-only (three columns, safe defaults false/[]/0) and is applied to
    the live database BEFORE the code that reads it is pushed.
+- (l) **The auto-budget meter (17 oct 2026, owner ask).** The auto budget is
+   visible wherever money is watched: the Rules page shows a thin meter under
+   the budget field ("Used this month: 30.00 of your 40.00 … resets on the
+   1st") whenever there is something to say (a budget set or a payment made,
+   toggle on or off, because the figure is history either way), and the Gate's
+   wall legend grows a fourth line, "auto-paid X of Y", rendered only while AI
+   authorization is on with a budget set or money spent, so the shipped
+   default gate is untouched. Tone stays plain at every fill level (the number
+   speaks, no colour change); both figures come from `budget()`'s
+   `autoSpentThisMonthMinor`, the same single computation the engine enforces
+   (`readSpendingState`), and the wall line moves client-side the moment a
+   verified capture with no approval on file arrives, exactly like the spent
+   figure does.
 
 ---
 

@@ -692,6 +692,23 @@ nav a.active::after { background: var(--accent-ink); transform: scaleX(1); opaci
 .trust-items .in { min-width: 120px; }
 .trust-items .in input { width: 84px; text-align: right; font-size: 13px; }
 .trust .trust-form > button { margin-top: 4px; }
+
+/* The auto-budget meter (owner ask, 17 oct 2026): the wall's little sibling.
+   Fill is transform-only (scaleX from a custom property) on the long beat,
+   and the whole block renders only when there is something to say. */
+.trust-meter { width: 100%; max-width: 260px; }
+.trust-meter-track {
+  position: relative; height: 6px; border-radius: 999px; overflow: hidden;
+  background: rgba(18,41,58,0.07); border: 1px solid var(--line);
+}
+.trust-meter-fill {
+  position: absolute; inset: 0; border-radius: 999px;
+  background: var(--accent);
+  transform-origin: left center;
+  transform: scaleX(var(--auto-frac, 0));
+  transition: transform var(--dur-long) var(--ease-in-out);
+}
+.trust-meter .trust-used b { color: var(--ink); font-weight: 500; }
 @media (max-width: 560px) {
   .trust-items .in { min-width: 96px; }
   .trust-items .in input { width: 64px; }

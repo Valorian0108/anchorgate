@@ -190,6 +190,10 @@ export default async function StatutePage({
   const trustOn = rules.autoApproveEnabled;
   const listed = rules.autoAllowlist ?? [];
   const autoBudget = rules.autoBudgetMinor ?? 0;
+  const autoSpent = budget.autoSpentThisMonthMinor;
+  // The meter's fill, transform-only like the wall: used over budget, capped.
+  const autoFrac =
+    autoBudget > 0 ? Math.min(autoSpent / autoBudget, 1) : autoSpent > 0 ? 1 : 0;
   // Each save message shows under the form that produced it.
   const messageIsCap = saved === "ok" || saved === "bad-money";
 
@@ -288,6 +292,22 @@ export default async function StatutePage({
             Auto-paying stops when this runs out, even with room under your monthly
             limit. It counts only confirmed payments, like the limit itself.
           </p>
+
+          {autoBudget > 0 || autoSpent > 0 ? (
+            <div className="trust-meter">
+              <div className="trust-meter-track" aria-hidden="true">
+                <div
+                  className="trust-meter-fill"
+                  style={{ "--auto-frac": autoFrac } as React.CSSProperties}
+                />
+              </div>
+              <p className="hint trust-used">
+                Used this month: <b>{symbol}{money(autoSpent)}</b> of your{" "}
+                {symbol}{money(autoBudget)}. It counts only confirmed automatic
+                payments, and it resets on the 1st.
+              </p>
+            </div>
+          ) : null}
 
           <div className="trust-items">
             <div className="sec">Your list · exact prices</div>

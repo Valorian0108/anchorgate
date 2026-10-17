@@ -38,7 +38,6 @@ import {
 } from "../core/execution";
 import {
   SpendingLedger,
-  utcMonthPeriod,
   type SpendingEvent,
   type SpendingStore,
 } from "../core/spending";
@@ -58,6 +57,13 @@ export interface PurchaseServiceDeps {
 export interface BudgetSnapshot {
   rules: SpendingRules | null;
   spentThisMonthMinor: number;
+  /**
+   * Verified spending this month that belongs to purchases the rules cleared
+   * on their own (trust mode). The same figure the engine reads against the
+   * auto budget, from the same single computation, so a meter can never
+   * disagree with a decision.
+   */
+  autoSpentThisMonthMinor: number;
   /** `null` when no rules are configured (nothing can be authorized). */
   remainingMinor: number | null;
   currency: string | null;
@@ -82,13 +88,24 @@ export class PurchaseService {
   async budget(): Promise<BudgetSnapshot> {
     const now = this.now();
     const rules = await this.deps.rules.getActive();
-    const spentThisMonthMinor = await this.ledger.capturedMinor(utcMonthPeriod(now));
+    // The same read the decisions use (readSpendingState): one place computes
+    // spending and auto spending, so the wall and the meters can never drift
+    // from the figures the engine enforces.
+    const state = await readSpendingState(this.deps, now);
+    const { spentThisMonthMinor, autoSpentThisMonthMinor } = state;
     if (!rules) {
-      return { rules: null, spentThisMonthMinor, remainingMinor: null, currency: null };
+      return {
+        rules: null,
+        spentThisMonthMinor,
+        autoSpentThisMonthMinor,
+        remainingMinor: null,
+        currency: null,
+      };
     }
     return {
       rules,
       spentThisMonthMinor,
+      autoSpentThisMonthMinor,
       remainingMinor: Math.max(rules.monthlyCapMinor - spentThisMonthMinor, 0),
       currency: rules.currency,
     };

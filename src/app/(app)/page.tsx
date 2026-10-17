@@ -49,6 +49,7 @@ export default async function GatePage({
     .filter((record) => isReserved(record.status))
     .reduce((sum, record) => sum + record.request.amountMinor, 0);
   const currency = budget.currency ?? "USD";
+  const trustOn = budget.rules?.autoApproveEnabled ?? false;
 
   return (
     <>
@@ -62,7 +63,9 @@ export default async function GatePage({
         askMessage={message}
         evaluatedAt={evaluatedAt}
         ruleVersion={budget.rules?.ruleVersion ?? null}
-        trustOn={budget.rules?.autoApproveEnabled ?? false}
+        trustOn={trustOn}
+        autoSpentMinor={trustOn ? budget.autoSpentThisMonthMinor : null}
+        autoBudgetMinor={trustOn ? (budget.rules?.autoBudgetMinor ?? null) : null}
       />
 
       <div className="note">

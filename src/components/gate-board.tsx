@@ -70,6 +70,8 @@ export function GateBoard({
   evaluatedAt,
   ruleVersion,
   trustOn = false,
+  autoSpentMinor = null,
+  autoBudgetMinor = null,
 }: {
   records: PurchaseRecord[];
   /** Short capture reference per request id, for the settled cards. */
@@ -84,6 +86,13 @@ export function GateBoard({
   ruleVersion: string | null;
   /** AI authorization on: the ask box's honesty lines change with it. */
   trustOn?: boolean;
+  /**
+   * Trust-mode figures for the wall's auto-paid line, present only while AI
+   * authorization is on (null keeps the line, and the default gate, exactly
+   * as shipped).
+   */
+  autoSpentMinor?: number | null;
+  autoBudgetMinor?: number | null;
 }) {
   const { arrivals, arrivalRefs, unseen, markSeen, setGatePresent } = useFeed();
   const [awayCount, setAwayCount] = useState(0);
@@ -91,6 +100,7 @@ export function GateBoard({
   const [overrides, setOverrides] = useState<Record<string, Override>>({});
   const [spent, setSpent] = useState(spentMinor);
   const [reserved, setReserved] = useState(reservedMinor);
+  const [autoSpent, setAutoSpent] = useState(autoSpentMinor ?? 0);
 
   // The Gate is on screen: arrivals should appear, not count.
   useEffect(() => {
@@ -124,8 +134,14 @@ export function GateBoard({
       if (wallApplied.current.has(record.id)) continue;
       wallApplied.current.add(record.id);
       setSpent((value) => value + record.request.amountMinor);
+      // A verified capture with no approval on file was cleared and paid by
+      // the rules, so the auto-paid figure moves too — the same fact the
+      // card's receipt line uses when it says "your rules cleared it".
+      if (!record.approval && autoSpentMinor !== null) {
+        setAutoSpent((value) => value + record.request.amountMinor);
+      }
     }
-  }, [arrivals]);
+  }, [arrivals, autoSpentMinor]);
 
   const items = useMemo(() => {
     const byId = new Map<string, PurchaseRecord>();
@@ -208,6 +224,8 @@ export function GateBoard({
           spentMinor={spent}
           reservedMinor={reserved}
           currency={currency}
+          autoPaidMinor={autoSpentMinor !== null ? autoSpent : null}
+          autoBudgetMinor={autoBudgetMinor}
         />
       </div>
 

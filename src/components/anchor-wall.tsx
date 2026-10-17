@@ -26,11 +26,21 @@ export function AnchorWall({
   spentMinor,
   reservedMinor,
   currency,
+  autoPaidMinor = null,
+  autoBudgetMinor = null,
 }: {
   capMinor: number | null;
   spentMinor: number;
   reservedMinor: number;
   currency: string;
+  /**
+   * The trust-mode line: how much of the auto budget has paid itself this
+   * month. Both stay null unless AI authorization is on, and the line renders
+   * only when there is something to say (a budget set or a payment made), so
+   * the default gate is untouched.
+   */
+  autoPaidMinor?: number | null;
+  autoBudgetMinor?: number | null;
 }) {
   const sym = currencySymbol(currency);
 
@@ -102,6 +112,12 @@ export function AnchorWall({
           <span className="hl">
             left <b>{sym}{money(headroomMinor)}</b>
           </span>
+          {autoPaidMinor !== null && autoBudgetMinor !== null &&
+          (autoBudgetMinor > 0 || autoPaidMinor > 0) ? (
+            <span>
+              auto-paid <b>{sym}{money(autoPaidMinor)}</b> of {sym}{money(autoBudgetMinor)}
+            </span>
+          ) : null}
         </div>
       </div>
 

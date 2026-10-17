@@ -137,6 +137,11 @@ describe("the automatic path, end to end", () => {
     const after = await readSpendingState(harness, NOW);
     expect(after.spentThisMonthMinor).toBe(500);
     expect(after.autoSpentThisMonthMinor).toBe(500);
+
+    // The meters read the same single source: budget() carries both figures.
+    const snapshot = await harness.service.budget();
+    expect(snapshot.spentThisMonthMinor).toBe(500);
+    expect(snapshot.autoSpentThisMonthMinor).toBe(500);
   });
 
   it("stops the NEXT exact match once the auto budget is used up", async () => {
@@ -176,6 +181,7 @@ describe("the automatic path, end to end", () => {
     const after = await readSpendingState(harness, NOW);
     expect(after.spentThisMonthMinor).toBe(500);
     expect(after.autoSpentThisMonthMinor).toBe(0);
+    expect((await harness.service.budget()).autoSpentThisMonthMinor).toBe(0);
 
     // The auto budget is untouched, so the listed item still clears.
     const auto = proposePurchase({ ...REQUEST, id: "auto-9" }, RULES, after, NOW);
