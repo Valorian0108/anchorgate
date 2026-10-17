@@ -3,10 +3,12 @@
 -- All five tables gain (or keep) an `owner_id` holding a Supabase auth user id.
 -- Existing data belonged to the single owner account, so it is backfilled to
 -- that account, looked up by email in `auth.users` when running on Supabase.
--- The email is the OWNER_EMAIL identity already present in the repository's
--- git metadata; it is an identifier, not a credential. On a plain PostgreSQL
--- (tests/PGlite) there is no `auth` schema and the tables start empty, so the
--- placeholder branch never writes a row.
+-- The original address was scrubbed from this repository's history before it
+-- went public, so on any fresh database the lookup below matches nothing and
+-- falls through to the zero-id branch, a no-op on empty tables. On a plain
+-- PostgreSQL (tests/PGlite) there is no `auth` schema at all and the same
+-- branch runs. The migration is kept unchanged because it is applied history
+-- on the live database, not because the lookup still matters.
 
 ALTER TABLE "purchase_requests" ADD COLUMN "owner_id" text;--> statement-breakpoint
 ALTER TABLE "evaluations" ADD COLUMN "owner_id" text;--> statement-breakpoint
