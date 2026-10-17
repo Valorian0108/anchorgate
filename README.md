@@ -1,308 +1,124 @@
-# Spending Authorization
+# AnchorGate
 
-An application that lets a person give an AI agent limited authority to make
-purchases through PayPal, while an independent authorization layer checks each
-proposed purchase against the person's rules.
+**Your AI agent proposes purchases. AnchorGate checks every one against rules that only you can change. Anything else waits for your yes.**
 
-> **The AI may propose an action, but it must not decide or expand its own
-> authority.**
+Built for the PayPal AI Hackathon, fall 2026.
 
-The defining behavior is the **independent authorization check** between a
-purchase request and payment execution. Decisions come from deterministic
-application logic — never from asking the AI whether its own request should be
-allowed.
+**[Open the live gate](https://anchorgate-five.vercel.app)** · free to sign up · runs entirely on PayPal sandbox money, which is practice money, never real money.
 
-## Status
+<!-- TODO before publishing: add the demo video link here (under 3 minutes) -->
 
-Early development but functionally complete through the core flow. The
-**authorization core** (deterministic decision engine), the **purchase
-lifecycle** (approval handling and revalidation), **spending accounting**
-(counts only verified captures, exactly once), **durable storage** (PostgreSQL,
-including the persisted spending rules), the **authorization-gated payment
-execution**, and the **PayPal Sandbox adapter** (orders create + capture against
-a vaulted payment method) are implemented and tested. The PayPal path is
-**live-verified against Sandbox** (`npm run sandbox:verify`): a card vault was
-`ALLOW`ed, captured, and counted exactly once.
+## The problem, in one breath
 
-The **AI agent** (Phase 5) is implemented: it can only *propose* purchases,
-through a single tool named `propose_purchase`, and every proposal is decided by
-the existing deterministic engine. The agent has **no payment tool**.
+AI agents can shop now. They can browse, compare, and check out. But nobody sane hands an agent their card and says "be sensible about it." AnchorGate stands between the agent and the money, like a locked gate. The agent can knock all it likes. Your rules open the gate, or your yes opens it. Nothing else does.
 
-The **full money flow is now runnable end to end** and live-verified against
-PayPal Sandbox: the agent proposes → the deterministic engine decides → the owner
-reviews and approves → the server pays through PayPal only after the final gate →
-a verified capture is counted in the durable ledger exactly once. The operator
-surface is `npm run purchase` (there is no UI yet); see **Run the full flow**
-below. The **UI** has not been designed or approved, and is intentionally not
-built yet.
+## What happens to a purchase
 
-## Tech stack
+1. **The agent proposes.** A seller, a purpose, a category, an exact amount. Proposing is the only thing an agent can do here. It has no tool that pays for anything.
+2. **The gate checks, in a fixed order.** Is the request complete and sensible? Is the currency one you allowed? Is the kind of purchase one you allowed? Is there room under your monthly limit? These checks are plain code, not AI. No model is ever asked whether its own request should pass.
+3. **One of three things happens.**
+   - **Allowed and paid by your rules.** Only when you switched on AI authorization, and only when the item matches your list exactly: same seller, same purpose, same amount to the cent, and room left in this month's auto budget.
+   - **Refused**, naming the rule that refused it, in plain words. A hard refusal stays refused. No approval button can move it.
+   - **It comes to you.** Everything else waits for a person: you approve and it pays, or you decline.
+4. **Payment runs through PayPal.** Money counts only when PayPal confirms it, and a confirmed payment counts exactly once. A capture still pending is watched until it settles or lets go.
+5. **Everything goes on the record.** Every purchase has a page showing each check that ran, the decision, which version of your rules made it, and the PayPal reference. The checks run when a purchase is suggested, and again right before it pays. Your rules are never remembered from last time. They are read fresh, every time.
 
-- **Next.js + TypeScript** (full-stack, single repo)
-- **PostgreSQL** (Supabase) with **Drizzle ORM** for durable storage
-- **PayPal Server SDK** (`@paypal/paypal-server-sdk`), Sandbox only
-- **Vercel AI SDK** (`ai`) with an **OpenAI-compatible** provider
-  (`@ai-sdk/openai-compatible`) — the agent talks to Experiential Labs'
-  OpenAI-compatible gateway (or any compatible endpoint)
-- **Vitest** for tests; **PGlite** (in-process PostgreSQL) for persistence tests
+## The rules only you can change
 
-## Getting started
+On the Rules page you set your monthly limit, the kinds of purchases you allow, and the currency. Until you write your first rule set, nothing can be approved at all. That is deliberate. The gate fails safe.
 
-Requires **Node.js 20+**.
+**AI authorization** is the optional part, and it is off by default. When you switch it on, you get three things:
+
+- **Your list.** Exact items at exact prices. "Printer paper, restock, $22.00" pays itself. Printer paper at $22.01 does not. It comes to you showing both numbers.
+- **One auto budget for the month**, always inside your monthly limit. When it runs out, auto-paying stops and the gate asks you again, saying plainly that the budget is why.
+- **A meter**, so you are never surprised. The Rules page shows how much of the budget has been used, and the gate's wall carries the same figure. Switch the feature off and everything returns to asking you. It is one switch.
+
+Only you can save rules. Every decision on record names the version of your rules that made it, so you can always see which rulebook was in force.
+
+## The promises the gate keeps
+
+- Nothing pays itself unless it matches your list to the cent.
+- Every auto-paid purchase is marked, on its card, on its record, and on the wall.
+- Every refusal and every ask names its reason in plain words. No codes, no shrugs.
+- Money is counted only when the payment is confirmed, and only once.
+- At the top of the gate sits **the wall**: your monthly limit as a hard line, with what is spent, what is set aside for waiting purchases, what is left, and what your rules auto-paid. Approvals cannot move the limit line. Nothing can, except you changing your rules.
+
+## The demo agent
+
+A built-in agent proposes items from a fixed catalog of fourteen, one at a time: a coffee subscription, printer paper, software seats, all the way up to a team flight. The loop runs from your first minute, with nothing to wire up.
+
+You can also type any purchase into the ask box in your own words. That uses whichever AI model you configure. The model writes the proposal. The decision never involves a model.
+
+<!-- TODO before publishing: replace these slots with real screenshots
+     1. the gate: the wall on top, a card waiting on you, the ask box
+     2. a paid card: "your rules cleared it · paid once" with its PayPal reference
+     3. a record page: every check, the decision, the ALLOWED stamp
+     4. the Rules page: your limit, your exact-price list, the auto budget meter -->
+
+## Run it yourself
+
+You need, all free tier is fine:
+
+- **Node.js 20** or newer
+- A **Supabase** project. It provides the database (Postgres) and the email plus password sign-in.
+- A **PayPal Developer sandbox app**, for the client ID and secret.
+- Optionally, an API key for any AI model service that speaks the common OpenAI-style API. This powers the ask box. The rest of the app works without it.
 
 ```bash
+git clone https://github.com/Valorian0108/anchorgate.git
+cd anchorgate
 npm install
-npm test        # run the test suite (no database required)
-npm run typecheck
-npm run dev     # start the app (placeholder page only, for now)
 ```
 
-### Database setup (only needed to run against a real database)
+Copy `.env.example` to `.env` and fill in:
 
-The tests run against an **in-process PostgreSQL engine**, so `npm test` needs no
-database. To point the app at your Supabase database:
-
-1. Copy `.env.example` to `.env` and fill in `DATABASE_URL` and
-   `DATABASE_URL_DIRECT` from your Supabase project (click **Connect** in the
-   dashboard; choose the **Transaction pooler** for `DATABASE_URL` and the
-   **Session pooler** for `DATABASE_URL_DIRECT`, then replace
-   `[YOUR-PASSWORD]` — including the brackets — with your database password).
-   **Never commit `.env`** — it is gitignored.
-2. Apply the committed migrations: `npm run db:migrate`
-   (regenerate them after schema changes with `npm run db:generate`).
-3. Verify the connection and schema: `npm run db:check` — prints the tables and
-   their row counts, and fails if a migration is missing.
-
-### PayPal Sandbox setup (only needed to run real payments)
-
-PayPal is **Sandbox-only**. The code refuses any non-Sandbox environment.
-Create a Sandbox app in the PayPal Developer Dashboard (Apps & Credentials →
-Sandbox), then set `PAYPAL_ENV=sandbox`, `PAYPAL_CLIENT_ID`, and
-`PAYPAL_CLIENT_SECRET` in your local `.env`. To let the agent pay without a human
-present, the user also completes a one-time **vault enrollment** (saving a
-payment method); without it, payments fail safe.
-
-> **Enable Vault on the app:** open the app and go to **Sandbox App Settings →
-> App Feature Options**, check **Accept payments**, expand **Advanced options**,
-> and enable **Vault**. Vaulting must be on, or setup-token calls fail with
-> HTTP 403 `NOT_AUTHORIZED`. (Vaulting is supported in the US, Canada, much of
-> Europe, Australia, and parts of Asia; use a US Sandbox business account if
-> unsure.)
-
-> **Filename matters:** the file must be named exactly `.env`. On Windows,
-> Notepad may silently save it as `.env.txt`, which the app will not read. Turn on
-> "File name extensions" in File Explorer to check.
-
-#### Verify the PayPal path against Sandbox
-
-Once the PayPal Sandbox variables are in `.env`, run:
-
-```bash
-npm run sandbox:verify          # card vault (server-side, no browser)
-npm run sandbox:verify:wallet   # PayPal wallet vault (browser approval)
-```
-
-Either mode drives the real code path once: it enrolls a **vault**, proposes a
-tiny purchase, runs the deterministic authorization engine, and — only if the
-engine returns `ALLOW` — creates and captures a real Sandbox payment, verifies
-the receipt, and counts it exactly once in the spending ledger. It prints the
-provider capture id and the ledger total. Credentials and the vault token are
-never printed. The script is Sandbox-only and uses an in-memory vault for this
-one-shot check; the app stores vault tokens durably in PostgreSQL.
-
-- **Default (card):** enrolls PayPal's standard Sandbox **test card** server-side.
-  PayPal settles the capture immediately, so this is the green end-to-end check.
-- **`--wallet`:** you approve saving a PayPal wallet in the browser with your
-  Sandbox *personal* (buyer) account. In Sandbox, PayPal often holds the resulting
-  capture as `PENDING_REVIEW`; the runner reports **`PENDING`** and counts
-  **nothing**, which is the correct behavior — a capture is only counted once it
-  has actually settled. (Reconciliation re-reads the capture and counts it once it
-  settles.)
-
-### AI agent setup (only needed to run the agent)
-
-The agent **proposes** purchases; the deterministic engine decides. It talks to
-an **OpenAI-compatible** chat endpoint (the default is Experiential Labs, an
-OpenAI-compatible gateway/router). Set these in your local `.env`:
-
-- `AGENT_API_KEY` — your key. **Never paste it into chat, code, screenshots, or
-  commits.**
-- `AGENT_MODEL` — the model id/alias to use. List choices with
-  `npm run agent:models` (it calls the provider with your local key and prints
-  the ids), or copy one from the provider's Models page. A verified budget
-  default is `deepseek-v4-flash`; the model **must support tool calling**
-  (`propose_purchase`), so embeddings/image/search models will not work.
-- `AGENT_BASE_URL` — optional; defaults to
-  `https://api.experientiallabs.ai/v1`.
-- `AGENT_ID` — optional label recorded on each proposed purchase.
-
-Then run a proposal:
-
-```bash
-npm run agent -- "buy a 49 dollar software license from Acme"
-# or interactively:
-npm run agent
-```
-
-The agent interprets the request, calls `propose_purchase`, and prints the
-engine's `ALLOW` / `ASK` / `DENY` decision. **It never pays**: payment happens
-through the authorization-gated execution layer, never the model. If
-`DATABASE_URL` is set, proposals (and their decisions) are stored in your durable
-database; otherwise an in-memory store is used. If no spending rules exist yet, a
-clearly-labelled demo rule set (`demo-1`, a hard $200/month cap) is saved so the
-demo runs.
-
-### Run the full flow (propose → approve → pay)
-
-`npm run purchase` is the operator surface for the money flow. It uses the same
-deterministic engine, the same durable stores, and the same authorization-gated
-PayPal path as everything else; it never prints credentials or vault tokens.
-
-```bash
-# 0) once: save a payment method (Sandbox test card, server-side, no browser)
-npm run purchase -- enroll
-#    or, to approve a PayPal wallet in the browser:
-npm run purchase -- enroll --wallet
-
-# 1) the agent proposes (a new payee, so the engine asks for approval)
-npm run agent -- "buy a 1 dollar software license from Acme"
-
-# 2) review the queue and the request
-npm run purchase -- pending
-npm run purchase -- show <id>
-
-# 3) approve, then pay (or combine: approve <id> --pay)
-npm run purchase -- approve <id>
-npm run purchase -- pay <id>
-
-# 4) see the budget: only verified captures are counted
-npm run purchase -- budget
-```
-
-- **`approve`** re-checks the current rules and budget, so a hard constraint (the
-  monthly cap) still cannot be approved through.
-- **`pay`** re-runs the final deterministic gate immediately before contacting
-  PayPal; a request that is not ready is `BLOCKED` and never paid.
-- A verified capture is counted **exactly once**. Running `pay` again is blocked
-  and does not double-count. A capture the provider leaves unsettled is reported
-  as `PENDING`, counted as **nothing**, and can be re-read with
-  `npm run purchase -- reconcile <id>`.
-- Other commands: `list [--status=S] [--limit=N]`, `reject <id> [--reason=...]`,
-  and `payments`.
-
-> With `DATABASE_URL` set, everything is durable: a request approved in one
-> process is payable in the next, and the ledger is shared. Without it, the CLI
-> falls back to in-memory stores (not durable).
-
-### Spending rules
-
-The rules are stored durably and can be read or changed without touching code:
-
-```bash
-npm run rules:show
-npm run rules:set -- --currency=USD --per-purchase=50 --monthly-cap=100 \
-  --categories=software,office_supplies,books --new-payee-approval=true
-```
-
-Amounts are given in **major units** (dollars). The **per-purchase limit** is the
-amount above which a proposal needs your approval; the **monthly cap** is the
-hard ceiling that approval can never override. `--new-payee-approval=true` makes
-the first payment to any merchant require your approval.
-
-## Project layout
-
-```
-src/
-  core/
-    authorization/     # the independent, deterministic decision engine
-      types.ts         # core vocabulary (requests, rules, decisions)
-      validation.ts    # runtime parsing of untrusted input
-      engine.ts        # evaluatePurchase(...) — the security boundary
-      engine.test.ts   # tests mapped to the acceptance criteria
-    purchases/         # purchase lifecycle and approval handling
-      types.ts         # record, status, evaluation, approval vocabulary
-      fingerprint.ts   # binds approvals to a request's material details
-      lifecycle.ts     # propose / approve / reject / revalidate
-      store.ts         # storage interface + in-memory implementation
-      lifecycle.test.ts
-    spending/          # spending accounting (event log)
-      types.ts         # spending event vocabulary + summary
-      validation.ts    # validates events; capture idempotency key
-      ledger.ts        # totals from verified captures; idempotent writer
-      store.ts         # storage interface + in-memory implementation
-      ledger.test.ts
-    execution/         # authorizer-gated payment execution
-      types.ts         # PaymentGateway port + payment vocabulary
-      execute.ts       # re-check -> pay -> verify -> record (exactly once);
-                       # pending captures + reconciliation
-      execute.test.ts
-    payments/          # saved (vaulted) payment methods
-      types.ts         # SavedPaymentMethod vocabulary (sourceType: paypal/card)
-      store.ts         # storage interface + in-memory implementation
-  infra/
-    persistence/       # durable storage (Drizzle ORM + PostgreSQL/Supabase)
-      schema.ts        # purchases, evaluations, spending events, rules, payment methods
-      client.ts        # pooled Postgres client factory
-      purchaseStore.ts # PurchaseStore backed by PostgreSQL
-      spendingStore.ts # SpendingStore backed by PostgreSQL
-      ruleStore.ts      # SpendingRulesStore backed by PostgreSQL
-      paymentMethodStore.ts # vault tokens backed by PostgreSQL
-      persistence.test.ts
-    paypal/            # PayPal Sandbox adapter (server-only)
-      config.ts        # SDK client + env config (refuses production)
-      ports.ts         # narrow SDK ports (orders, payments, vault)
-      gateway.ts       # PaymentGateway implementation (create + capture,
-                       # card/wallet source, PENDING + checkCapture)
-      vault.ts         # vault enrollment (PayPal wallet + server-side card)
-      money.ts         # minor units <-> PayPal decimal strings
-  agent/               # the AI agent (proposal only)
-    config.ts          # env config; reports missing var NAMES, never values
-    model.ts           # OpenAI-compatible model construction
-    proposal.ts        # deterministic bridge into the authorization engine
-    tools.ts           # the ONLY tool: propose_purchase (no payment tool)
-    agent.ts           # instructions + generateText composition
-    agent.test.ts
-  services/            # application layer: composes core + stores + PayPal
-    purchaseService.ts # budget, approve/reject, pay, reconcile (end-to-end flow)
-    spendingState.ts   # the ONE place that reads spent-this-month + known payees
-    purchaseService.test.ts
-  app/                 # Next.js shell (placeholder only)
-scripts/
-  sandbox-verify.ts    # one-command live PayPal Sandbox verification (real payments)
-  db-check.ts          # connect to the durable DB and confirm the schema
-  agent-cli.ts         # npm run agent: propose a purchase via the AI agent
-  agent-models.ts      # npm run agent:models: list models from the endpoint
-  rules.ts             # npm run rules:show / rules:set: read or replace spending rules
-  purchase.ts          # npm run purchase: review, approve/reject, pay, reconcile, enroll
-```
-
-## Authorization decisions
-
-| Decision | Meaning |
+| Variable | What it is |
 | --- | --- |
-| `ALLOW` | Satisfies the rules; may proceed to payment execution. |
-| `ASK` | Needs explicit human approval for this specific request. |
-| `DENY` | Violates a hard constraint; must not reach payment execution. |
+| `DATABASE_URL` | Supabase connection string, the pooled one on port 6543 |
+| `DATABASE_URL_DIRECT` | Supabase direct connection on port 5432, used once for migrations |
+| `PAYPAL_ENV` | Leave it as `sandbox`. Any other value is refused at startup |
+| `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` | From your PayPal sandbox app |
+| `SUPABASE_URL`, `SUPABASE_ANON_KEY` | From your Supabase project settings |
+| `SESSION_SECRET` | Any long random string |
+| `AGENT_BASE_URL`, `AGENT_API_KEY`, `AGENT_MODEL` | Optional. For the ask box |
+| `OWNER_EMAIL` | Optional. Emailed sign-in links are limited to this one address so nobody can use the app to mail strangers. Everyone else signs in with a password |
 
-Decision order (strictest answer wins: `DENY` > `ASK` > `ALLOW`):
+Then:
 
-1. Validate the request (malformed/missing fails safe → `DENY`)
-2. Reject zero / negative amounts
-3. Reject a currency that does not match the configured rules
-4. Reject a category that is not explicitly permitted
-5. Reject if it would exceed the hard monthly cap (approval cannot override)
-6. `ASK` if above the per-purchase limit, or another approval condition applies
-7. Otherwise `ALLOW`
+```bash
+npm run db:migrate   # creates the tables
+npm run dev          # open http://localhost:3000
+```
 
-## Notes
+Sign up with an email and a password. Depending on your Supabase settings you may confirm by email first. The app tells you honestly which case you are in.
 
-- Money is handled as integer **minor units** (e.g. cents) to avoid
-  floating-point errors. The MVP does not perform currency exchange.
-- PayPal is used in **Sandbox only** for this project.
+To check the code before trusting it:
 
-See `architecture.md` for the full specification and `OPEN-DECISIONS.md` for the
-running record of decisions and open questions.
+```bash
+npm test         # 313 automated checks: the decision engine, the money math, the whole lifecycle
+npm run typecheck
+npm run build
+```
 
-## License
+One safety sentence: the PayPal adapter refuses to start against any environment that is not sandbox, so this app cannot move real money, even by accident.
 
-[MIT](./LICENSE) — see the `LICENSE` file at the root of the repository.
+## What this is not
+
+- **Not real-money software.** Sandbox only, enforced in code, permanently.
+- **Not audited.** It is a hackathon build that proves a pattern: a deterministic gate between agents and payments.
+- **One person per gate.** Each account is one owner's rules, one owner's wall.
+- **Not tied to the demo agent.** The built-in feed proposes from a fixed catalog, but any agent, real or simulated, meets the same gate and the same rules. The gate does not care who knocks.
+
+## Built with
+
+- **Next.js 16, React 19, TypeScript** for the app
+- **PayPal Server SDK**: orders, captures, and a vaulted sandbox card, with pending captures reconciled until confirmed
+- **Postgres** with **Drizzle ORM**, hosted on Supabase
+- **Supabase Auth**: email plus password, with an optional emailed link
+- **Vercel AI SDK**, pointed at any OpenAI-compatible model
+- **Vitest** for the automated checks
+- Deployed on **Vercel**
+
+## Licence
+
+MIT © 2026 Ife Demi
