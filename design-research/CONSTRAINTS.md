@@ -439,6 +439,33 @@ the *only* icon source in the build; nothing from external icon packages
    them, and a breach forecast still turns the whole bar red. A side effect
    worth keeping: amber now begins exactly where the bar's 75% caution notch is
    drawn, so the notch and the colour can no longer disagree.
+ - (q) **Verify against the published schema, not memory; rescue by re-asking,
+    never by re-stamping (17 oct 2026, owner-approved fix and rescue).** The
+    first day the signed webhook proof was live, all three genuine notifications
+    were stored unverified. The fault was in our own request, not in anyone's
+    configuration: PayPal's verify-webhook-signature API accepts exactly seven
+    fields and requires `webhook_event`, the full event object, while the route
+    sent an invented `webhook_event_id`, an extra `transmission_body`, and
+    omitted the required field, so PayPal answered INVALID_REQUEST without ever
+    looking at the signature. Two lessons, recorded so they outlive the bug.
+    First: build a request to someone else's API from their published schema
+    (PayPal's OpenAPI spec `notifications_webhooks_v1.json` settled it in one
+    fetch), never from memory of its shape. Second: reproduce the failure
+    against the real API from stored data before shipping a fix; re-running the
+    verify call locally from the stored transmission is what separated "PayPal
+    rejects our request" from "the signature is bad", and proved the signatures
+    genuine all along. The corrected route shipped the same day and production
+    verified the next two notifications by itself. This also refines a detail of
+    (n): the stored transmission is not something a judge can "copy straight
+    back" into PayPal's API as one object; the stored raw body is supplied as
+    `webhook_event` beside the six header-derived fields and the registered
+    webhook id. The three unverified rows were rescued by a one-off script,
+    owner-approved, that re-asked PayPal about each stored event and updated
+    `verified` and `verification` only where PayPal answered SUCCESS. Nothing
+    PayPal signed was touched and no stamp was set by hand: the panel's
+    confirmed claim rests on a fresh answer from PayPal either way. The rescue
+    was possible at all because (n) stores everything PayPal signed even when
+    verification fails, which is that design decision paying for itself.
 
 ---
 
