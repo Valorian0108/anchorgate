@@ -422,6 +422,23 @@ the *only* icon source in the build; nothing from external icon packages
    through an invented masking rule. This is a privacy convenience for
    screenshots, demos and screen shares, not access control, and the canon
    records it as such.
+- (p) **The wall's colour counts confirmed payments only (17 oct 2026, owner
+   decision).** The bar's two channels now answer two different questions
+   instead of one overloading the other. Its LENGTH is commitment: solid fill
+   for money that left, pale band for money set aside for cards still waiting.
+   Its COLOUR is position against the hard limit, driven by `spentFrac` alone
+   (accent, caution from 0.75, refusal from 0.9), which is the same number the
+   engine enforces, the readout prints as a percentage, and the Rules page
+   promises when it says the limit counts confirmed payments only. Before this,
+   the colour came from spent plus set-aside, so a gate with four waiting cards
+   showed a refusal-red bar while the gate would still happily pay any of them;
+   the red contradicted the readout's own percentage beside it, and §6(m)'s
+   refusal-red preview had nothing to stand out against because the bar was
+   already red. Commitment is not lost by the calmer colour: it keeps the pale
+   band, the legend's "set aside" and "left" figures, and the words that explain
+   them, and a breach forecast still turns the whole bar red. A side effect
+   worth keeping: amber now begins exactly where the bar's 75% caution notch is
+   drawn, so the notch and the colour can no longer disagree.
 
 ---
 
@@ -609,8 +626,11 @@ reference for the Gate rebuild. The poster is gone; the Gate is a cockpit:
   specimen 17 oct 2026 (§6(m)): a cap-preview ghost marker, one 2px line that
   appears on the bar only while a waiting card is hovered or focused, showing
   where that card's money would land, and turning refusal-red with the bar when
-  it would land past the cap. It is absent entirely when no card is in focus,
-  and nothing else about the band changes.
+  it would land past the cap. It is absent entirely when no card is in focus.
+  Also 17 oct 2026 (§6(p)): the band's colour is driven by confirmed spend
+  alone, so it agrees with the readout, the caution notch and the engine;
+  set-aside money keeps the pale band and the legend's words instead of the
+  colour.
 - **The queue is the body.** Four equal columns on open ground with thin left
   rules (accent on needs-you), no boxes. Every item carries a live elapsed
   time that ages once a minute. Columns stretch to equal height and each

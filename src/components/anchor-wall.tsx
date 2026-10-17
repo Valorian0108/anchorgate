@@ -18,9 +18,13 @@ import { currencySymbol } from "@/lib/gateCard";
  * footnote at the right in Sora light, with the cap, the caution money and the
  * reset day explained in plain words beside it.
  *
- * The colour is a live signal: accent while there is room, caution from three
- * quarters of the cap, refusal near or over it. The spent figure counts only
- * when the value changes, and the wall moves only when a capture is verified.
+ * The colour is a live signal and it counts confirmed payments only, the same
+ * number the engine enforces: accent while there is room, caution from three
+ * quarters of the cap, refusal near or over it. Money merely set aside for cards
+ * still waiting draws as the pale band beside the solid fill and keeps its own
+ * words in the legend, so commitment stays visible without colouring the hard
+ * limit. The spent figure counts only when the value changes, and the wall moves
+ * only when a capture is verified.
  */
 export function AnchorWall({
   capMinor,
@@ -71,12 +75,22 @@ export function AnchorWall({
 
   const spentFrac = Math.min(spentMinor / capMinor, 1);
   const resFrac = Math.max(0, Math.min(reservedMinor / capMinor, 1 - spentFrac));
-  const usedFrac = spentFrac + resFrac;
   const pct = Math.round(spentFrac * 100);
   const headroomMinor = Math.max(capMinor - spentMinor - reservedMinor, 0);
   const cautionMinor = Math.round(capMinor * 0.75);
+  /* The bar carries two channels and they answer two different questions, which
+     is the point: its LENGTH is commitment (solid = money that left, pale =
+     money set aside for cards still waiting), its COLOUR is position against
+     the hard limit, the same number the engine enforces and the readout prints.
+     Colouring it by commitment instead made the bar red while the gate would
+     still happily pay, contradicted the Rules page's own promise that the limit
+     counts confirmed payments only, and left the cap preview's refusal-red with
+     nothing to stand out against on a busy gate. Owner decision 17 oct 2026,
+     canon §6(m). The commitment truth keeps its own words in the legend, so
+     nothing is hidden by the calmer colour. A side effect worth keeping: amber
+     now begins exactly where the bar's 75% caution notch is drawn. */
   const wallColor =
-    usedFrac >= 0.9 ? "var(--deny)" : usedFrac >= 0.75 ? "var(--ask)" : "var(--accent)";
+    spentFrac >= 0.9 ? "var(--deny)" : spentFrac >= 0.75 ? "var(--ask)" : "var(--accent)";
 
   // A hovered card's landing spot on the wall, and whether paying it would go
   // over the cap. This is the engine's own cap check, shared through one helper
