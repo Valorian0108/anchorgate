@@ -20,6 +20,7 @@ import {
   DrizzlePurchaseStore,
   DrizzleSpendingRulesStore,
   DrizzleSpendingStore,
+  DrizzleWebhookStore,
 } from "@/infra/persistence";
 import {
   createPayPalClient,
@@ -57,7 +58,7 @@ interface Stores {
 let database: DatabaseHandle | null = null;
 const services = new Map<string, PurchaseService>();
 
-function getDatabase(): DatabaseHandle {
+export function getDatabase(): DatabaseHandle {
   if (database) return database;
 
   const connectionString = process.env.DATABASE_URL;
@@ -114,6 +115,11 @@ export function getService(userId: string): PurchaseService {
  */
 export async function getActiveRules(userId: string): Promise<SpendingRules | null> {
   return storesFor(userId).rules.getActive();
+}
+
+/** The webhook store, shared across the whole app (webhooks carry no owner). */
+export function getWebhookStore(): DrizzleWebhookStore {
+  return new DrizzleWebhookStore(getDatabase().db);
 }
 
 /**

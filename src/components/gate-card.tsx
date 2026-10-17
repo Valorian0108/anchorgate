@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import type { PurchaseRecord } from "@/core/purchases";
+import { previewAgainstCap } from "@/lib/capPreview";
 import { money } from "@/lib/format";
 import { currencySymbol, gateCardStatus, sourcePhrase } from "@/lib/gateCard";
 import { latestEvaluation } from "@/lib/vocab";
@@ -28,6 +29,9 @@ export function GateCard({
   working,
   failed,
   refText,
+  spentMinor,
+  capMinor,
+  onPreview,
   onDecide,
 }: {
   record: PurchaseRecord;
@@ -35,6 +39,12 @@ export function GateCard({
   working: boolean;
   failed: boolean;
   refText?: string;
+  /** Confirmed spend this month, for the cap preview. */
+  spentMinor: number;
+  /** Monthly cap, for the cap preview. */
+  capMinor: number | null;
+  /** Tells the wall where a hovered card's amount would land. */
+  onPreview?: (amountMinor: number | null) => void;
   onDecide: (id: string, action: "approve" | "decline") => void;
 }) {
   const status = gateCardStatus(record);
@@ -58,6 +68,10 @@ export function GateCard({
     <article
       className={`col${needsYou ? " needs" : ""}${entering ? " enter" : ""}`}
       aria-busy={working || undefined}
+      onMouseEnter={needsYou ? () => onPreview?.(record.request.amountMinor) : undefined}
+      onMouseLeave={needsYou ? () => onPreview?.(null) : undefined}
+      onFocus={needsYou ? () => onPreview?.(record.request.amountMinor) : undefined}
+      onBlur={needsYou ? () => onPreview?.(null) : undefined}
     >
       <span className="status">
         <span className="lab">
@@ -78,6 +92,10 @@ export function GateCard({
         {sym.trim()}
         {money(record.request.amountMinor)}
       </div>
+      {needsYou &&
+      previewAgainstCap(spentMinor, record.request.amountMinor, capMinor)?.breaches ? (
+        <p className="card-over">paying this would go over your monthly limit</p>
+      ) : null}
 
       {needsYou ? (
         <>

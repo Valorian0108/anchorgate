@@ -9,4 +9,5 @@ export { DrizzlePurchaseStore } from "./purchaseStore";
 export { DrizzlePaymentMethodStore } from "./paymentMethodStore";
 export { DrizzleSpendingRulesStore } from "./ruleStore";
 export { DrizzleSpendingStore } from "./spendingStore";
+export { DrizzleWebhookStore } from "./webhookStore";
 export * as schema from "./schema";

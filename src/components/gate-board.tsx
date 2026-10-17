@@ -101,6 +101,10 @@ export function GateBoard({
   const [spent, setSpent] = useState(spentMinor);
   const [reserved, setReserved] = useState(reservedMinor);
   const [autoSpent, setAutoSpent] = useState(autoSpentMinor ?? 0);
+  // Which waiting card is being looked at: its amount lands on the wall as a
+  // ghost marker so the owner can see where it would push spending before
+  // clicking approve. Null when nothing is hovered.
+  const [previewMinor, setPreviewMinor] = useState<number | null>(null);
 
   // The Gate is on screen: arrivals should appear, not count.
   useEffect(() => {
@@ -226,6 +230,7 @@ export function GateBoard({
           currency={currency}
           autoPaidMinor={autoSpentMinor !== null ? autoSpent : null}
           autoBudgetMinor={autoBudgetMinor}
+          previewMinor={previewMinor}
         />
       </div>
 
@@ -265,6 +270,9 @@ export function GateBoard({
               working={Boolean(overrides[record.id]?.working)}
               failed={Boolean(overrides[record.id]?.failed)}
               refText={overrides[record.id]?.ref ?? arrivalRefs[record.id] ?? refs[record.id]}
+              spentMinor={spent}
+              capMinor={capMinor}
+              onPreview={setPreviewMinor}
               onDecide={decide}
             />
           ))}
@@ -277,6 +285,8 @@ export function GateBoard({
               working={Boolean(overrides[record.id]?.working)}
               failed={Boolean(overrides[record.id]?.failed)}
               refText={overrides[record.id]?.ref ?? arrivalRefs[record.id] ?? refs[record.id]}
+              spentMinor={spent}
+              capMinor={capMinor}
               onDecide={decide}
             />
           ))}

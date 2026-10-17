@@ -33,7 +33,13 @@ import {
  * callback surface; `/signin` and `/signup` are the front doors; `/home`
  * is the signed-out front page that "/" rewrites to.
  */
-const PUBLIC_PREFIXES = ["/signin", "/signup", "/auth", "/home"];
+const PUBLIC_PREFIXES = [
+  "/signin",
+  "/signup",
+  "/auth",
+  "/home",
+  "/api/paypal/webhook",
+];
 
 function isPublic(pathname: string): boolean {
   return PUBLIC_PREFIXES.some(

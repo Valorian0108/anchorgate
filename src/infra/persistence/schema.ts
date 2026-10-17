@@ -168,3 +168,31 @@ export const savedPaymentMethods = pgTable(
   },
   (table) => [index("saved_payment_methods_owner_idx").on(table.ownerId)],
 );
+
+/**
+ * PayPal's signed notification that a capture completed.
+ *
+ * PayPal sends webhooks to this app; each one is verified against PayPal's own
+ * public certificate before it is trusted, and stored so a record page can show
+ * PayPal's word alongside ours. `transmission_id` is the idempotency key: the
+ * same notification delivered twice is stored once.
+ */
+export const paypalWebhookEvents = pgTable(
+  "paypal_webhook_events",
+  {
+    id: serial("id").primaryKey(),
+    /** PayPal's transmission id; idempotency key for repeated deliveries. */
+    transmissionId: text("transmission_id").notNull().unique(),
+    /** The capture id the notification is about, matched to our record. */
+    captureId: text("capture_id").notNull(),
+    eventType: text("event_type").notNull(),
+    resource: jsonb("resource").notNull(),
+    /** The transmission headers PayPal sent with the webhook. */
+    transmission: jsonb("transmission").notNull(),
+    /** Whether PayPal's verification API confirmed the signature. */
+    verified: boolean("verified").notNull().default(false),
+    verification: jsonb("verification"),
+    receivedAt: timestamp("received_at", { withTimezone: true, mode: "date" }).notNull(),
+  },
+  (table) => [index("paypal_webhook_events_capture_id_idx").on(table.captureId)],
+);

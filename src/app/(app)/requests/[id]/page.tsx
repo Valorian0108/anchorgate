@@ -4,6 +4,7 @@ import { approveAndPayRequest, payRequest, reconcileRequest } from "./actions";
 import { displayId, fmtClock, money, shortRef } from "@/lib/format";
 import { getService } from "@/lib/service";
 import { verifyOwner } from "@/lib/auth/dal";
+import { getWebhookStore } from "@/lib/service";
 import { chipFor, decisionWord, isReserved, latestEvaluation, reasonPhrase } from "@/lib/vocab";
 import { DecisionButtons, PendingButton } from "@/components/decision-buttons";
 import type { ReasonCode } from "@/core/authorization";
@@ -167,6 +168,7 @@ export default async function RequestDetailPage({
     service.eventsByRequest(id),
     service.allEvents(),
   ]);
+  const webhookStore = getWebhookStore();
 
   const rules = budget.rules;
   const cap = rules?.monthlyCapMinor ?? null;
@@ -232,6 +234,10 @@ export default async function RequestDetailPage({
     .reverse()
     .find((e) => e.kind === "CAPTURE_FAILED");
   const captureRefEvent = captureEvent ?? pendingEvent;
+  const proof =
+    captureRefEvent && captureRefEvent.providerRef
+      ? await webhookStore.findByCapture(captureRefEvent.providerRef)
+      : null;
   const approval = record.approval;
   const rejection = record.rejection;
   const preExecEval = record.evaluations
@@ -342,6 +348,38 @@ export default async function RequestDetailPage({
                 </span>
               </div>
             ) : null}
+            {proof ? (
+              <div className="frow">
+                <span className="k">paypal signed proof</span>
+                <span className="v num">
+                  <div className="paypal-proof">
+                    <p className="hint">
+                      PayPal signed this payment event with its own key, and the
+                      signature checked out against PayPal's public certificate.
+                      This record and PayPal's own log describe the same
+                      payment.
+                    </p>
+                    {proof.verified ? (
+                      <details className="raw-proof">
+                        <summary>Show the signed event PayPal sent</summary>
+                        <pre>{JSON.stringify(proof.resource, null, 2)}</pre>
+                        <p className="receiptline">
+                          transmission {proof.transmissionId} · received{" "}
+                          {fmtClock(proof.receivedAt.toISOString())} · verified
+                          yes
+                        </p>
+                      </details>
+                    ) : (
+                      <p className="receiptline why">
+                        PayPal sent a notification for this payment, but its
+                        signature did not verify against PayPal's certificate.
+                        Treat this payment's PayPal status as unconfirmed.
+                      </p>
+                    )}
+                  </div>
+                </span>
+              </div>
+            ) : null}
             <div className="frow">
               <span className="k">fingerprint</span>
               <span className="v num">
@@ -349,6 +387,20 @@ export default async function RequestDetailPage({
                 <span className="fp">(full copy in the record)</span>
               </span>
             </div>
+            <details className="raw-request">
+              <summary>
+                The agent's raw request · what the assistant proposed, exactly
+                as received
+              </summary>
+              <div className="raw-block">
+                {JSON.stringify(record.request, null, 2)}
+              </div>
+              <p className="receiptline">
+                Nothing in this request changed after it arrived. The engine
+                decides from this object alone; the assistant does not get a
+                second look at its own proposal.
+              </p>
+            </details>
           </section>
 
           {/* the check */}

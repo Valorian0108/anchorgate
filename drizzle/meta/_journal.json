@@ -50,6 +50,13 @@
       "when": 1792150517777,
       "tag": "0006_rich_payback",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792234291429,
+      "tag": "0007_paypal_webhook_events",
+      "breakpoints": true
     }
   ]
 }

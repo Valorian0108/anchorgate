@@ -357,7 +357,20 @@ nav a.active::after { background: var(--accent-ink); transform: scaleX(1); opaci
 }
 .gauge .tick { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(18,41,58,0.18); }
 .gauge .threshold { position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(151,89,15,0.6); }
-.gauge .wall-cap { position: absolute; top: 0; bottom: 0; right: 0; width: 2px; background: var(--ink); }
+/* The cap preview: a ghost line showing where a hovered card's money would
+   land. Painted above the fill and the set-aside band so it stays legible, and
+   straddling its own position (inline left is offset by 1px) so it is still
+   visible when it lands exactly on the cap. */
+.gauge .wall-preview {
+  position: absolute; top: 0; bottom: 0; width: 2px; border-radius: 2px;
+  background: var(--accent); z-index: 1;
+  animation: ag-wall-preview var(--dur-short) var(--ease-out) both;
+}
+.gauge .wall-preview.breach { background: var(--deny); }
+@keyframes ag-wall-preview {
+  from { opacity: 0; transform: scaleY(0.3); }
+  to { opacity: 1; transform: none; }
+}
 .gauge .legend {
   display: flex; flex-wrap: wrap; gap: var(--s3); margin-top: var(--s2);
   font-family: var(--m); font-size: var(--t-cap); letter-spacing: 0.02em;
@@ -365,6 +378,7 @@ nav a.active::after { background: var(--accent-ink); transform: scaleX(1); opaci
 }
 .gauge .legend b { color: var(--ink); font-weight: 500; }
 .gauge .legend .hl b { color: var(--accent-ink); }
+.col .card-over { color: var(--deny); font-size: var(--t-cap); margin-top: var(--s1); }
 /* the side gets a fixed track so the wall (1fr) keeps the dominant middle;
    an auto track would size to the cap line's max-content and squeeze it */
 .gauge .side { text-align: right; width: 280px; }
@@ -1120,7 +1134,7 @@ nav a.active::after { background: var(--accent-ink); transform: scaleX(1); opaci
     transition-duration: 150ms !important;
   }
   .reveal { animation: ag-reveal-reduced 150ms linear forwards; }
-  .row-enter, .col.enter { animation: ag-reveal-reduced 150ms linear both; }
+  .row-enter, .col.enter, .gauge .wall-preview { animation: ag-reveal-reduced 150ms linear both; }
   @keyframes ag-reveal-reduced { to { opacity: 1; transform: none; } }
   .strip .dot, .engine .dot, .gdot.pulse { animation: none; }
   .gauge .wall-fill, .gauge .wall-set { transition: none; }

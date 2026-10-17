@@ -362,6 +362,66 @@ the *only* icon source in the build; nothing from external icon packages
    (`readSpendingState`), and the wall line moves client-side the moment a
    verified capture with no approval on file arrives, exactly like the spent
    figure does.
+- (m) **The cap preview (17 oct 2026, owner ask).** The monthly cap's boundary
+   is no longer something you only ever meet as a refusal. A waiting card whose
+   amount would take confirmed spend past the cap carries one plain line under
+   the price, "paying this would go over your monthly limit", set in the
+   refusal colour. Hovering or focusing that card drops a 2px ghost marker on
+   the wall at the exact point the money would land, clamped to the cap and
+   offset 1px so the bar's `overflow: hidden` can never clip it, and both the
+   marker and the whole wall turn refusal-red when it lands past the cap.
+   Approve stays clickable on a breaching card: the preview is a forecast, not
+   a permission, and the engine still refuses at pay time. That refusal is the
+   proof that the preview is not the gate. The arithmetic lives in one pure
+   helper (`lib/capPreview.ts`, `previewAgainstCap`) mirroring engine step 5
+   exactly (`amount > cap - spentThisMonth`, strict, MONTHLY_CAP_EXCEEDED), and
+   it deliberately excludes money set aside for other waiting cards because the
+   engine excludes it: a preview that warned about purchases the engine would
+   then allow is worse than no preview at all. No cap, or a cap of zero,
+   returns null and the wall and the card render exactly as shipped. Motion is
+   the 220ms tier, transform and opacity only, and the marker paints above the
+   fill and the set-aside band so it stays legible on a coloured bar.
+- (n) **The case file shows its receipts (17 oct 2026, owner ask).** Two
+   additions to a record page, both strictly factual, neither inventing
+   anything. (1) "The agent's raw request": a collapsed `details` block
+   printing the stored proposal exactly as it arrived (`record.request`: id,
+   agentId, payee, purpose, category, amountMinor, currency) under the line
+   "Nothing in this request changed after it arrived", which is true because
+   the request is immutable and fingerprinted. No reasoning panel is invented:
+   the assistant stores no rationale, so none is shown. (2) "PayPal signed
+   proof": PayPal posts capture-completed notifications to
+   `/api/paypal/webhook`, a path added to the proxy's public prefixes because
+   PayPal's servers hold no session, so the signature verified through PayPal's
+   own verify-webhook-signature API is the only authentication. When a verified
+   notification for that capture is on file, the record says PayPal signed the
+   payment event and that the signature checked out against PayPal's public
+   certificate, with the signed event collapsible underneath plus its
+   transmission id and receipt time; everything PayPal signed is stored under
+   PayPal's own field names so a judge can copy it straight back into PayPal's
+   API and re-verify it without trusting us. The panel renders nothing at all
+   when no proof is on file (a payment captured before the webhook existed
+   simply has none, and the page never pretends otherwise), and says plainly
+   that the status is unconfirmed when a notification arrived but its signature
+   did not verify. The endpoint always answers 200: an unverifiable
+   notification is stored unverified rather than dropped by a 5xx that makes
+   PayPal retry forever. Migration 0007 (one additive table,
+   `paypal_webhook_events`, deduped on transmission id) was applied to the live
+   database before the code that reads it. **Operational lesson, recorded
+   because it silently cost an hour:** this project's migrator is driven by
+   `drizzle/meta/_journal.json`, not by the presence of `.sql` files. A
+   hand-written migration must be registered there with a matching snapshot, or
+   both `db:migrate` and the PGlite test migrator report success while applying
+   nothing. Verify a migration by querying the database, never by reading the
+   migrator's output.
+- (o) **The owner's address is masked (17 oct 2026, owner ask).** The
+   navigation console's owner line prints `maskEmail(email)`: the first
+   character of the local part, a fixed five bullets, then the full domain
+   (`i•••••@gmail.com`), with the complete address kept in the `title`
+   attribute. A fixed bullet count means the length of the hidden part is never
+   leaked, and strings without an `@` are returned unchanged rather than run
+   through an invented masking rule. This is a privacy convenience for
+   screenshots, demos and screen shares, not access control, and the canon
+   records it as such.
 
 ---
 
@@ -545,7 +605,12 @@ reference for the Gate rebuild. The poster is gone; the Gate is a cockpit:
   an amber caution threshold at 75 explained in words beside it ("cap $200 ·
   caution from $150 · resets on the 1st"), and the hard cap notch at the end;
   the legend sits under the bar; "Approval cannot move this line" is a
-  footnote at the right with the anchor mark, set in Sora light.
+  footnote at the right with the anchor mark, set in Sora light. Added to the
+  specimen 17 oct 2026 (§6(m)): a cap-preview ghost marker, one 2px line that
+  appears on the bar only while a waiting card is hovered or focused, showing
+  where that card's money would land, and turning refusal-red with the bar when
+  it would land past the cap. It is absent entirely when no card is in focus,
+  and nothing else about the band changes.
 - **The queue is the body.** Four equal columns on open ground with thin left
   rules (accent on needs-you), no boxes. Every item carries a live elapsed
   time that ages once a minute. Columns stretch to equal height and each

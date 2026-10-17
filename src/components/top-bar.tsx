@@ -12,6 +12,7 @@ import { signOut } from "@/app/(auth)/signin/actions";
 
 import { AnchorMark } from "./anchor-mark";
 import { AwayBadge } from "./away-badge";
+import { maskEmail } from "@/lib/format";
 import { Nav } from "./nav";
 
 export function TopBar({ email }: { email: string }) {
@@ -27,7 +28,7 @@ export function TopBar({ email }: { email: string }) {
           <AwayBadge />
           <span className="owner">
             <span className="who" title={email}>
-              {email}
+              {maskEmail(email)}
             </span>
             <form action={signOut}>
               <button className="signout" type="submit">

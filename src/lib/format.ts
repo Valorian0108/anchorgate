@@ -62,6 +62,18 @@ export function shortRef(ref: string): string {
   return ref.length > 10 ? `${ref.slice(0, 8)}…` : ref;
 }
 
+/**
+ * Mask an email for display: first character of the local part, bullets, full
+ * domain. A privacy tool should not broadcast its owner's address on every
+ * screen; the full address stays available on hover via the title attribute.
+ * Non-email strings are returned unchanged — no invented masking rules.
+ */
+export function maskEmail(email: string): string {
+  const at = email.indexOf("@");
+  if (at <= 0 || email.length === 0) return email;
+  return `${email[0]}•••••${email.slice(at)}`;
+}
+
 /** Fingerprint → short form, e.g. "9c2d…e481". */
 export function shortFingerprint(fingerprint: string): string {
   return fingerprint.length > 12

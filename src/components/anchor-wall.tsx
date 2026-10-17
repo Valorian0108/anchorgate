@@ -6,6 +6,7 @@ import type { CSSProperties } from "react";
 import { AnchorMark } from "@/components/anchor-mark";
 import { CountUp } from "@/components/count-up";
 import { money } from "@/lib/format";
+import { previewAgainstCap } from "@/lib/capPreview";
 import { currencySymbol } from "@/lib/gateCard";
 
 /**
@@ -28,6 +29,7 @@ export function AnchorWall({
   currency,
   autoPaidMinor = null,
   autoBudgetMinor = null,
+  previewMinor = null,
 }: {
   capMinor: number | null;
   spentMinor: number;
@@ -41,6 +43,12 @@ export function AnchorWall({
    */
   autoPaidMinor?: number | null;
   autoBudgetMinor?: number | null;
+  /**
+   * A hovered waiting card's amount: the wall draws a ghost marker where it
+   * would land, and turns red if it would push spending past the cap. Null
+   * keeps the wall exactly as shipped.
+   */
+  previewMinor?: number | null;
 }) {
   const sym = currencySymbol(currency);
 
@@ -70,6 +78,12 @@ export function AnchorWall({
   const wallColor =
     usedFrac >= 0.9 ? "var(--deny)" : usedFrac >= 0.75 ? "var(--ask)" : "var(--accent)";
 
+  // A hovered card's landing spot on the wall, and whether paying it would go
+  // over the cap. This is the engine's own cap check, shared through one helper
+  // so the preview can never disagree with the decision it forecasts.
+  const preview =
+    previewMinor != null ? previewAgainstCap(spentMinor, previewMinor, capMinor) : null;
+
   return (
     <section
       className="gauge"
@@ -78,7 +92,7 @@ export function AnchorWall({
         {
           "--spent-frac": spentFrac,
           "--res-frac": resFrac,
-          "--wall-color": wallColor,
+          "--wall-color": preview?.breaches ? "var(--deny)" : wallColor,
         } as CSSProperties
       }
     >
@@ -95,6 +109,12 @@ export function AnchorWall({
 
       <div>
         <div className="wall" aria-hidden="true">
+          {preview ? (
+            <div
+              className={`wall-preview${preview.breaches ? " breach" : ""}`}
+              style={{ left: `calc(${preview.landingFrac * 100}% - 1px)` }}
+            />
+          ) : null}
           <div className="wall-fill" />
           <div className="wall-set" />
           <i className="tick" style={{ left: "25%" }} />
