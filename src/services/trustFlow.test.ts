@@ -80,14 +80,14 @@ function captured(ref: string): PaymentOutcome {
   };
 }
 
-function makeHarness(outcomes: PaymentOutcome[]) {
+function makeHarness(outcomes: PaymentOutcome[], rules: SpendingRules = RULES) {
   const purchases = new InMemoryPurchaseStore();
   const spending = new InMemorySpendingStore();
   const gateway = new FakeGateway(outcomes);
   const service = new PurchaseService({
     purchases,
     spending,
-    rules: new InMemorySpendingRulesStore(RULES),
+    rules: new InMemorySpendingRulesStore(rules),
     paymentGateway: () => gateway,
     now: () => NOW,
   });
@@ -95,9 +95,13 @@ function makeHarness(outcomes: PaymentOutcome[]) {
 }
 
 /** Settle one exact-match proposal the way settleAutoAuthorized does. */
-async function settleAuto(harness: ReturnType<typeof makeHarness>, id: string) {
+async function settleAuto(
+  harness: ReturnType<typeof makeHarness>,
+  id: string,
+  rules: SpendingRules = RULES,
+) {
   const state = await readSpendingState(harness, NOW);
-  const outcome = proposePurchase({ ...REQUEST, id }, RULES, state, NOW);
+  const outcome = proposePurchase({ ...REQUEST, id }, rules, state, NOW);
   expect(outcome.decision.decision).toBe("ALLOW");
   expect(outcome.decision.reasonCode).toBe(ReasonCode.ON_TRUST_LIST);
   const record = outcome.record!;
@@ -137,6 +141,16 @@ describe("the automatic path, end to end", () => {
     const after = await readSpendingState(harness, NOW);
     expect(after.spentThisMonthMinor).toBe(500);
     expect(after.autoSpentThisMonthMinor).toBe(500);
+    // And its material details ride along, for the once-a-month repeat rule.
+    expect(after.autoPaidThisMonth).toEqual([
+      {
+        payee: "Acme Supplies",
+        purpose: "Office supplies",
+        category: "office",
+        amountMinor: 500,
+        currency: "USD",
+      },
+    ]);
 
     // The meters read the same single source: budget() carries both figures.
     const snapshot = await harness.service.budget();
@@ -216,5 +230,32 @@ describe("the automatic path, end to end", () => {
     const after = await readSpendingState(harness, NOW);
     expect(after.spentThisMonthMinor).toBe(0);
     expect(after.autoSpentThisMonthMinor).toBe(0);
+    // A failed auto-pay never verified a capture, so the item's month is not
+    // used up: a retry can still auto-pay.
+    expect(after.autoPaidThisMonth).toEqual([]);
+  });
+
+  it("asks for a repeat of an auto-paid purchase even with budget room", async () => {
+    // Same list, bigger budget ($20): the budget is NOT the limiting fact, so
+    // the once-a-month rule (18 oct 2026) must be what stops the repeat.
+    const roomyRules: SpendingRules = { ...RULES, autoBudgetMinor: 2000 };
+    const harness = makeHarness([captured("CAP-AUTO-1"), captured("CAP-AUTO-2")], roomyRules);
+    await settleAuto(harness, "auto-1", roomyRules);
+
+    const state = await readSpendingState(harness, NOW);
+    expect(state.autoPaidThisMonth).toHaveLength(1);
+
+    const second = proposePurchase({ ...REQUEST, id: "auto-2" }, roomyRules, state, NOW);
+    expect(second.decision.decision).toBe("ASK");
+    expect(second.decision.reasonCode).toBe(ReasonCode.ALREADY_AUTO_PAID);
+    expect(second.record?.status).toBe("PENDING_APPROVAL");
+
+    // And nothing reached the provider a second time.
+    expect(harness.gateway.calls).toHaveLength(1);
+
+    // The owner can still approve the repeat by hand: the ask is not a block.
+    await harness.purchases.save(second.record!);
+    const approved = await harness.service.approve("auto-2", "owner@example.com");
+    expect(approved.ok).toBe(true);
   });
 });

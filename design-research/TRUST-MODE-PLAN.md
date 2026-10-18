@@ -4,6 +4,10 @@
 change, every new sentence the product will say, and every promise the feature
 must keep. Nothing was implemented when this was written.
 
+*(Superseded in one respect, owner decision 18 oct 2026: each exact purchase
+now auto-pays at most once a month; a repeat asks. See `CONSTRAINTS.md` §6(r).
+Everything else here shipped as written.)*
+
 The four decisions taken (owner approved the recommendations, 16 oct):
 
 1. Listed items carry an EXACT price. Not "up to".

@@ -32,7 +32,8 @@ Three verdicts, and only three:
   REFUSED             names the rule in plain words; stays refused
   ASKS YOU            you approve and it pays, or you decline
   PAID BY YOUR RULES  only with AI authorization on: exact seller,
-                      purpose and price on your list, budget left
+                      purpose and price on your list, budget left,
+                      not already auto-paid this month
 ```
 
 Three things the picture cannot say:
@@ -47,13 +48,13 @@ On the Rules page you set your monthly limit, the kinds of purchases you allow, 
 
 **AI authorization** is optional and off by default. Switched on, it gives you three things:
 
-- **Your list.** Exact items at exact prices. "Printer paper, restock, $22.00" pays itself. Printer paper at $22.01 does not; it comes to you showing both numbers.
+- **Your list.** Exact items at exact prices, each one auto-paid at most once a month. "Printer paper, restock, $22.00" pays itself; a second identical one the same month waits for you. Printer paper at $22.01 does not pay itself; it comes to you showing both numbers.
 - **One auto budget for the month**, always inside your monthly limit. When it runs out, auto-paying stops and the gate says plainly that the budget is why.
 - **A meter**, on the Rules page and on the gate's wall, so you are never surprised. One switch turns everything back to asking you.
 
 The promises:
 
-- Nothing pays itself unless it matches your list to the cent.
+- Nothing pays itself unless it matches your list to the cent, and the same exact purchase never pays itself twice in a month.
 - Every auto-paid purchase is marked: on its card, on its record, and on the wall.
 - Every refusal and every ask names its reason in plain words. No codes, no shrugs.
 - Money counts only when the payment is confirmed, and only once.

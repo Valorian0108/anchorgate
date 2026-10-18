@@ -16,8 +16,11 @@
  *      OFF, so by default every request inside the cap needs the owner. When
  *      it IS on, the owner's exact-price trust list is the one automatic path:
  *      ASK when the seller/purpose is not listed, when the price differs from
- *      the listed price, or when the monthly auto budget has no room.
- *   7. Otherwise (exact list match, inside the auto budget) ALLOW
+ *      the listed price, when the monthly auto budget has no room, or when the
+ *      rules already auto-paid this exact purchase this month (once-a-month
+ *      rule, owner decision 18 oct 2026: a repeat never auto-pays).
+ *   7. Otherwise (exact list match, inside the auto budget, first auto-pay of
+ *      this exact purchase this month) ALLOW
  *
  * Retired: the per-purchase auto line and the new-payee check. Their reason
  * codes (PER_PURCHASE_LIMIT_EXCEEDED, and APPROVAL_REQUIRED for unseen payees)
@@ -198,9 +201,32 @@ export function evaluatePurchase(
     );
   }
 
-  // 7. On the list, at the exact price, inside the auto budget, and inside
-  //    every hard check above. This is the only way a purchase clears without
-  //    the owner.
+  // 6d. Once a month (owner decision 18 oct 2026): a purchase the rules have
+  //     already auto-paid this monthly period is never auto-paid again; the
+  //     repeat asks. Without this, an agent that can read the rules could
+  //     trickle-drain the auto budget by repeating one listed item. Compared
+  //     on every material detail, the exact facts the fingerprint hashes, so
+  //     "the same purchase" means the same purchase and nothing looser.
+  const isRepeat = (spent.autoPaidThisMonth ?? []).some(
+    (paid) =>
+      paid.payee === req.payee &&
+      paid.purpose === req.purpose &&
+      paid.category === req.category &&
+      paid.amountMinor === req.amountMinor &&
+      paid.currency === req.currency,
+  );
+  if (isRepeat) {
+    return ask(
+      ReasonCode.ALREADY_AUTO_PAID,
+      `"${req.payee}" for "${req.purpose}" at ${req.amountMinor} minor units was already ` +
+        "auto-paid this month; a repeat waits for the owner.",
+      ruleVersion,
+    );
+  }
+
+  // 7. On the list, at the exact price, inside the auto budget, not already
+  //    auto-paid this month, and inside every hard check above. This is the
+  //    only way a purchase clears without the owner.
   return allow(
     ReasonCode.ON_TRUST_LIST,
     `"${req.payee}" for "${req.purpose}" at ${req.amountMinor} minor units exactly matches ` +

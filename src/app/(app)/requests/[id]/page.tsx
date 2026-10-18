@@ -24,7 +24,7 @@ const REASON_POSITION: Partial<Record<ReasonCode, number>> = {
   CATEGORY_NOT_PERMITTED: 4,
   MONTHLY_CAP_EXCEEDED: 5,
   // Every ask lands on the "your approval" step (6): the standing ask while AI
-  // authorization is off, and the three trust-list asks when it is on. The two
+  // authorization is off, and the four trust-list asks when it is on. The two
   // historical ask reasons (over the retired auto line, a first-time seller)
   // map to the same row, so case files from before trust mode still read true.
   // ALLOW codes (ON_TRUST_LIST, WITHIN_LIMITS) stay out of this map on
@@ -34,6 +34,7 @@ const REASON_POSITION: Partial<Record<ReasonCode, number>> = {
   NOT_ON_TRUST_LIST: 6,
   AMOUNT_OFF_TRUST_LIST: 6,
   AUTO_BUDGET_USED: 6,
+  ALREADY_AUTO_PAID: 6,
 };
 
 /**
@@ -48,6 +49,8 @@ function askDetailFor(reasonCode: ReasonCode | null): string {
       return "needed · the price differs from your list";
     case "AUTO_BUDGET_USED":
       return "needed · your auto budget is used up";
+    case "ALREADY_AUTO_PAID":
+      return "needed · your rules already auto-paid this exact purchase this month";
     default:
       return "needed · nothing is paid without you";
   }

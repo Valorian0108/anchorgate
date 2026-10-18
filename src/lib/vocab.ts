@@ -36,6 +36,8 @@ export function checkText(decision: AuthorizationDecision, reasonCode: ReasonCod
         return "The price differs from the one on your trust list, so it needs your okay.";
       case "AUTO_BUDGET_USED":
         return "Your auto budget for the month is used up, so it needs your okay.";
+      case "ALREADY_AUTO_PAID":
+        return "Your rules already auto-paid this exact purchase this month, so a repeat needs your okay.";
       default:
         return "It needs your okay before anything happens.";
     }
@@ -79,6 +81,8 @@ export function reasonPhrase(reasonCode: ReasonCode): string {
       return "price differs from your list";
     case "AUTO_BUDGET_USED":
       return "auto budget used up";
+    case "ALREADY_AUTO_PAID":
+      return "already auto-paid this month";
     case "MONTHLY_CAP_EXCEEDED":
       return "over monthly limit";
     case "CATEGORY_NOT_PERMITTED":

@@ -9,6 +9,7 @@
  * Pure with respect to its inputs: it only reads the injected stores.
  */
 
+import type { AutoPaidPurchase } from "../core/authorization";
 import type { PurchaseStore } from "../core/purchases";
 import { capturedMinorIn, utcMonthPeriod, type SpendingStore } from "../core/spending";
 
@@ -28,6 +29,14 @@ export interface SpendingState {
    * figure the engine checks against the monthly auto budget.
    */
   autoSpentThisMonthMinor: number;
+  /**
+   * Material details of the purchases those verified auto captures belong to
+   * (once-a-month rule, 18 oct 2026). The engine refuses to auto-pay the same
+   * exact purchase twice in a month; a repeat asks the owner. Same honesty as
+   * the budget figure: only confirmed payments count, so an auto-pay whose
+   * capture never verified does not use up the item's month.
+   */
+  autoPaidThisMonth: AutoPaidPurchase[];
 }
 
 /**
@@ -40,6 +49,10 @@ export interface SpendingState {
  *   at the moment the rules clear a purchase, so this is immutable history,
  *   not a guess from current record shapes. Pending captures do not count
  *   until they settle: the same honesty as the monthly cap.
+ * - `autoPaidThisMonth` carries the material details (the facts a fingerprint
+ *   hashes) of the purchases behind those verified auto captures, so the
+ *   engine can refuse to auto-pay the same exact purchase twice in a month
+ *   (once-a-month rule, 18 oct 2026).
  * - `knownPayees` are payees from records in a positive state (`APPROVED` or
  *   `EXECUTED`). A denied or rejected request does not make its payee known.
  */
@@ -49,6 +62,7 @@ export async function readSpendingState(
 ): Promise<SpendingState> {
   const period = utcMonthPeriod(now);
   const events = await stores.spending.list();
+  const records = await stores.purchases.list();
 
   const autoApproved = new Set<string>();
   for (const event of events) {
@@ -56,6 +70,7 @@ export async function readSpendingState(
   }
 
   let autoSpentThisMonthMinor = 0;
+  const autoPaidRequestIds = new Set<string>();
   if (autoApproved.size > 0) {
     const start = Date.parse(period.startIso);
     const end = Date.parse(period.endIso);
@@ -63,13 +78,30 @@ export async function readSpendingState(
       if (event.kind !== "CAPTURE_VERIFIED") continue;
       if (!autoApproved.has(event.requestId)) continue;
       const t = Date.parse(event.occurredAt);
-      if (t >= start && t < end) autoSpentThisMonthMinor += event.amountMinor;
+      if (t >= start && t < end) {
+        autoSpentThisMonthMinor += event.amountMinor;
+        autoPaidRequestIds.add(event.requestId);
+      }
     }
+  }
+
+  // The material details behind those verified auto captures: the facts the
+  // engine's once-a-month repeat check compares against (18 oct 2026).
+  const autoPaidThisMonth: AutoPaidPurchase[] = [];
+  for (const record of records) {
+    if (!autoPaidRequestIds.has(record.id)) continue;
+    const request = record.request;
+    autoPaidThisMonth.push({
+      payee: request.payee,
+      purpose: request.purpose,
+      category: request.category,
+      amountMinor: request.amountMinor,
+      currency: request.currency,
+    });
   }
 
   const spentThisMonthMinor = capturedMinorIn(events, period);
 
-  const records = await stores.purchases.list();
   const payees = new Set<string>();
   for (const record of records) {
     if (record.status === "APPROVED" || record.status === "EXECUTED") {
@@ -77,5 +109,10 @@ export async function readSpendingState(
     }
   }
 
-  return { spentThisMonthMinor, knownPayees: [...payees], autoSpentThisMonthMinor };
+  return {
+    spentThisMonthMinor,
+    knownPayees: [...payees],
+    autoSpentThisMonthMinor,
+    autoPaidThisMonth,
+  };
 }

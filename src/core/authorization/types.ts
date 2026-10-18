@@ -58,6 +58,13 @@ export enum ReasonCode {
   AMOUNT_OFF_TRUST_LIST = "AMOUNT_OFF_TRUST_LIST",
   /** The monthly auto budget has no room for this purchase; the owner must decide. */
   AUTO_BUDGET_USED = "AUTO_BUDGET_USED",
+  /**
+   * The rules already auto-paid this exact purchase this monthly period, so a
+   * repeat is never auto-paid; the owner must decide (owner decision, 18 oct
+   * 2026). Without this, an agent that can read the rules could drain the auto
+   * budget by repeating one listed item.
+   */
+  ALREADY_AUTO_PAID = "ALREADY_AUTO_PAID",
 }
 
 /**
@@ -141,6 +148,25 @@ export interface SpendingRules {
 }
 
 /**
+ * The material details of a purchase the owner's rules already auto-paid this
+ * monthly period: exactly the facts the request fingerprint hashes (amount,
+ * currency, payee, purpose, category). The engine compares a new request
+ * against these to enforce "each exact purchase auto-pays once a month".
+ */
+export interface AutoPaidPurchase {
+  /** Merchant / payee, matched verbatim. */
+  payee: string;
+  /** Purpose, matched verbatim. */
+  purpose: string;
+  /** Category key, matched verbatim. */
+  category: string;
+  /** Integer amount in minor units. */
+  amountMinor: number;
+  /** ISO 4217 currency code. */
+  currency: string;
+}
+
+/**
  * Durable spending state, read fresh for each evaluation.
  *
  * Keeping this separate from the rules means rules (policy) and state (fact)
@@ -156,6 +182,13 @@ export interface SpendingState {
    * rules cleared automatically. Optional: missing means 0, the safe direction.
    */
   autoSpentThisMonthMinor?: number;
+  /**
+   * Material details of the purchases the rules already AUTO-PAID (capture
+   * verified) this monthly period. Optional: missing means an empty list, so
+   * states computed before the once-a-month rule (18 oct 2026) still parse.
+   * A matching repeat asks the owner instead of auto-paying.
+   */
+  autoPaidThisMonth?: readonly AutoPaidPurchase[];
 }
 
 /**

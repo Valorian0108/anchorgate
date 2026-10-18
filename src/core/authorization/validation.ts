@@ -9,6 +9,7 @@
 
 import type {
   AutoAllowlistEntry,
+  AutoPaidPurchase,
   PurchaseRequest,
   SpendingRules,
   SpendingState,
@@ -170,7 +171,7 @@ export function parseState(input: unknown): ParseResult<SpendingState> {
     return { ok: false, reason: "Spending state must be an object." };
   }
 
-  const { spentThisMonthMinor, knownPayees, autoSpentThisMonthMinor } = input;
+  const { spentThisMonthMinor, knownPayees, autoSpentThisMonthMinor, autoPaidThisMonth } = input;
 
   if (!isNonNegativeSafeInteger(spentThisMonthMinor)) {
     return { ok: false, reason: "spentThisMonthMinor must be a non-negative integer." };
@@ -189,6 +190,46 @@ export function parseState(input: unknown): ParseResult<SpendingState> {
       reason: "autoSpentThisMonthMinor must be a non-negative integer when present.",
     };
   }
+  // Optional: states computed before the once-a-month rule (18 oct 2026) carry
+  // no list. Missing means empty, which is how those states behaved. When
+  // present, every entry must be complete, exactly like the trust-list parse:
+  // a partial entry could never match safely, and silently dropping it would
+  // hide a mistake, so a malformed list fails the whole parse and denies all.
+  const autoPaid: AutoPaidPurchase[] = [];
+  if (autoPaidThisMonth !== undefined) {
+    if (!Array.isArray(autoPaidThisMonth)) {
+      return { ok: false, reason: "autoPaidThisMonth must be an array when present." };
+    }
+    for (const entry of autoPaidThisMonth) {
+      if (!isRecord(entry)) {
+        return { ok: false, reason: "Every auto-paid entry must be an object." };
+      }
+      if (
+        !isNonEmptyString(entry.payee) ||
+        !isNonEmptyString(entry.purpose) ||
+        !isNonEmptyString(entry.category) ||
+        !isNonEmptyString(entry.currency)
+      ) {
+        return {
+          ok: false,
+          reason: "Auto-paid entries need a payee, purpose, category, and currency.",
+        };
+      }
+      if (!isNonNegativeSafeInteger(entry.amountMinor)) {
+        return {
+          ok: false,
+          reason: "Auto-paid amounts must be non-negative integers in minor units.",
+        };
+      }
+      autoPaid.push({
+        payee: entry.payee,
+        purpose: entry.purpose,
+        category: entry.category,
+        amountMinor: entry.amountMinor,
+        currency: entry.currency,
+      });
+    }
+  }
 
   return {
     ok: true,
@@ -196,6 +237,7 @@ export function parseState(input: unknown): ParseResult<SpendingState> {
       spentThisMonthMinor,
       knownPayees,
       autoSpentThisMonthMinor: autoSpentThisMonthMinor ?? 0,
+      autoPaidThisMonth: autoPaid,
     },
   };
 }

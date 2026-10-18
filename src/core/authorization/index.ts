@@ -8,6 +8,7 @@
 export type {
   AuthorizationDecision,
   AutoAllowlistEntry,
+  AutoPaidPurchase,
   DecisionResult,
   PurchaseRequest,
   SpendingRules,

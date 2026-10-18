@@ -170,15 +170,15 @@ function autoModeLines(rules: SpendingRules): string[] {
   }
   return [
     "- AI authorization is ON. These exact purchases clear automatically " +
-      "(seller, purpose, price):",
+      "(seller, purpose, price), each at most once a month:",
     ...entries.map(
       (entry) =>
         `  - ${entry.payee} · ${entry.purpose} · ` +
         `${formatMinor(entry.amountMinor, rules.currency)}`,
     ),
     `- Auto budget for the month: ${formatMinor(rules.autoBudgetMinor ?? 0, rules.currency)}`,
-    "- Anything not on that list, at a different price, or after the budget " +
-      "runs out waits for the owner",
+    "- Anything not on that list, at a different price, already auto-paid this " +
+      "month, or after the budget runs out waits for the owner",
   ];
 }
 

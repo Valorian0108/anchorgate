@@ -268,7 +268,7 @@ export default async function StatutePage({
               <b>Let your rules pay for the exact things on your list.</b>
               <span className="hint">
                 {trustOn
-                  ? "On now: listed items at the exact prices below, until the auto budget runs out. Everything else still comes to you."
+                  ? "On now: each listed item at its exact price, auto-paid at most once a month, until the auto budget runs out. Everything else still comes to you."
                   : "Off means every purchase waits for you. That is the default."}
               </span>
             </label>

@@ -466,6 +466,42 @@ the *only* icon source in the build; nothing from external icon packages
     confirmed claim rests on a fresh answer from PayPal either way. The rescue
     was possible at all because (n) stores everything PayPal signed even when
     verification fails, which is that design decision paying for itself.
+- (r) **Each exact purchase auto-pays at most once a month (18 oct 2026, owner
+   decision after live adversarial play).** Trust mode shipped with a
+   trickle-drain hole, found by the owner probing the live site hours after
+   the judge account was staged. Two facts made it real. First, the agent's
+   prompt carries the
+   trust list verbatim (by (k)'s own design, so a filed ask carries the exact
+   strings the engine matches on), which means a proposing agent always knows
+   precisely which purchases auto-clear: in live play the model proposed a
+   listed item at the exact price the owner had written into the rules minutes
+   earlier, and it auto-paid. Second, nothing limited repeats: the feed
+   delivered two byte-identical proposals in the same second (both recorded,
+   refused only because the cap happened to be full), and the same listed item
+   asked again and again would auto-pay each time until the monthly auto
+   budget ran dry. The hard cap was never at risk and the auto budget bounded
+   the damage, but the budget was drainable without a human ever deciding. The
+   fix is one new step in the engine's trust path, 6d after the budget check:
+   a purchase whose material details (payee, purpose, category, amount,
+   currency, exactly the facts the fingerprint hashes) match a purchase the
+   rules already auto-paid this UTC month asks the owner instead
+   (ASK ALREADY_AUTO_PAID); the owner may still approve the repeat by hand,
+   because an ask is not a block. "Already auto-paid" carries the same honesty
+   as the budget figure: an AUTO_APPROVED-marked request with a
+   CAPTURE_VERIFIED event inside the period, so an auto-pay whose capture
+   never verified does not use up the item's month and a retry can still
+   auto-pay. The list rides in the spending state (`autoPaidThisMonth`,
+   computed in the one place, `readSpendingState`), a missing list parses as
+   empty so states from before the rule still work, and a malformed list
+   fails the whole parse and denies everything. Budget-used stays the reason
+   when both apply, pinning the check order. The model's prompt and the Rules
+   page say the rule in plain words ("each at most once a month"), the record
+   reads "already auto-paid this month", and the case file maps the code to
+   the step-6 ask row. Deliberately NOT changed: intake deduplication (two
+   identical proposals still file two cards, each judged honestly) and the
+   prompt's disclosure of the list; with this rule in place an agent that
+   reads the rules can auto-buy each listed item once a month inside the
+   budget, which is precisely what trust mode promises, and nothing more.
 
 ---
 

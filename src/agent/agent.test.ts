@@ -247,7 +247,9 @@ describe("describeRules", () => {
     expect(text).toContain("AI authorization is ON");
     expect(text).toContain("Acme Software · A one-year license · 5.00 USD");
     expect(text).toContain("Auto budget for the month: 20.00 USD");
+    expect(text).toContain("each at most once a month");
     expect(text).toContain("Anything not on that list, at a different price");
+    expect(text).toContain("already auto-paid this");
     expect(text).not.toContain("Auto-approve is OFF");
   });
 

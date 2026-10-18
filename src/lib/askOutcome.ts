@@ -46,6 +46,7 @@ const REASON_CODES: ReasonCode[] = [
   ReasonCode.NOT_ON_TRUST_LIST,
   ReasonCode.AMOUNT_OFF_TRUST_LIST,
   ReasonCode.AUTO_BUDGET_USED,
+  ReasonCode.ALREADY_AUTO_PAID,
 ];
 
 /** Reverse of `reasonSlug`, for the `why` URL code. Unknown slugs give null. */

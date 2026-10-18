@@ -263,6 +263,95 @@ describe("trust mode — the auto budget", () => {
   });
 });
 
+// --- Trust mode: each exact purchase auto-pays once a month -------------------
+
+describe("trust mode — the once-a-month repeat rule", () => {
+  /** The state after the default request was already auto-paid this month. */
+  const PAID_ONCE: SpendingState = {
+    spentThisMonthMinor: 500,
+    knownPayees: [],
+    autoSpentThisMonthMinor: 500,
+    autoPaidThisMonth: [
+      {
+        payee: "Acme Supplies",
+        purpose: "Office supplies",
+        category: "office",
+        amountMinor: 500,
+        currency: "USD",
+      },
+    ],
+  };
+
+  it("asks when the same exact purchase was already auto-paid this month", () => {
+    const result = evaluatePurchase(request(), TRUST_RULES, PAID_ONCE);
+    expect(result.decision).toBe("ASK");
+    expect(result.reasonCode).toBe(ReasonCode.ALREADY_AUTO_PAID);
+    expect(result.reason).toContain("already auto-paid this month");
+  });
+
+  it("still allows a first exact match when a different purchase was auto-paid", () => {
+    const result = evaluatePurchase(request(), TRUST_RULES, {
+      spentThisMonthMinor: 900,
+      knownPayees: [],
+      autoSpentThisMonthMinor: 900,
+      autoPaidThisMonth: [
+        {
+          payee: "Other Shop",
+          purpose: "Other thing",
+          category: "books",
+          amountMinor: 900,
+          currency: "USD",
+        },
+      ],
+    });
+    expect(result.decision).toBe("ALLOW");
+    expect(result.reasonCode).toBe(ReasonCode.ON_TRUST_LIST);
+  });
+
+  it("treats a different price as a different purchase (the price ask comes first)", () => {
+    const result = evaluatePurchase(request({ amountMinor: 501 }), TRUST_RULES, PAID_ONCE);
+    expect(result.decision).toBe("ASK");
+    expect(result.reasonCode).toBe(ReasonCode.AMOUNT_OFF_TRUST_LIST);
+  });
+
+  it("treats a different category as a different purchase", () => {
+    const result = evaluatePurchase(request({ category: "software" }), TRUST_RULES, PAID_ONCE);
+    expect(result.decision).toBe("ALLOW");
+    expect(result.reasonCode).toBe(ReasonCode.ON_TRUST_LIST);
+  });
+
+  it("keeps the used-up budget as the reason when both apply", () => {
+    const result = evaluatePurchase(request(), TRUST_RULES, {
+      spentThisMonthMinor: 2000,
+      knownPayees: [],
+      autoSpentThisMonthMinor: 2000,
+      autoPaidThisMonth: PAID_ONCE.autoPaidThisMonth,
+    });
+    expect(result.decision).toBe("ASK");
+    expect(result.reasonCode).toBe(ReasonCode.AUTO_BUDGET_USED);
+  });
+
+  it("ignores repeats while AI authorization is off: the standing ask wins", () => {
+    const result = evaluatePurchase(
+      request(),
+      { ...TRUST_RULES, autoApproveEnabled: false },
+      PAID_ONCE,
+    );
+    expect(result.decision).toBe("ASK");
+    expect(result.reasonCode).toBe(ReasonCode.APPROVAL_REQUIRED);
+  });
+
+  it("denies when the auto-paid list is malformed, rather than loosening", () => {
+    const result = evaluatePurchase(request(), TRUST_RULES, {
+      spentThisMonthMinor: 0,
+      knownPayees: [],
+      autoPaidThisMonth: [{ payee: "Acme Supplies" }] as never,
+    });
+    expect(result.decision).toBe("DENY");
+    expect(result.reasonCode).toBe(ReasonCode.INVALID_STATE);
+  });
+});
+
 // --- Trust mode: hard rules still beat the list -------------------------------
 
 describe("trust mode — hard rules beat the list", () => {
