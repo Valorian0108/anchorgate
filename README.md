@@ -66,6 +66,30 @@ A built-in agent proposes items from a fixed catalog of fourteen, one at a time:
 
 You can also type any purchase into the ask box in your own words. A model writes the proposal. The decision never involves a model. If your message is missing something the gate needs, the box says exactly what is missing. If the model cannot be reached, it says that too. It never stays silent.
 
+## What you can ask for, and how to say it
+
+The ask box understands ordinary sentences, but the gate behind it needs three facts: **who gets paid, the price, and what it is for**. Say all three and the assistant files the proposal itself, sorted into the closest of the eight kinds every gate allows:
+
+| Kind | An ask that works |
+| --- | --- |
+| software | `A $10 Notion Team workspace for my notes` |
+| books | `A $20 gardening book from Book Depository for my herb garden` |
+| meals | `A $10 ham sandwich from Subway for team lunch` |
+| office supplies | `Printer paper from Office Depot for $22, a restock for the desk` |
+| hardware | `A $39 USB-C hub from Amazon for the new laptop` |
+| cloud services | `A $20 Vercel Pro monthly plan to host my site` |
+| advertising | `A $60 Google Ads top-up for the launch campaign` |
+| travel | `A $120 Delta flight for the team offsite, one seat` |
+
+You never name the kind yourself; the assistant picks the closest one. It is sandbox money, so any price within your monthly limit is fair game.
+
+What comes back, in every case:
+
+- **All three facts, kind allowed, room under your limit:** a card files and waits for your yes. Approve and pay, and seconds later the PayPal confirmation is on the record.
+- **A fact missing:** the box names exactly what is missing, like "your message didn't say who gets paid," and files nothing. The assistant is forbidden from inventing a seller or a price to fill the gap.
+- **Kind not allowed, or no room under your limit:** the request goes on record as blocked, naming the rule that blocked it. Every no says why, in words.
+- **With AI authorization on:** an exact match on your list, same seller, purpose and price, inside the auto budget and not already auto-paid this month, pays itself. Everything else still waits for you.
+
 ## Run it yourself
 
 You need, all free tier is fine:
@@ -107,7 +131,7 @@ Sign up with an email and a password. Depending on your Supabase settings you ma
 To check the code before trusting it:
 
 ```bash
-npm test         # 313 automated checks: the decision engine, the money math, the whole lifecycle
+npm test         # 335 automated checks: the decision engine, the money math, the whole lifecycle
 npm run typecheck
 npm run build
 ```
