@@ -8,16 +8,28 @@
  * other: caption, underline field, one capsule button, and the honesty line
  * under it. A server action runs the proposal-only agent and returns to the
  * Gate; the button shows a working state while the model thinks so the screen
- * never feels dead.
+ * never feels dead. While the ask is in flight the button also raises a
+ * module flag (`lib/askFlight`) that keeps the suggestion feed's heartbeat
+ * quiet, so the answer's navigation lands immediately instead of fighting
+ * poll requests (19 oct 2026).
  */
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { useFormStatus } from "react-dom";
 
 import { proposeFromGate } from "@/app/(app)/actions";
+import { setAskInFlight } from "@/lib/askFlight";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
+  // From submission until the answer's navigation commits, the feed heartbeat
+  // stays quiet (see lib/askFlight). The cleanup runs on every change and on
+  // unmount, so a page swap mid-ask can never leave the flag stuck up.
+  useEffect(() => {
+    setAskInFlight(pending);
+    return () => setAskInFlight(false);
+  }, [pending]);
   return (
     <button type="submit" className="btn btn-primary btn-block" disabled={pending}>
       {pending ? "Asking…" : "Ask the assistant"}

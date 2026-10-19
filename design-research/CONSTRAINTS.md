@@ -538,6 +538,32 @@ the *only* icon source in the build; nothing from external icon packages
    tests for every branch; the tool-set test now pins exactly two tools and
    still no payment tool; and the clock is proven by a hanging fake model
    (specificationVersion v4) that dies only when the abort fires.
+- (t) **The answer also lands at once: the feed heartbeat stays quiet while an
+   ask is in flight (19 oct 2026, same session as (s), owner: "fiz this
+   wrinkle").** The live receipt replay for (s) exposed a second, older
+   wrinkle: the server computed the named clarify sentence in 19 seconds, but
+   the answer took minutes to appear on screen. The suggestion feed's
+   heartbeat (feed-provider, a `surfaceNextFromGate` poll about every 30s)
+   kept requests in flight just as the ask's redirect navigation tried to
+   land; the browser log showed that navigation aborted (`net::ERR_ABORTED`)
+   and retried across cycles. The race predates the ask-box fix and only
+   occasionally loses (the day before, a receipt redirect landed promptly),
+   but a late answer on camera would spoil the filmed demo, and "never
+   silent" is worth little if "eventually" is minutes. The fix is one-way and
+   small: the ask box's submit button already reads `pending` via
+   `useFormStatus`, so it raises a module flag (`lib/askFlight.ts`) from
+   submission until the answer's navigation commits, clearing it on every
+   change and on unmount so a page swap mid-ask cannot leave it stuck; the
+   feed tick returns early while the flag is up. Skipping ticks is free by
+   the feed's own contract: the server enforces the real arrival gap, the
+   Gate already shows the true state, and a missing tick is not worth an
+   alarm. Scope decision, recorded deliberately: only the ask box raises the
+   flag, because it is the slow action (10-60s, reliably spanning 30s
+   boundaries); approve and decline take seconds, and if one is ever seen
+   colliding, the same flag covers it in one line. The flag contract is
+   pinned by its own test file (starts down, follows the last setter, ignores
+   repeats); the wiring's receipt is live: the replayed ask must show its
+   sentence within seconds of the server producing it, not minutes.
 
 ---
 

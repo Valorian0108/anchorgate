@@ -12,6 +12,7 @@ import {
 } from "react";
 
 import { surfaceNextFromGate, type GateDecisionResult } from "@/app/(app)/actions";
+import { isAskInFlight } from "@/lib/askFlight";
 import type { PurchaseRecord } from "@/core/purchases";
 
 /** How often the Gate asks the feed for the next item (the server enforces the real gap). */
@@ -89,6 +90,12 @@ export function FeedProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     const tick = async () => {
+      // While an ask is in flight, stay quiet. Its answer lands as a router
+      // navigation, and a poll request in flight at that moment makes the
+      // router abort and retry the navigation, delaying an already-computed
+      // sentence by minutes (measured live 19 oct 2026). A skipped tick is
+      // free: the next one catches up, and the server enforces the real gap.
+      if (isAskInFlight()) return;
       let result: GateDecisionResult | null = null;
       try {
         result = await surfaceNextFromGate();
