@@ -8,15 +8,23 @@ import { isReserved, latestEvaluation } from "@/lib/vocab";
 // Live data on every load — this screen IS the current state of the gate.
 export const dynamic = "force-dynamic";
 
+// The ask box's action gives the model call a hard 45-second clock
+// (AGENT_RUN_TIMEOUT_MS) and may then settle a trust-mode payment. 60 seconds
+// lets the action finish on its own terms, with its honest sentence, before
+// any platform limit kills it mid-flight: a killed function cannot redirect,
+// and a silent box is the one thing this product promises never to be. Per the
+// bundled Next.js docs, Server Actions take maxDuration from the page.
+export const maxDuration = 60;
+
 export default async function GatePage({
   searchParams,
 }: {
-  searchParams: Promise<{ ask?: string; why?: string; ref?: string }>;
+  searchParams: Promise<{ ask?: string; why?: string; ref?: string; missing?: string }>;
 }) {
   const owner = await verifyOwner();
 
-  const { ask, why, ref } = await searchParams;
-  const message = askMessageFor(ask, why, ref);
+  const { ask, why, ref, missing } = await searchParams;
+  const message = askMessageFor(ask, why, ref, missing);
 
   const service = getService(owner.userId);
   const budget = await service.budget();

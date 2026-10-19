@@ -1,9 +1,12 @@
 /**
  * The AI purchase agent (Phase 5).
  *
- * The agent's only capability is `propose_purchase`. It is told, unambiguously,
- * that it cannot approve or pay and that the engine's decision is final. Multi-
- * step generation is capped so a model cannot loop indefinitely "trying again".
+ * The agent's only capabilities are `propose_purchase` (file one request for
+ * the engine) and `ask_for_details` (report genuinely missing facts). It is
+ * told, unambiguously, that it cannot approve or pay and that the engine's
+ * decision is final. Multi-step generation is capped so a model cannot loop
+ * indefinitely "trying again", and the whole run sits behind a hard clock so a
+ * hung model can never leave the ask box silent (19 oct 2026).
  *
  * The agent is a thin composition: a language model + exactly one tool + the
  * instructions. The interesting safety logic lives in the deterministic core.
@@ -22,6 +25,11 @@ export interface PurchaseAgentDeps {
   proposals: ProposalService;
   /** The active rules, used only to describe the policy to the model. */
   rules: SpendingRules | null;
+  /**
+   * Hard clock for one run, in milliseconds. Injectable for tests; defaults
+   * to `AGENT_RUN_TIMEOUT_MS`.
+   */
+  timeoutMs?: number;
 }
 
 /** A tool call the model made, with its raw input. */
@@ -74,7 +82,8 @@ export function agentInstructions(rules: SpendingRules | null): string {
     "",
     "The engine's decision is final. You cannot change, override, or widen the rules.",
     "If a request is DENIED, do not split it, reword it, or otherwise try to work around the rule.",
-    "Ask a clarifying question only when the amount, the payee, or the purpose is genuinely missing.",
+    "When the amount, the payee, or the purpose is genuinely missing, call `ask_for_details` naming exactly which are missing.",
+    "Never invent a seller, a price, or a purpose to fill a gap, and never file a guess.",
     "When all three are present but the category is unclear, pick the closest permitted category and file the proposal; the engine and the owner decide next.",
     "",
     "Current spending rules:",
@@ -82,7 +91,20 @@ export function agentInstructions(rules: SpendingRules | null): string {
   ].join("\n");
 }
 
-/** Compose a language model, the single proposal tool, and the instructions. */
+/**
+ * The hard clock for one ask-box run (19 oct 2026).
+ *
+ * The model normally answers in 30-60 seconds. When it does not answer at all,
+ * the platform eventually kills the whole function, and a killed function
+ * cannot redirect: the box stays silent, the one outcome it must never
+ * produce. Cancelling at 45 seconds leaves the run time to throw into the
+ * action's catch block, which reports the honest "could not reach the model"
+ * sentence. Must stay below the gate page's `maxDuration` (60s) so this clock
+ * always fires first.
+ */
+export const AGENT_RUN_TIMEOUT_MS = 45_000;
+
+/** Compose a language model, the proposal tools, and the instructions. */
 export function createPurchaseAgent(deps: PurchaseAgentDeps): PurchaseAgent {
   const tools = createPurchaseTools(deps.proposals);
   const instructions = agentInstructions(deps.rules);
@@ -96,6 +118,10 @@ export function createPurchaseAgent(deps: PurchaseAgentDeps): PurchaseAgent {
         tools,
         // Allow the model to call the tool and then summarize the verdict.
         stopWhen: isStepCount(4),
+        // The hard clock: when the model hangs, this cancels the call and the
+        // run rejects into the action's error path instead of outliving the
+        // platform's own limit and taking the honest sentence down with it.
+        abortSignal: AbortSignal.timeout(deps.timeoutMs ?? AGENT_RUN_TIMEOUT_MS),
         prompt,
       });
 

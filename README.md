@@ -64,13 +64,7 @@ The promises:
 
 A built-in agent proposes items from a fixed catalog of fourteen, one at a time: a coffee subscription, printer paper, software seats, all the way up to a team flight. The loop runs from your first minute, with nothing to wire up.
 
-You can also type any purchase into the ask box in your own words. A model writes the proposal. The decision never involves a model.
-
-<!-- TODO before publishing: replace these slots with real screenshots
-     1. the gate: the wall on top, a card waiting on you, the ask box
-     2. a paid card: "your rules cleared it · paid once" with its PayPal reference
-     3. a record page: every check, the decision, the ALLOWED stamp, the signed proof
-     4. the Rules page: your limit, your exact-price list, the auto budget meter -->
+You can also type any purchase into the ask box in your own words. A model writes the proposal. The decision never involves a model. If your message is missing something the gate needs, the box says exactly what is missing. If the model cannot be reached, it says that too. It never stays silent.
 
 ## Run it yourself
 

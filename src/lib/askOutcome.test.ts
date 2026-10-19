@@ -7,12 +7,18 @@
 
 import { describe, expect, it } from "vitest";
 
+import {
+  ASK_DETAILS_TOOL,
+  PROPOSE_PURCHASE_TOOL,
+  type AgentRunResult,
+} from "@/agent";
 import { ReasonCode, type SpendingRules } from "@/core/authorization";
 
 import {
   askMessageFor,
   askPathFor,
   frontDoorReason,
+  outcomeFromRun,
   reasonFromSlug,
   type AskOutcome,
 } from "./askOutcome";
@@ -205,5 +211,109 @@ describe("askMessageFor", () => {
   it("shows nothing at all when there is no outcome code", () => {
     expect(askMessageFor(undefined, undefined)).toBeNull();
     expect(askMessageFor("unknown", undefined)).toBeNull();
+  });
+});
+
+describe("clarify with named missing facts (19 oct 2026)", () => {
+  it("carries the fact codes on the URL, in canonical order", () => {
+    expect(askPathFor({ kind: "clarify", missing: ["amount", "payee"] })).toBe(
+      "/?ask=clarify&missing=payee,amount",
+    );
+    expect(askPathFor({ kind: "clarify", missing: [] })).toBe("/?ask=clarify");
+    expect(askPathFor({ kind: "clarify" })).toBe("/?ask=clarify");
+  });
+
+  it("names exactly what the message lacked", () => {
+    expect(askMessageFor("clarify", undefined, undefined, "payee")?.text).toBe(
+      "Nothing was added below. Your message didn't say who gets paid. Add that and ask again.",
+    );
+    expect(askMessageFor("clarify", undefined, undefined, "amount,purpose")?.text).toBe(
+      "Nothing was added below. Your message didn't say the price or what it is for. Add both and ask again.",
+    );
+    expect(
+      askMessageFor("clarify", undefined, undefined, "payee,amount,purpose")?.text,
+    ).toBe(
+      "Nothing was added below. Your message didn't say who gets paid, the price, or what it is for. Add all three and ask again.",
+    );
+  });
+
+  it("drops codes it does not know and falls back to the generic sentence", () => {
+    expect(askMessageFor("clarify", undefined, undefined, "seller,,payee")?.text).toBe(
+      "Nothing was added below. Your message didn't say who gets paid. Add that and ask again.",
+    );
+    expect(askMessageFor("clarify", undefined, undefined, "seller")?.text).toBe(
+      "Nothing was added below. Tell it the amount, the seller, what it is for, and what kind of purchase it is (for example software, books, or meals), then ask again.",
+    );
+  });
+});
+
+describe("outcomeFromRun", () => {
+  const run = (
+    toolCalls: AgentRunResult["toolCalls"],
+    toolResults: AgentRunResult["toolResults"],
+  ): AgentRunResult => ({ text: "", steps: 1, toolCalls, toolResults });
+
+  it("reports the missing facts when the assistant used ask_for_details", () => {
+    const outcome = outcomeFromRun(
+      run(
+        [{ name: ASK_DETAILS_TOOL, input: { missing: ["payee"] } }],
+        [{ name: ASK_DETAILS_TOOL, output: { missing: ["payee"] } }],
+      ),
+      RULES,
+    );
+    expect(outcome).toEqual({ kind: "clarify", missing: ["payee"] });
+  });
+
+  it("keeps a filed fact stronger than a question", () => {
+    const outcome = outcomeFromRun(
+      run(
+        [
+          { name: ASK_DETAILS_TOOL, input: { missing: ["payee"] } },
+          { name: PROPOSE_PURCHASE_TOOL, input: INPUT },
+        ],
+        [
+          { name: ASK_DETAILS_TOOL, output: { missing: ["payee"] } },
+          {
+            name: PROPOSE_PURCHASE_TOOL,
+            output: {
+              decision: "ASK",
+              reasonCode: ReasonCode.APPROVAL_REQUIRED,
+              requestId: "req-1",
+            },
+          },
+        ],
+      ),
+      RULES,
+    );
+    expect(outcome).toEqual({
+      kind: "filed",
+      decision: "ASK",
+      reasonCode: ReasonCode.APPROVAL_REQUIRED,
+      requestId: "req-1",
+    });
+  });
+
+  it("falls back to the plain clarify on an empty or junk report", () => {
+    expect(
+      outcomeFromRun(run([], [{ name: ASK_DETAILS_TOOL, output: { missing: [] } }]), RULES),
+    ).toEqual({ kind: "clarify" });
+    expect(
+      outcomeFromRun(
+        run([], [{ name: ASK_DETAILS_TOOL, output: { missing: ["seller"] } }]),
+        RULES,
+      ),
+    ).toEqual({ kind: "clarify" });
+  });
+
+  it("still reconstructs the front-door reason for a rejected propose call", () => {
+    const outcome = outcomeFromRun(
+      run([{ name: PROPOSE_PURCHASE_TOOL, input: { ...INPUT, amountMinor: 0 } }], []),
+      RULES,
+    );
+    expect(outcome).toEqual({ kind: "unfiled", reasonCode: ReasonCode.INVALID_AMOUNT });
+  });
+
+  it("says clarify when the model called nothing at all", () => {
+    expect(outcomeFromRun(run([], []), RULES)).toEqual({ kind: "clarify" });
   });
 });

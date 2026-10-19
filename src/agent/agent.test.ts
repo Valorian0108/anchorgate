@@ -3,13 +3,15 @@
  *
  * These tests do not call a language model. They prove the properties that must
  * hold regardless of what the model does:
- *   - the agent has exactly one tool and no payment tool;
+ *   - the agent has only its two proposal tools and no payment tool;
  *   - that tool delegates to the deterministic engine and persists the request;
  *   - the service fails safe on missing rules and respects the hard cap;
  *   - configuration errors name missing variables but never leak values.
  */
 
 import { describe, expect, it } from "vitest";
+
+import type { LanguageModel } from "ai";
 
 import {
   InMemorySpendingRulesStore,
@@ -18,9 +20,14 @@ import {
 } from "../core/authorization";
 import { InMemoryPurchaseStore } from "../core/purchases";
 import { InMemorySpendingStore } from "../core/spending";
+import { agentInstructions, createPurchaseAgent } from "./agent";
 import { AgentConfigError, readAgentConfig, readAgentEndpoint } from "./config";
 import { describeRules, ProposalService } from "./proposal";
-import { createPurchaseTools, PROPOSE_PURCHASE_TOOL } from "./tools";
+import {
+  ASK_DETAILS_TOOL,
+  createPurchaseTools,
+  PROPOSE_PURCHASE_TOOL,
+} from "./tools";
 
 const NOW = new Date("2026-10-09T12:00:00.000Z");
 
@@ -173,14 +180,25 @@ describe("ProposalService (deterministic)", () => {
 });
 
 describe("agent tool set", () => {
-  it("exposes exactly one tool, propose_purchase, and no payment tool", () => {
+  it("exposes exactly two tools, propose_purchase and ask_for_details, and no payment tool", () => {
     const { service } = makeService();
     const tools = createPurchaseTools(service);
     const names = Object.keys(tools);
-    expect(names).toEqual([PROPOSE_PURCHASE_TOOL]);
+    expect(names).toEqual([PROPOSE_PURCHASE_TOOL, ASK_DETAILS_TOOL]);
     for (const name of names) {
       expect(name).not.toMatch(/pay|capture|refund|execute|approve|transfer/i);
     }
+  });
+
+  it("ask_for_details echoes the missing facts and files nothing", async () => {
+    const { service, purchases } = makeService();
+    const tools = createPurchaseTools(service);
+    const result = (await tools[ASK_DETAILS_TOOL].execute!(
+      { missing: ["payee"] },
+      { toolCallId: "call-2", messages: [], context: {} },
+    )) as { missing: string[] };
+    expect(result.missing).toEqual(["payee"]);
+    expect(await purchases.list()).toEqual([]);
   });
 
   it("returns the engine's decision and persists the request", async () => {
@@ -192,12 +210,58 @@ describe("agent tool set", () => {
       context: {},
     })) as { decision: string; requestId: string; decidedBy: string };
 
-    // With the shipped default rules (AI authorization off), the one tool the
-    // agent has can only ever come back ASK or DENY — never a self-approved
-    // ALLOW.
+    // With the shipped default rules (AI authorization off), the proposing
+    // tool can only ever come back ASK or DENY — never a self-approved ALLOW.
     expect(result.decision).toBe("ASK");
     expect(await purchases.getById(result.requestId)).not.toBeNull();
     expect(result.decidedBy).toContain("deterministic");
+  });
+});
+
+describe("the instructions", () => {
+  it("send the model to ask_for_details and forbid invented facts", () => {
+    const text = agentInstructions(RULES);
+    expect(text).toContain("ask_for_details");
+    expect(text).toContain("Never invent a seller, a price, or a purpose");
+  });
+});
+
+describe("the run clock (19 oct 2026)", () => {
+  /** A model that never answers but dies the moment the clock cancels it. */
+  function hangingModel(onAbort: () => void): LanguageModel {
+    return {
+      specificationVersion: "v4",
+      provider: "test",
+      modelId: "hanging-model",
+      doGenerate({ abortSignal }: { abortSignal?: AbortSignal }) {
+        return new Promise((_resolve, reject) => {
+          const fail = () => {
+            onAbort();
+            reject(new Error("cancelled by the run clock"));
+          };
+          if (abortSignal?.aborted) fail();
+          else abortSignal?.addEventListener("abort", fail, { once: true });
+        });
+      },
+      doStream() {
+        return Promise.reject(new Error("streaming is not used"));
+      },
+    } as unknown as LanguageModel;
+  }
+
+  it("cancels a hung model call when the clock expires, so the box can still answer", async () => {
+    let aborted = false;
+    const { service } = makeService();
+    const agent = createPurchaseAgent({
+      model: hangingModel(() => {
+        aborted = true;
+      }),
+      proposals: service,
+      rules: RULES,
+      timeoutMs: 100,
+    });
+    await expect(agent.run("a $10 ham sandwich")).rejects.toThrow();
+    expect(aborted).toBe(true);
   });
 });
 

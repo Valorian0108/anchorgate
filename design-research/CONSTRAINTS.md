@@ -502,6 +502,42 @@ the *only* icon source in the build; nothing from external icon packages
    prompt's disclosure of the list; with this rule in place an agent that
    reads the rules can auto-buy each listed item once a month inside the
    budget, which is precisely what trust mode promises, and nothing more.
+- (s) **The ask box never stays silent, and it names what is missing (19 oct
+   2026, owner decision after a live "$10 ham Sandwich" produced nothing).**
+   The owner typed "$10 ham Sandwich" into the live gate and got no response:
+   no card, no sentence. Diagnosis found the ask was never filed at all. The
+   model call had hung, nothing in the code put any clock on it, the platform
+   eventually killed the whole function, and a killed function cannot
+   redirect, so none of the box's honest sentences (including the already
+   existing "could not reach the model" one) could fire. A live replay on the
+   test account reproduced it: two minutes of stale page, then a browser
+   network error, nothing filed. That broke the box's founding promise, never
+   lie and never stay silent, and it was the only uncovered outcome: every
+   other path already ended in a sentence. The fix has two parts. (1) THE
+   CLOCK: every ask run now carries a hard 45-second abort
+   (`AGENT_RUN_TIMEOUT_MS`, an `AbortSignal.timeout` on the model call,
+   injectable for tests). A hung model now rejects into the action's existing
+   catch, which redirects to the already-tested "The assistant could not
+   reach the model right now" sentence. The gate page pins `maxDuration = 60`
+   (per the bundled Next.js docs, Server Actions take their ceiling from the
+   page), so the code's clock always fires before the platform's kill. (2)
+   THE NAMED ASK: the agent gains a second tool, `ask_for_details`, whose
+   only payload is a fixed enum of the genuinely missing facts (payee,
+   amount, purpose). The outcome carries them as short URL codes
+   (`?ask=clarify&missing=payee,amount`), so the no-free-text rule stands:
+   the model picks codes, the gate writes the sentence ("Nothing was added
+   below. Your message didn't say who gets paid. Add that and ask again.").
+   Unknown codes drop out; with nothing known left, the pre-existing generic
+   clarify sentence stands, so the fallback is never silent either. The
+   instructions now forbid inventing a seller, a price, or a purpose, which
+   is the root of the placeholder filings ("Unknown (please specify)") the
+   owner had to decline by hand on 18 oct. A filed fact always beats a
+   question: a run that both filed and asked reports the filing.
+   `outcomeFromRun` moved out of the `"use server"` file (where it could be
+   neither exported nor tested) into `lib/askOutcome.ts`, pinned by unit
+   tests for every branch; the tool-set test now pins exactly two tools and
+   still no payment tool; and the clock is proven by a hanging fake model
+   (specificationVersion v4) that dies only when the abort fires.
 
 ---
 

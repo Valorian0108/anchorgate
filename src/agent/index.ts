@@ -34,11 +34,13 @@ export {
 } from "./catalog";
 export type { CatalogItem } from "./catalog";
 export {
+  createAskDetailsTool,
   createProposePurchaseTool,
   createPurchaseTools,
+  ASK_DETAILS_TOOL,
   PROPOSE_PURCHASE_TOOL,
 } from "./tools";
-export { agentInstructions, createPurchaseAgent } from "./agent";
+export { agentInstructions, createPurchaseAgent, AGENT_RUN_TIMEOUT_MS } from "./agent";
 export type {
   AgentRunResult,
   AgentToolCallSummary,

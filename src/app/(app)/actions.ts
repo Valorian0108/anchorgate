@@ -21,16 +21,10 @@ import { InvalidToolInputError } from "ai";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { PROPOSE_PURCHASE_TOOL, type AgentRunResult } from "@/agent";
 import { CATALOG } from "@/agent/catalog";
-import {
-  ReasonCode,
-  type AuthorizationDecision,
-  type AutoAllowlistEntry,
-  type SpendingRules,
-} from "@/core/authorization";
+import { ReasonCode, type AutoAllowlistEntry } from "@/core/authorization";
 import { verifyOwner } from "@/lib/auth/dal";
-import { askPathFor, frontDoorReason, type AskOutcome } from "@/lib/askOutcome";
+import { askPathFor, outcomeFromRun, type AskOutcome } from "@/lib/askOutcome";
 import { shortRef } from "@/lib/format";
 import {
   buildTrustEntry,
@@ -48,48 +42,6 @@ import {
   surfaceNextCatalog,
 } from "@/lib/service";
 import type { PurchaseRecord } from "@/core/purchases";
-
-/** The verdict payload the propose tool returns (to the model, and to us). */
-interface ProposeToolOutput {
-  decision?: AuthorizationDecision;
-  reasonCode?: ReasonCode;
-  requestId?: string | null;
-}
-
-/**
- * Read what actually happened out of a finished agent run.
- *
- * A tool result means the engine ran: a request id means a record was filed,
- * no id means the engine saw a malformed request and filed nothing. A tool
- * call with no result means the tool contract rejected the input before the
- * engine (the front door), so the reason is reconstructed in the same order
- * the engine would have checked. No tool call at all means the assistant asked
- * for more detail instead of filing.
- */
-function outcomeFromRun(run: AgentRunResult, rules: SpendingRules | null): AskOutcome {
-  const results = run.toolResults.filter((r) => r.name === PROPOSE_PURCHASE_TOOL);
-  const lastResult = results.at(-1);
-  if (lastResult) {
-    const output = lastResult.output as ProposeToolOutput;
-    const reasonCode = output.reasonCode ?? ReasonCode.INVALID_REQUEST;
-    if (output.requestId) {
-      return {
-        kind: "filed",
-        decision: output.decision ?? "DENY",
-        reasonCode,
-        requestId: output.requestId,
-      };
-    }
-    return { kind: "unfiled", reasonCode };
-  }
-
-  const calls = run.toolCalls.filter((c) => c.name === PROPOSE_PURCHASE_TOOL);
-  const lastCall = calls.at(-1);
-  if (lastCall) {
-    return { kind: "unfiled", reasonCode: frontDoorReason(lastCall.input, rules) };
-  }
-  return { kind: "clarify" };
-}
 
 export async function proposeFromGate(formData: FormData): Promise<void> {
   const owner = await verifyOwner();
