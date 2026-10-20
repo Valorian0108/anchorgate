@@ -564,6 +564,22 @@ the *only* icon source in the build; nothing from external icon packages
    pinned by its own test file (starts down, follows the last setter, ignores
    repeats); the wiring's receipt is live: the replayed ask must show its
    sentence within seconds of the server producing it, not minutes.
+   Receipt delivered the same day (authtest, the exact "$10 ham Sandwich"
+   replay): the heartbeat was provably silent during the ask (network log: no
+   poll inside the whole ~24s action window), and the clean run landed
+   submit-to-sentence in 7.3 seconds (button "Asking…" at 0.6s), against
+   minutes the day before. One residual sliver, left open ON PURPOSE (owner
+   decision, option A, 19 oct 2026): the flag drops when the action resolves,
+   so a tick falling due inside the sub-second window before the navigation
+   commits can still stagger that one landing (observed once: 25-55s, still
+   never silent, never lost). Filming can retake; if a staggered landing is
+   ever seen in ordinary use, the agreed next step is one line, holding the
+   flag about two seconds past pending, not a redesign. Bonus evidence from
+   the same replays: one run reported only the payee missing (the model
+   judged "ham sandwich" purpose enough) where the day before it reported
+   payee and purpose; the gate's sentence adapted word for word both times,
+   proving the naming is computed, never canned. No replay filed anything;
+   the account is untouched.
 
 ---
 
