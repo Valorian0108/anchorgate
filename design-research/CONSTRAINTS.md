@@ -580,6 +580,33 @@ the *only* icon source in the build; nothing from external icon packages
    payee and purpose; the gate's sentence adapted word for word both times,
    proving the naming is computed, never canned. No replay filed anything;
    the account is untouched.
+- (u) **Nav clicks wait in silence, and stay that way ON PURPOSE (owner
+   decision, 21 oct 2026: "leave it").** The owner reported that clicking
+   from the Gate to Rules or Record "dosent respond immediately", and asked
+   whether that was a bug or the design. Answer, measured live on a warm
+   server: click-to-commit is 1.2 to 1.9 seconds per hop (five hops timed),
+   and after idle the first click also wakes the server, which adds seconds;
+   that variance is the "sometimes". The wait itself is canon: Rules and
+   Record are force-dynamic and read the live rules and the live ledger on
+   every visit, never from a cache, so the round trip is the price of numbers
+   that are always this second's truth. Hover prefetching was considered and
+   rejected: it burns a live database read per hover and can show numbers a
+   few seconds old, against the fresh-read rule. The gap is feedback, not
+   speed: the forms announce their pending state (useFormStatus in the ask box
+   and the decision buttons) while the nav keys announce nothing, so for one
+   to two seconds the screen offers no spinner, no skeleton, no change on the
+   clicked key. This Next version ships both canonical remedies (a route-level
+   loading fallback file, and a useLinkStatus pending hint on the clicked key
+   using the docs' debounced recipe: invisible for the first ~100ms, fading in
+   only on slow navigations, opacity and transform only, inside §7 motion).
+   They were offered as A page-level, B key-level, C both with C recommended;
+   the owner chose D, leave it. Accepted as recorded: the wait is honest,
+   nothing is ever lost, every click lands; the product's silence rule binds
+   outcomes (verdicts, answers), and navigation always delivers its outcome,
+   merely quietly. If the dead second ever becomes unacceptable (filming,
+   judge feedback), the remedy on record is C: one new file, a small nav
+   change, a few lines of canon-motion CSS. Not a caching redesign; the
+   freshness is not negotiable.
 
 ---
 
