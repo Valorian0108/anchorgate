@@ -607,6 +607,17 @@ the *only* icon source in the build; nothing from external icon packages
    judge feedback), the remedy on record is C: one new file, a small nav
    change, a few lines of canon-motion CSS. Not a caching redesign; the
    freshness is not negotiable.
+- (v) **The owner closes the build: thorough playtest, it works (24 oct
+   2026: "ive tested it throughly it works").** The final verdict on the
+   product itself: the owner played every path he cared about and reported
+   nothing new beyond the nav wait recorded in (u); no silence, no lost
+   money, no wrong number surfaced. Together with the 22 oct receipts (335 of
+   335 tests green, clean typecheck, remote tip 6a7ab2b), this closes the
+   build. From this date, changes come only from filming or judging
+   surprises, each waiting on the owner's word first, per the standing rule.
+   The two recorded leave-it decisions (the tail sliver in (t), the nav wait
+   in (u)) stand as the only known rough edges, both accepted, both with
+   their remedies on record.
 
 ---
 
