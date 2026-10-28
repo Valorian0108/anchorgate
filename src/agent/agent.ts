@@ -21,6 +21,13 @@ import { createPurchaseTools } from "./tools";
 export interface PurchaseAgentDeps {
   /** The language model to drive the agent. */
   model: LanguageModel;
+  /**
+   * Optional second model, tried only when a run on the primary fails with
+   * enough of the hard clock left to still answer (28 oct 2026). Both
+   * attempts share the ONE clock, so the run can never outlive the
+   * platform's limit no matter how many providers are configured.
+   */
+  fallbackModel?: LanguageModel;
   /** The deterministic proposal service the tool calls. */
   proposals: ProposalService;
   /** The active rules, used only to describe the policy to the model. */
@@ -104,26 +111,53 @@ export function agentInstructions(rules: SpendingRules | null): string {
  */
 export const AGENT_RUN_TIMEOUT_MS = 45_000;
 
+/**
+ * The smallest slice of the clock that makes a fallback attempt honest
+ * (28 oct 2026). A model answer normally takes 30-60 seconds; handing the
+ * backup less than this would almost guarantee a second failure and a
+ * slower honest sentence. When the primary ate the clock (a hang, not a
+ * fast refusal), the run reports the primary's failure straight away.
+ */
+export const FALLBACK_MIN_BUDGET_MS = 12_000;
+
 /** Compose a language model, the proposal tools, and the instructions. */
 export function createPurchaseAgent(deps: PurchaseAgentDeps): PurchaseAgent {
   const tools = createPurchaseTools(deps.proposals);
   const instructions = agentInstructions(deps.rules);
 
+  const call = (model: LanguageModel, budgetMs: number, prompt: string) =>
+    generateText({
+      model,
+      instructions,
+      tools,
+      // Allow the model to call the tool and then summarize the verdict.
+      stopWhen: isStepCount(4),
+      // The hard clock: when the model hangs, this cancels the call and the
+      // run rejects into the action's error path instead of outliving the
+      // platform's own limit and taking the honest sentence down with it.
+      abortSignal: AbortSignal.timeout(budgetMs),
+      prompt,
+    });
+
   return {
     tools,
     async run(prompt: string): Promise<AgentRunResult> {
-      const result = await generateText({
-        model: deps.model,
-        instructions,
-        tools,
-        // Allow the model to call the tool and then summarize the verdict.
-        stopWhen: isStepCount(4),
-        // The hard clock: when the model hangs, this cancels the call and the
-        // run rejects into the action's error path instead of outliving the
-        // platform's own limit and taking the honest sentence down with it.
-        abortSignal: AbortSignal.timeout(deps.timeoutMs ?? AGENT_RUN_TIMEOUT_MS),
-        prompt,
-      });
+      const budgetMs = deps.timeoutMs ?? AGENT_RUN_TIMEOUT_MS;
+      const deadline = Date.now() + budgetMs;
+
+      let result;
+      try {
+        result = await call(deps.model, budgetMs, prompt);
+      } catch (primaryError) {
+        // One shared clock across both attempts: the fallback gets whatever
+        // the primary left, and only when that is enough to answer. The run
+        // still can never outlive the platform's limit.
+        const remainingMs = deadline - Date.now();
+        if (!deps.fallbackModel || remainingMs < FALLBACK_MIN_BUDGET_MS) {
+          throw primaryError;
+        }
+        result = await call(deps.fallbackModel, remainingMs, prompt);
+      }
 
       return {
         text: result.text,

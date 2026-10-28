@@ -12,15 +12,20 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import type { LanguageModel } from "ai";
 
-import type { AgentConfig } from "./config";
+/** Everything needed to build one chat model: where, with what key, which model. */
+export interface AgentModelConfig {
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+}
 
 /**
- * Build the chat model for the agent from validated configuration.
- *
- * `AGENT_BASE_URL` must be the OpenAI-compatible endpoint (for Experiential
- * Labs: https://api.experientiallabs.ai/v1).
+ * Build a chat model from validated configuration. Works for the primary
+ * provider and, identically, for the optional fallback (28 oct 2026): both
+ * are OpenAI-compatible endpoints, so a fallback is a config change
+ * (`AGENT_BASE_URL_2` + `AGENT_MODEL_2`), not a code change.
  */
-export function createAgentModel(config: AgentConfig): LanguageModel {
+export function createAgentModel(config: AgentModelConfig): LanguageModel {
   const provider = createOpenAICompatible({
     name: "experiential-labs",
     apiKey: config.apiKey,

@@ -618,6 +618,28 @@ the *only* icon source in the build; nothing from external icon packages
    The two recorded leave-it decisions (the tail sliver in (t), the nav wait
    in (u)) stand as the only known rough edges, both accepted, both with
    their remedies on record.
+- (w) **First post-close change, on the owner's word: a fallback model
+   provider (28 oct 2026).** The owner reported the primary gateway
+   (Experiential Labs, deepseek-v4-flash) low on credit and asked for a
+   second key so "if one fails another picks up immediately". Shipped as an
+   env-gated chain, not a provider swap: `AGENT_API_KEY_2` /
+   `AGENT_BASE_URL_2` / `AGENT_MODEL_2` configure a backup OpenAI-compatible
+   endpoint (recorded backup: the Bitget hackathon gateway,
+   https://hackathon.bitgetops.com/v1, model `qwen3.8-max`; the hyphenated
+   name 404s there). The primary stays Experiential/deepseek, the path the
+   whole playtest and all 335 tests proved; the order is env-only, so
+   flipping it later is a config change. Safety shape: both attempts share
+   the ONE 45s clock (a fallback attempt needs >= 12s left, else the
+   primary's failure is reported straight away), so the run can never
+   outlive the platform's limit and the honest "could not reach the model"
+   sentence survives both-failing. The gate itself is untouched: the engine,
+   not any model, decides; a dead key could never spend money, this is a
+   convenience fix. Receipts: typecheck clean, 346 of 346 tests (11 new,
+   mocked generateText, in `src/agent/agent.fallback.test.ts`), plus one
+   live end-to-end run against the Bitget endpoint where qwen3.8-max called
+   propose_purchase, got ASK from the engine, and reported "human approval
+   required" honestly. Keys live only in `.env` (local) and Vercel env
+   (owner's hand), never in code, chat, or commits.
 
 ---
 

@@ -150,6 +150,9 @@ export async function getAgent(userId: string): Promise<PurchaseAgent> {
   });
   return createPurchaseAgent({
     model: createAgentModel(config),
+    // Optional second provider (28 oct 2026): built only when configured,
+    // tried only when the primary run fails with enough clock left.
+    fallbackModel: config.fallback ? createAgentModel(config.fallback) : undefined,
     proposals,
     rules,
   });

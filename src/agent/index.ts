@@ -8,12 +8,15 @@
 export {
   AgentConfigError,
   DEFAULT_AGENT_BASE_URL,
+  DEFAULT_AGENT_FALLBACK_BASE_URL,
   DEFAULT_AGENT_ID,
   readAgentConfig,
   readAgentEndpoint,
+  readAgentFallback,
 } from "./config";
-export type { AgentConfig, AgentEndpoint } from "./config";
+export type { AgentConfig, AgentEndpoint, AgentFallbackConfig } from "./config";
 export { createAgentModel } from "./model";
+export type { AgentModelConfig } from "./model";
 export { describeRules, ProposalService } from "./proposal";
 export type {
   ProposalInput,
@@ -40,7 +43,12 @@ export {
   ASK_DETAILS_TOOL,
   PROPOSE_PURCHASE_TOOL,
 } from "./tools";
-export { agentInstructions, createPurchaseAgent, AGENT_RUN_TIMEOUT_MS } from "./agent";
+export {
+  agentInstructions,
+  createPurchaseAgent,
+  AGENT_RUN_TIMEOUT_MS,
+  FALLBACK_MIN_BUDGET_MS,
+} from "./agent";
 export type {
   AgentRunResult,
   AgentToolCallSummary,
